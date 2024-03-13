@@ -4,18 +4,12 @@ import { configs } from '../configs';
 import { Connection, ConnectOptions, createConnection } from 'mongoose';
 import { Module } from '@nestjs/common';
 import { User, UserSchema } from './user.schema';
-import { Report, ReportSchema } from './report.schema';
-import { Incident, IncidentSchema } from './incident.schema';
 
 // All Schema Models
 export * from './data.log.schema';
-export * from './incident.schema';
-export * from './report.schema';
 export * from './user.schema';
 
 const SCHEMA_LIST = [
-  { name: Incident.name, schema: IncidentSchema, dbPrefix: 'APP' },
-  { name: Report.name, schema: ReportSchema, dbPrefix: 'APP' },
   { name: User.name, schema: UserSchema, dbPrefix: 'APP' },
   { name: DataLog.name, schema: DataLogSchema, dbPrefix: 'LOG' },
 ];
