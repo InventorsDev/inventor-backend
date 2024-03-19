@@ -1,9 +1,8 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { AppleAuthUtil, BcryptUtil, GoogleAuthUtil, splitName } from '../utils';
+import { BcryptUtil, firstCapitalize } from '../utils';
 import { User, UserDocument } from '../schema/user.schema';
 import { ApiReq, UserStatus } from '../interfaces';
 import { JwtService } from '@nestjs/jwt';
-import { faker } from '@faker-js/faker';
 import { Model } from 'mongoose';
 
 @Injectable()
@@ -46,17 +45,13 @@ export class AuthService {
     return {
       _id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: firstCapitalize(user.firstName),
+      lastName: firstCapitalize(user.lastName),
       role: user.role,
       created_at: user.created_at,
       updated_at: user.updated_at,
     };
   }
-
-  // async signup(req, createUserhDto: CreateUserDto) {
-  //   return await this.usersModel.create(createUserhDto);
-  // }
 
   async login(req: ApiReq) {
     const user: User & any = req.user;
