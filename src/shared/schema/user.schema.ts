@@ -22,7 +22,6 @@ import {
 } from '../utils';
 import { BadRequestException } from '@nestjs/common';
 import { CreateUserDto } from '../dtos/create-user.dto';
-import { CreateOAUTHUserDto } from '../dtos/create-oauth-user.dto';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -230,7 +229,7 @@ UserSchema.statics.generateUserHandle = async function generateUserHandle(
 
 UserSchema.statics.signUp = async function signUp(
   req: ApiReq,
-  createUserDto: CreateUserDto | CreateOAUTHUserDto,
+  createUserDto: CreateUserDto,
   sso: boolean = false,
 ) {
   passwordMatch(createUserDto.password.trim());
