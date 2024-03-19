@@ -15,7 +15,6 @@ import { UserLoginDto } from '../dtos/user-login.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LocalUsersGuard } from './guards/local.users.guard';
 import { JwtUsersGuard } from './guards/jwt.users.guard';
-import { UserOauthLoginDto } from '../dtos/user-oauth-login.dto';
 import { User, UserDocument } from '../schema';
 import { Model } from 'mongoose';
 
@@ -68,21 +67,5 @@ export class AuthController {
   @Post('/:email/forget-password')
   async forgetPassword(@Param('email') email: string) {
     return (this.userModel as any).forgetPassword(email);
-  }
-
-  @Post('/login/oauth-google')
-  async googleOauthLogin(
-    @Request() req: ApiReq,
-    @Body() userOauthLoginDto: UserOauthLoginDto,
-  ) {
-    return this.authService.googleOauthLogin(req);
-  }
-
-  @Post('/login/oauth-apple')
-  async appleOauthLogin(
-    @Request() req: ApiReq,
-    @Body() userOauthLoginDto: UserOauthLoginDto,
-  ) {
-    return this.authService.appleOauthLogin(req);
   }
 }

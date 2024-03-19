@@ -1,6 +1,13 @@
 import { Prop, Schema, raw, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { Contact, ContactRawSchema, Socials, SocialsRawSchema, UserStatus, UserRole } from '../interfaces/user.type';
+import {
+  Contact,
+  ContactRawSchema,
+  Socials,
+  SocialsRawSchema,
+  UserStatus,
+  UserRole,
+} from '../interfaces/user.type';
 import { ApiReq, EmailFromType } from '../interfaces';
 import { faker } from '@faker-js/faker';
 import {

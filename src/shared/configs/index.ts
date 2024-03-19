@@ -39,5 +39,5 @@ export const configs = () => ({
       generalEmailVerification: 'email-verification',
       userBirthdayNotification: 'user-birthday-notification',
     },
-  }
+  },
 });
