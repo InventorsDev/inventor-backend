@@ -115,7 +115,7 @@ UserSchema.statics.sendEmailVerificationToken =
       email: 1,
       firstName: 1,
     });
-    const emailVerificationKey = `watche:users:email:verification:${userId}`;
+    const emailVerificationKey = `inventors:users:email:verification:${userId}`;
     const token = faker.datatype.number({ min: 100_000, max: 999_999 });
     await redisSet(
       emailVerificationKey,
@@ -145,7 +145,7 @@ UserSchema.statics.sendEmailVerificationToken =
   };
 
 UserSchema.statics.verifyEmail = async function verifyEmail(userId, token) {
-  const emailVerificationKey = `watche:users:email:verification:${userId}`;
+  const emailVerificationKey = `inventors:users:email:verification:${userId}`;
   const tokenDetails = await redisGet(emailVerificationKey);
   console.log('TOKEN-DETAILS', tokenDetails);
   if (tokenDetails?.token?.toString() === token) {
@@ -188,7 +188,7 @@ UserSchema.statics.forgetPassword = async function forgetPassword(
   sendMail({
     to: user.email,
     from: EmailFromType.HELLO,
-    subject: 'Password Change',
+    subject: 'Reset Your Password - Action Required',
     template: getMailTemplate().generalPasswordChange,
     templateVariables: {
       password: newPassword,
@@ -262,7 +262,7 @@ UserSchema.statics.signUp = async function signUp(
   sendMail({
     to: data.email,
     from: EmailFromType.HELLO,
-    subject: 'Step into Secure Horizons: Welcome to Routewatche!',
+    subject: 'Welcome to Our Developer Community at Inventors!',
     template: getMailTemplate().generalSignUp,
     templateVariables: {
       firstName: data.firstName,
