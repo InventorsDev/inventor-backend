@@ -1,6 +1,15 @@
 export enum UserRole {
   ADMIN = 'ADMIN',
+  LEAD = 'LEAD',
+  WRITER = 'WRITER',
+  MODERATOR = 'MODERATOR',
   USER = 'USER',
+}
+
+export enum RegistrationMethod {
+  SIGN_UP = 'SIGN_UP',
+  INVITATION = 'INVITATION',
+  REFERRALS = 'REFERRALS',
 }
 
 export enum UserStatus {
@@ -29,6 +38,6 @@ export const SocialsRawSchema = {
   email: { type: String },
 };
 
-export const userTypes = Object.values(UserRole);
-
+export const userRoles = Object.values(UserRole);
 export const userStatuses = Object.values(UserStatus);
+export const registrationMethods = Object.values(RegistrationMethod);

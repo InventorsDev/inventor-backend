@@ -7,6 +7,7 @@ import {
   SocialsRawSchema,
   UserStatus,
   UserRole,
+  RegistrationMethod,
 } from '../interfaces/user.type';
 import { ApiReq, EmailFromType } from '../interfaces';
 import { faker } from '@faker-js/faker';
@@ -22,6 +23,7 @@ import {
 } from '../utils';
 import { BadRequestException } from '@nestjs/common';
 import { CreateUserDto } from '../dtos/create-user.dto';
+import { UserInviteDto } from 'src/users/dto/user-invite.dto';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -39,13 +41,13 @@ export class User {
   @Prop({ required: true })
   password: string;
 
-  @Prop({ required: true })
+  @Prop({ index: true })
   profileSummary: string;
 
-  @Prop({ required: true })
+  @Prop({ index: true })
   jobTitle: string;
 
-  @Prop({ required: true })
+  @Prop({ index: true })
   currentCompany: string;
 
   @Prop()
@@ -57,7 +59,7 @@ export class User {
   @Prop({ index: true })
   phone: string;
 
-  @Prop({ index: true, unique: true })
+  @Prop({ index: true, unique: true, required: true })
   userHandle: string;
 
   @Prop({ index: true })
@@ -71,7 +73,7 @@ export class User {
     },
     coordinates: {
       type: [Number],
-      required: true,
+      required: false,
     },
   })
   location: {
@@ -87,9 +89,15 @@ export class User {
 
   @Prop({
     index: true,
-    default: UserRole.USER,
+    default: [UserRole.USER],
   })
-  role: UserRole;
+  role: UserRole[];
+
+  @Prop({
+    index: true,
+    default: RegistrationMethod.SIGN_UP,
+  })
+  joinMethod: RegistrationMethod;
 
   @Prop({
     index: true,
@@ -100,8 +108,8 @@ export class User {
   @Prop({ index: true, default: false })
   emailVerification: boolean;
 
-  @Prop({ type: [raw(ContactRawSchema)], default: [] })
-  contacts: Contact;
+  @Prop({ index: true, default: false })
+  pendingInvitation: boolean;
 
   @Prop(raw(SocialsRawSchema))
   socials: Socials;
@@ -147,7 +155,6 @@ UserSchema.statics.sendEmailVerificationToken =
 UserSchema.statics.verifyEmail = async function verifyEmail(userId, token) {
   const emailVerificationKey = `inventors:users:email:verification:${userId}`;
   const tokenDetails = await redisGet(emailVerificationKey);
-  console.log('TOKEN-DETAILS', tokenDetails);
   if (tokenDetails?.token?.toString() === token) {
     await this.updateOne(
       { _id: new Types.ObjectId(tokenDetails.userId) },
@@ -184,6 +191,8 @@ UserSchema.statics.forgetPassword = async function forgetPassword(
 
   const newPassword = faker.internet.password(5) + '$?wE';
   const password = await BcryptUtil.generateHash(newPassword);
+
+  console.log('Password', newPassword, password);
 
   sendMail({
     to: user.email,
@@ -229,17 +238,26 @@ UserSchema.statics.generateUserHandle = async function generateUserHandle(
 
 UserSchema.statics.signUp = async function signUp(
   req: ApiReq,
-  createUserDto: CreateUserDto,
+  createUserDto: CreateUserDto | UserInviteDto,
   sso: boolean = false,
 ) {
-  passwordMatch(createUserDto.password.trim());
-  const password = await BcryptUtil.generateHash(createUserDto.password.trim());
+
+  let generatePassword: string;
+  if ('password' in createUserDto) {
+    const createUserDtoWithType = createUserDto as CreateUserDto;
+    generatePassword = createUserDtoWithType.password.trim();
+  } else {
+    generatePassword = faker.internet.password({length: 5}) + '$?wE';
+  }
+  passwordMatch(generatePassword);
+
+  const password = await BcryptUtil.generateHash(generatePassword);
   const email = createUserDto.email.trim().toLowerCase();
 
   const existingUser = await this.findOne({ email }, { _id: 1 });
   if (existingUser)
     throw new BadRequestException(
-      'User already exists. Sign into your account',
+      'User already exists.',
     );
 
   const data: any = {
@@ -248,8 +266,13 @@ UserSchema.statics.signUp = async function signUp(
     lastName: firstCapitalize(createUserDto.lastName.trim()),
     email,
     password,
-    type: UserRole.USER,
+    role: [ UserRole.USER ],
   };
+
+  if(req.query.invitation === RegistrationMethod.INVITATION){
+    data.pendingInvitation = true;
+  }
+
   data.userHandle = await (this as any).generateUserHandle(email);
   const record = await this.create(data);
   const [details, user] = await Promise.all([
