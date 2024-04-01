@@ -33,11 +33,11 @@ export const configs = () => ({
     },
     templates: {
       generalSignUp: 'inventors-welcome',
-      generalAccountDeletion: 'account-deletion',
-      generalPasswordChange: 'password-change',
-      generalLogin: 'signin-notification',
-      generalEmailVerification: 'email-verification',
-      userBirthdayNotification: 'user-birthday-notification',
+      generalAccountDeletion: 'inventors-account-deletion',
+      generalPasswordChange: 'inventors-password-change',
+      generalLogin: 'inventors-signin-notification',
+      generalEmailVerification: 'inventors-email-verification',
+      userBirthdayNotification: 'inventors-birthday-notification',
     },
   },
 });

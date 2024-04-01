@@ -46,8 +46,6 @@ export const buildQuery = (
       case 'metricDateRange':
       case 'dataLogDateRange':
       case 'userDateRange':
-      case 'incidentDateRange':
-      case 'reportDateRange':
         filters.push({
           $or: getDateRangeQuery(value, ['metricDateRange'].includes(key)),
         });
@@ -60,7 +58,6 @@ export const buildQuery = (
           { key: 'lastName' },
           { key: 'phone' },
           { key: 'email' },
-          { key: 'status' },
         ];
         filters.push({ $or: regexSearches(searchFields, value) });
         break;
@@ -72,60 +69,8 @@ export const buildQuery = (
       case 'userByStatuses':
         filters.push({ status: { $in: value } });
         break;
-
-      /** All Incident Queries */
-      case 'activeIncident':
-        filters.push({ active: value[0] === '1' || value[0] === 'true' });
-        break;
-      case 'incidentSearch':
-        searchFields = [
-          { key: 'description' },
-          { key: 'natureOfIncident' },
-          { key: 'title' },
-        ];
-        filters.push({ $or: regexSearches(searchFields, value) });
-        break;
-      case 'incidentIds':
-        filters.push({ _id: { $in: value.map((v) => new Types.ObjectId(v)) } });
-        break;
-      case 'incidentsByNature':
-        filters.push({ natureOfIncident: { $in: value } });
-        break;
-      case 'incidentUserId':
-        filters.push({ user: new Types.ObjectId(value[0]) });
-        break;
-      case 'incidentByLocationRange':
-        if (value.length === 3) {
-          filters.push(getLocationRangeQuery(value[0], value[1], value[2]));
-        } else {
-          throw new BadRequestException(
-            'expecting 3 values seperated by comma, got ' + value.length,
-          );
-        }
-        break;
-
-      /** All Report Queries */
-      case 'reportSearch':
-        searchFields = [
-          { key: 'details' },
-          { key: 'natureOfReport' },
-          { key: 'name' },
-          { key: 'email' },
-          { key: 'phone' },
-        ];
-        filters.push({ $or: regexSearches(searchFields, value) });
-        break;
-      case 'reportsByNature':
-        filters.push({ natureOfReport: { $in: value } });
-        break;
-      case 'reportsByReporterType':
-        filters.push({ reporterType: { $in: value } });
-        break;
-      case 'reportIds':
-        filters.push({ _id: { $in: value.map((v) => new Types.ObjectId(v)) } });
-        break;
-      case 'reportByStatuses':
-        filters.push({ status: { $in: value } });
+      case 'userByRoles':
+        filters.push({ roles: { $in: value } });
         break;
     }
   }

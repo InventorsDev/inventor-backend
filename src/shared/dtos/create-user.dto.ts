@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsDefined, IsEmail, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { LocationDto } from './location.dto';
+import { RegistrationMethod, registrationMethods } from '../interfaces';
+import { BadRequestException } from '@nestjs/common';
 
 export class CreateUserDto {
   @ApiProperty()
@@ -21,6 +23,18 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   lastName: string;
+
+  @ApiProperty({ enumName: 'UserRegistrationType', enum: registrationMethods })
+  @IsDefined()
+  @IsString()
+  @IsNotEmpty()
+  @ValidateIf((data) => {
+    if (!registrationMethods.includes(data.joinMethod)) {
+      throw new BadRequestException('Please supply a valid sign up options');
+    }
+    return true;
+  })
+  joinMethod: RegistrationMethod;
 
   @ApiProperty({ type: LocationDto })
   @IsNotEmpty()

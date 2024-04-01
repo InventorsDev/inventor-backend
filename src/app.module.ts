@@ -6,6 +6,7 @@ import { LogInterceptor } from './shared/interceptors';
 import { AllExceptionsFilter } from './shared/exceptions';
 import { AuthModule } from './shared/auth/auth.module';
 import { DataLogsModule } from './shared/datalogs';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { DataLogsModule } from './shared/datalogs';
       },
     ]),
     DataLogsModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [
