@@ -118,4 +118,13 @@ export class UsersController {
   async addPhoto(@Request() req: ApiReq, @Body() payload: UserAddPhotoDto) {
     return this.usersService.addPhoto(req.user._id.toString(), payload);
   }
+  @ApiBearerAuth()
+  @UseGuards(JwtUsersGuard)
+  @Patch(':userId/request-verification')
+  async RequestVerificationToken(
+    @Request() req: ApiReq,
+    @Param('userId') userId: string,
+  ) {
+    return this.usersService.requestVerification(req, userId);
+  }
 }

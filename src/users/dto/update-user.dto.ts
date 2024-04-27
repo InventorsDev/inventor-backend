@@ -14,7 +14,6 @@ import { UserRole, userRoles } from 'src/shared/interfaces';
 import { validateNumber } from 'src/shared/utils';
 
 export class UpdateUserDto {
-
   @ApiProperty()
   @IsString()
   @IsOptional()
@@ -90,4 +89,3 @@ export class UpdateUserDto {
   @IsString()
   userId: string;
 }
-
