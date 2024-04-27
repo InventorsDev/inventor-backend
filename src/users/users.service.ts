@@ -13,12 +13,13 @@ import { User, UserDocument } from 'src/shared/schema';
 import { BcryptUtil, CloudinaryFolders, firstCapitalize, getMailTemplate, getPaginated, getPagingParams, passwordMatch, sendMail, uploadToCloudinary, verifyHandle } from 'src/shared/utils';
 import { ApiReq, EmailFromType, UserRole, UserStatus } from 'src/shared/interfaces';
 import { UserInviteDto } from './dto/user-invite.dto';
+import * as sizeOf from 'image-size';
 
 @Injectable()
 export class UsersService {
   constructor(
     @Inject(User.name)
-    private readonly userModel: Model<UserDocument>) {}
+    private readonly userModel: Model<UserDocument>) { }
 
 
   sendEmailVerificationToken(req: any, userId: string) {
@@ -82,9 +83,9 @@ export class UsersService {
     return user;
   }
 
-  async findByEmail(email: string, project: any = {}): Promise<User>  {
+  async findByEmail(email: string, project: any = {}): Promise<User> {
     const user = await this.userModel
-      .findOne({email, status: UserStatus.ACTIVE}, project, { lean: true })
+      .findOne({ email, status: UserStatus.ACTIVE }, project, { lean: true })
       .select('-password')
       .exec();
     if (!user) {
@@ -99,7 +100,7 @@ export class UsersService {
       throw new BadRequestException('Photo must include a data image');
     }
 
-    const updateData = payload ;
+    const updateData = payload;
     if (firstName) payload.firstName = firstCapitalize(firstName.trim());
     if (lastName) payload.lastName = firstCapitalize(lastName.trim());
     if (userHandle) {
@@ -113,7 +114,7 @@ export class UsersService {
         CloudinaryFolders.PHOTOS,
       );
     }
-    
+
     return this.userModel
       .findOneAndUpdate(
         { _id: new Types.ObjectId(userId) },
@@ -129,9 +130,13 @@ export class UsersService {
   async addPhoto(userId: string, payload: UserAddPhotoDto): Promise<User> {
     const { photo } = payload;
 
+    //Check for bit depth of the uploaded image
+
+    //Upload photo to Cloudinary
+    const photoLink = await uploadToCloudinary(photo, CloudinaryFolders.PHOTOS)
     return this.userModel.findOneAndUpdate(
       { _id: new Types.ObjectId(userId) },
-      { $set: { photo } },
+      { $set: { photoLink } },
       {
         new: true,
         lean: true,
@@ -147,7 +152,7 @@ export class UsersService {
     return deletedUser;
   }
 
-  async findMe(req: ApiReq): Promise<User>  {
+  async findMe(req: ApiReq): Promise<User> {
     return await this.userModel
       .findOne(
         { _id: new Types.ObjectId(req.user._id.toString()) },
