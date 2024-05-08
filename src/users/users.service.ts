@@ -31,7 +31,6 @@ import {
 import { UserInviteDto } from './dto/user-invite.dto';
 import { VerificationStatus } from 'src/shared/interfaces/user.type';
 
-
 @Injectable()
 export class UsersService {
   constructor(
@@ -275,6 +274,7 @@ export class UsersService {
   }
 
   async requestVerification(req: ApiReq, userId: string) {
+    
     //1. Retrieve user information and check that user exists
     const user = await this.userModel.findById(userId);
     if (!user) {
@@ -283,7 +283,10 @@ export class UsersService {
 
     //2. Check that current date > nextRequestVerificationDate
     const currentDate = new Date();
-    if (user.nextVerificationRequestDate && currentDate < user.nextVerificationRequestDate) {
+    if (
+      user.nextVerificationRequestDate &&
+      currentDate < user.nextVerificationRequestDate
+    ) {
       throw new Error('Verification request not allowed at this time');
     }
 
@@ -302,4 +305,3 @@ export class UsersService {
     await user.save();
   }
 }
-
