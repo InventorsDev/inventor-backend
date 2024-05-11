@@ -10,8 +10,25 @@ import { faker } from '@faker-js/faker';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { User, UserDocument } from 'src/shared/schema';
-import { BcryptUtil, CloudinaryFolders, firstCapitalize, getMailTemplate, getPaginated, getPagingParams, passwordMatch, sendMail, uploadToCloudinary, verifyHandle } from 'src/shared/utils';
-import { ApiReq, EmailFromType, UserRole, UserStatus } from 'src/shared/interfaces';
+import {
+  BcryptUtil,
+  CloudinaryFolders,
+  addPhotos,
+  firstCapitalize,
+  getMailTemplate,
+  getPaginated,
+  getPagingParams,
+  passwordMatch,
+  sendMail,
+  uploadToCloudinary,
+  verifyHandle,
+} from 'src/shared/utils';
+import {
+  ApiReq,
+  EmailFromType,
+  UserRole,
+  UserStatus,
+} from 'src/shared/interfaces';
 import { UserInviteDto } from './dto/user-invite.dto';
 import * as sizeOf from 'image-size';
 
@@ -19,11 +36,11 @@ import * as sizeOf from 'image-size';
 export class UsersService {
   constructor(
     @Inject(User.name)
-    private readonly userModel: Model<UserDocument>) { }
-
+    private readonly userModel: Model<UserDocument>,
+  ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
-    (this.userModel as any).sendEmailVerificationToken(req, userId)
+    (this.userModel as any).sendEmailVerificationToken(req, userId);
   }
 
   private async verifyUserHandle(handle: string, userId: string) {
@@ -42,7 +59,9 @@ export class UsersService {
   }
 
   async userInvite(payload: UserInviteDto): Promise<User> {
-    const password = await BcryptUtil.generateHash(faker.internet.password(5) + '$?wE');
+    const password = await BcryptUtil.generateHash(
+      faker.internet.password(5) + '$?wE',
+    );
     const email = payload.email.trim().toLowerCase();
     return this.userModel.create({
       firstName: firstCapitalize(payload.firstName.trim()),
@@ -104,7 +123,7 @@ export class UsersService {
     if (firstName) payload.firstName = firstCapitalize(firstName.trim());
     if (lastName) payload.lastName = firstCapitalize(lastName.trim());
     if (userHandle) {
-      payload.userHandle = userHandle.toLowerCase().trim().replace(/@/g, '')
+      payload.userHandle = userHandle.toLowerCase().trim().replace(/@/g, '');
       await this.verifyUserHandle(updateData.userHandle, userId);
     }
 
@@ -128,15 +147,11 @@ export class UsersService {
   }
 
   async addPhoto(userId: string, payload: UserAddPhotoDto): Promise<User> {
-    const { photo } = payload;
+    const photo = await uploadToCloudinary(payload.photo);
 
-    //Check for bit depth of the uploaded image
-
-    //Upload photo to Cloudinary
-    const photoLink = await uploadToCloudinary(photo, CloudinaryFolders.PHOTOS)
     return this.userModel.findOneAndUpdate(
       { _id: new Types.ObjectId(userId) },
-      { $set: { photoLink } },
+      { $set: { photo } },
       {
         new: true,
         lean: true,
