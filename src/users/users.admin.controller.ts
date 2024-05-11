@@ -161,11 +161,11 @@ export class UsersAdminsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Post('users/:userId/email-verification')
-  async sendEmailVerificationToken(
+  @Patch('users/:userId/request-verification')
+  async RequestVerificationToken(
     @Request() req: ApiReq,
     @Param('userId') userId: string,
   ) {
-    return this.usersService.sendEmailVerificationToken(req, userId);
+    return this.usersService.requestVerification(req, userId);
   }
 }

@@ -13,7 +13,6 @@ import { User, UserDocument } from 'src/shared/schema';
 import {
   BcryptUtil,
   CloudinaryFolders,
-  addPhotos,
   firstCapitalize,
   getMailTemplate,
   getPaginated,
@@ -30,7 +29,6 @@ import {
   UserStatus,
 } from 'src/shared/interfaces';
 import { UserInviteDto } from './dto/user-invite.dto';
-import * as sizeOf from 'image-size';
 
 @Injectable()
 export class UsersService {
@@ -273,4 +271,33 @@ export class UsersService {
       )
       .select('email firstName lastName');
   }
+
+  async requestVerification(req: ApiReq, userId: string) {
+    //1. Retrieve user information and check that user exists
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    //2. Check that current date > nextRequestVerificationDate
+    const currentDate = new Date();
+    if (user.nextVerificationRequestDate && currentDate < user.nextVerificationRequestDate) {
+      throw new Error('Verification request not allowed at this time');
+    }
+
+    //3. Check that the user verification status is not verified
+    if (user.verificationStatus === VerificationStatus.VERIFIED) {
+      throw new Error('User is already verified');
+    }
+
+    //4. Update user verification status and next verification date to 3 months from now
+    user.verificationStatus = VerificationStatus.PENDING;
+    const nextVerificationDate = new Date();
+    nextVerificationDate.setMonth(nextVerificationDate.getMonth() + 3);
+    user.nextVerificationRequestDate = nextVerificationDate;
+
+    //5. Save the updated user
+    await user.save();
+  }
 }
+
