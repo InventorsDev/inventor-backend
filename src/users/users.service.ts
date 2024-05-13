@@ -30,7 +30,6 @@ import {
   UserStatus,
 } from 'src/shared/interfaces';
 import { UserInviteDto } from './dto/user-invite.dto';
-import * as sizeOf from 'image-size';
 
 @Injectable()
 export class UsersService {
