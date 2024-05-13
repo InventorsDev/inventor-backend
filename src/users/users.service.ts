@@ -30,14 +30,12 @@ import {
 } from 'src/shared/interfaces';
 import { UserInviteDto } from './dto/user-invite.dto';
 import { VerificationStatus } from 'src/shared/interfaces/user.type';
-
-
 @Injectable()
 export class UsersService {
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
-  ) {}
+  ) { }
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
@@ -147,7 +145,7 @@ export class UsersService {
   }
 
   async addPhoto(userId: string, payload: UserAddPhotoDto): Promise<User> {
-    const { photo } = payload;
+    const photo = await uploadToCloudinary(payload.photo);
 
     return this.userModel.findOneAndUpdate(
       { _id: new Types.ObjectId(userId) },

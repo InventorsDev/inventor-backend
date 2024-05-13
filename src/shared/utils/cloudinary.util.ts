@@ -9,7 +9,10 @@ export enum CloudinaryFolders {
   DOCUMENTS = 'documents',
 }
 
-export const uploadToCloudinary = async (dataURL: string, folder: string) => {
+export const uploadToCloudinary = async (
+  dataURL: string,
+  folder: string = CloudinaryFolders.PHOTOS,
+) => {
   try {
     const uploaded = await cloudinary.v2.uploader.upload(dataURL, { folder });
     return uploaded.secure_url;
