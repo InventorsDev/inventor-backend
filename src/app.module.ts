@@ -7,6 +7,8 @@ import { AllExceptionsFilter } from './shared/exceptions';
 import { AuthModule } from './shared/auth/auth.module';
 import { DataLogsModule } from './shared/datalogs';
 import { UsersModule } from './users/users.module';
+import { LinkModel,LinkSchema } from './users/link.model'; // Import LinkModel
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { UsersModule } from './users/users.module';
     ]),
     DataLogsModule,
     UsersModule,
+    MongooseModule.forRoot('mongodb://localhost:27017/inventor_app'),
+    MongooseModule.forFeature([{ name: 'Link', schema: LinkSchema }]),
   ],
   controllers: [AppController],
   providers: [

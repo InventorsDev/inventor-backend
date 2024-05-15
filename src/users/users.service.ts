@@ -30,11 +30,16 @@ import {
 } from 'src/shared/interfaces';
 import { UserInviteDto } from './dto/user-invite.dto';
 import { VerificationStatus } from 'src/shared/interfaces/user.type';
+import { v4 as uuidv4 } from 'uuid';
+import { ILink } from './link.model';
+import { InjectModel } from '@nestjs/mongoose';
+
 @Injectable()
 export class UsersService {
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
+    @InjectModel('Link') private readonly linkModel: Model<ILink>,
   ) { }
 
   sendEmailVerificationToken(req: any, userId: string) {
@@ -298,6 +303,18 @@ export class UsersService {
 
     //5. Save the updated user
     await user.save();
+  }
+
+  async generateUniqueLink(roles: string[]): Promise<string> {
+    const uniqueId = uuidv4();
+    const link = `https://[::1]:3888/register/${uniqueId}`; 
+    try{
+      await this.linkModel.create({ link, roles });
+      return link;
+    }
+    catch(error){
+      throw new Error(`Unable to save invite link: ${error.message}`)
+    }
   }
 }
 
