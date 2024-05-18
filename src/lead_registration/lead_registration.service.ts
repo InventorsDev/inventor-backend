@@ -14,6 +14,7 @@ export class LeadRegistrationService {
       // throw error
       throw new NotFoundException(`user with Id ${userId} not found`);
     }
+    // save registration infor
     const newRegistration = {
       id: this.registrations.length+1, 
       userId, 
