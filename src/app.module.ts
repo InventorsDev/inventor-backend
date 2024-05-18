@@ -7,6 +7,7 @@ import { AllExceptionsFilter } from './shared/exceptions';
 import { AuthModule } from './shared/auth/auth.module';
 import { DataLogsModule } from './shared/datalogs';
 import { UsersModule } from './users/users.module';
+import { LeadRegistrationModule } from './lead_registration/lead_registration.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { UsersModule } from './users/users.module';
     ]),
     DataLogsModule,
     UsersModule,
+    LeadRegistrationModule,
   ],
   controllers: [AppController],
   providers: [
