@@ -17,8 +17,9 @@ export class LeadRegistrationService {
     // save registration infor
     const newRegistration = {
       id: this.registrations.length+1, 
-      userId, 
-      applicationId: CreateLeadRegistrationDto.applicationId,
+      userId,
+      role: CreateLeadRegistrationDto.role,
+      status: CreateLeadRegistrationDto.status,
       createdAt: new Date(),
     };
     this.registrations.push(newRegistration)
