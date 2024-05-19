@@ -2,12 +2,12 @@ import {IsString, IsIn, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateLeadRegistrationDto{
-  @ApiProperty({
-    description: 'User Id',
-  })
-  @IsString()
-  @IsNotEmpty()
-  userId: string;
+  // @ApiProperty({
+  //   description: 'User Id',
+  // })
+  // @IsString()
+  // @IsNotEmpty()
+  // userId: string;
 
   @ApiProperty({
     description: 'Position the user is applying for',

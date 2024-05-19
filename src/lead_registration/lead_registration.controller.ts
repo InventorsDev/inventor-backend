@@ -3,9 +3,11 @@ import { ApiBearerAuth, ApiOperation, ApiBody, ApiQuery, ApiParam, ApiTags } fro
 // import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { LeadRegistrationService } from './lead_registration.service';
 import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
+import { Registration } from './schemas/lead_registration.schema';
+import { promises } from 'dns';
 
 @ApiTags('users')
-@Controller('users/:userId/lead-registration')
+@Controller('lead-registration')
 export class LeadRegistrationController {
   constructor( private readonly registrationService: LeadRegistrationService){}
 
@@ -16,12 +18,12 @@ export class LeadRegistrationController {
     description: 'Registration Data',
     type: CreateLeadRegistrationDto,
   })
-  @Post()
-  create(
+  @Post(':userId')
+  async create(
 
     @Param('userId') userId: string,
     @Body() createRegistrationDto: CreateLeadRegistrationDto,
-  ){
-    return this.registrationService.create(userId, createRegistrationDto);
+  ): Promise<Registration>{
+    return await this.registrationService.create(userId, createRegistrationDto);
   }
 }
