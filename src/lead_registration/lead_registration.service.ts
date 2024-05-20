@@ -48,4 +48,13 @@ export class LeadRegistrationService {
     console.log(newRegistration)
     return await newRegistration.save();
   }
+
+  async viewApplications(): Promise<Registration[]> {
+    
+    const L_Applications = await this.registrationModel.find();
+    if (!L_Applications || L_Applications.length == 0) {
+        throw new NotFoundException('Students data not found!');
+    }
+    return L_Applications;
+  }
 }
