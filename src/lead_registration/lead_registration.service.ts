@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger} from '@nestjs/common';
 import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
+import { UpdateLeadRegistrationDto } from './dto/update-lead_registration.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Registration } from './schemas/lead_registration.schema';
@@ -53,8 +54,16 @@ export class LeadRegistrationService {
     
     const L_Applications = await this.registrationModel.find();
     if (!L_Applications || L_Applications.length == 0) {
-        throw new NotFoundException('Students data not found!');
+        throw new NotFoundException('No appliation data not found!');
     }
     return L_Applications;
+  }
+
+  async approveApplication(userId: string, updateLeadRegistrationDto: UpdateLeadRegistrationDto): Promise<Registration>{
+    const existingApplication =  await this.registrationModel.findByIdAndUpdate(userId, updateLeadRegistrationDto, {new:true})
+    if (!existingApplication) {
+      throw new NotFoundException(`Application for #${userId} not found`);
+    }
+    return existingApplication;
   }
 }

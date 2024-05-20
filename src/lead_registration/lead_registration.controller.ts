@@ -1,10 +1,11 @@
-import { UseGuards,Controller, Post, Param, Body, Get } from '@nestjs/common';
+import { UseGuards,Controller, Post, Param, Body, Get, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiBody, ApiQuery, ApiParam, ApiTags } from '@nestjs/swagger';
 // import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { LeadRegistrationService } from './lead_registration.service';
 import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
 import { Registration } from './schemas/lead_registration.schema';
 import { promises } from 'dns';
+import { UpdateLeadRegistrationDto } from './dto/update-lead_registration.dto';
 
 @ApiTags('users')
 @Controller('lead-registration')
@@ -32,5 +33,15 @@ export class LeadRegistrationController {
     @Body() createRegistrationDto: CreateLeadRegistrationDto,
   ): Promise<Registration>{
     return await this.registrationService.create(userId, createRegistrationDto);
+  }
+
+  @Put(':userId')
+  async approveApplication(@Param('userId') userId: string,
+  @Body() updateLeadRegistrationDto: UpdateLeadRegistrationDto): Promise<Registration> {
+    const updateinfo = {
+      ...updateLeadRegistrationDto,
+      status: 'approved', // approve the status
+    };
+    return await this.registrationService.approveApplication(userId, updateinfo)
   }
 }
