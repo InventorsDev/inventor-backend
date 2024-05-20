@@ -35,6 +35,9 @@ export class LeadRegistrationController {
     return await this.registrationService.create(userId, createRegistrationDto);
   }
 
+  @ApiBearerAuth()
+  @ApiOperation({summary: 'approve an application'})
+  @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @Put(':userId')
   async approveApplication(@Param('userId') userId: string,
   @Body() updateLeadRegistrationDto: UpdateLeadRegistrationDto): Promise<Registration> {

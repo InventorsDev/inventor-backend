@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger} from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException} from '@nestjs/common';
 import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
 import { UpdateLeadRegistrationDto } from './dto/update-lead_registration.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -60,10 +60,30 @@ export class LeadRegistrationService {
   }
 
   async approveApplication(userId: string, updateLeadRegistrationDto: UpdateLeadRegistrationDto): Promise<Registration>{
-    const existingApplication =  await this.registrationModel.findByIdAndUpdate(userId, updateLeadRegistrationDto, {new:true})
+    const existingApplication =  await this.registrationModel.findOneAndUpdate({userId}, {updateLeadRegistrationDto}, {new:true})
     if (!existingApplication) {
       throw new NotFoundException(`Application for #${userId} not found`);
     }
-    return existingApplication;
+    try{
+      await this.updateUserRole(userId, updateLeadRegistrationDto.role);
+      return existingApplication;
+    }catch (error){
+      console.error(`Error saving the new user role: ${error.message}`, error.stack);
+      throw new BadRequestException('Error saving user data'); 
+    }
+    
+  }
+
+  //update user role
+  async updateUserRole(userId: string, newRole: string): Promise<User> {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      // this.logger.error(`User with ID ${userId} not found`);
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    user.role.concat[newRole] //update the use role
+    await user.save();
+    console.log(`User role updated successfully for userId: ${userId} to role: ${newRole}`);
+    return user;
   }
 }
