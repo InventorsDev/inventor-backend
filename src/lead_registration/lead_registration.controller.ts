@@ -1,6 +1,6 @@
 import { UseGuards, Redirect, Query, Controller, Post, Param, Body, Get, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiBody, ApiQuery, ApiParam, ApiTags } from '@nestjs/swagger';
-// import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
+import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { LeadRegistrationService } from './lead_registration.service';
 import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
 import { Registration } from './schemas/lead_registration.schema';
@@ -9,20 +9,24 @@ import { UpdateLeadRegistrationDto } from './dto/update-lead_registration.dto';
 import { PreFilledRegistrationDto } from './dto/pre-filled-lead_registration.dto';
 import { GenerateLinkDto } from './dto/generate-link.dto';
 
-@ApiTags('users')
+// @ApiTags('users')
 @Controller('lead-registration')
 export class LeadRegistrationController {
   constructor( private readonly registrationService: LeadRegistrationService){}
 
   @ApiBearerAuth()
-  @ApiOperation({summary: 'get all applications'})
+  @ApiTags('admins')
+  @UseGuards(JwtAdminsGuard)
+  @ApiOperation({summary: 'view al submitted applications'})
   @Get()
   async viewApplications(): Promise<Registration[]>{
     return await this.registrationService.viewApplications();
   }
 
+  @ApiTags('users')
   @ApiBearerAuth()
-  @ApiOperation({summary: 'create a new request in the database for a new lead'})
+  @UseGuards(JwtAdminsGuard)
+  @ApiOperation({summary: 'create a new lead application and store it'})
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiBody({
     description: 'Registration Data',
@@ -38,6 +42,8 @@ export class LeadRegistrationController {
   }
 
   @ApiBearerAuth()
+  @ApiTags('admins')
+  @UseGuards(JwtAdminsGuard)
   @ApiOperation({summary: 'approve an application'})
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @Put(':userId')
@@ -51,7 +57,9 @@ export class LeadRegistrationController {
   }
 
   @ApiBearerAuth()
-  @ApiOperation({summary: 'generate links'})
+  @ApiTags('admins')
+  @UseGuards(JwtAdminsGuard)
+  @ApiOperation({summary: 'generate application links'})
   @Post()
   generateLink(
     @Body() generateLinkDto: GenerateLinkDto): {link: string}{
@@ -61,7 +69,9 @@ export class LeadRegistrationController {
   }
 
   // @ApiBearerAuth()
+  // @UseGuards(JwtAdminsGuard)
   @Get('create')
+  @ApiOperation({summary: 'helper method for generating links'})
   @Redirect()
   redirectToCreate(@Query() queryParams: PreFilledRegistrationDto & { id: string }): { url: string } {
     console.log('create started')
