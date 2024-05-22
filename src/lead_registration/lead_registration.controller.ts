@@ -9,7 +9,6 @@ import { UpdateLeadRegistrationDto } from './dto/update-lead_registration.dto';
 import { PreFilledRegistrationDto } from './dto/pre-filled-lead_registration.dto';
 import { GenerateLinkDto } from './dto/generate-link.dto';
 
-// @ApiTags('users')
 @Controller('lead-registration')
 export class LeadRegistrationController {
   constructor( private readonly registrationService: LeadRegistrationService){}
@@ -68,13 +67,12 @@ export class LeadRegistrationController {
     return { link };
   }
 
-  // @ApiBearerAuth()
-  // @UseGuards(JwtAdminsGuard)
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
   @Get('create')
   @ApiOperation({summary: 'helper method for generating links'})
   @Redirect()
   redirectToCreate(@Query() queryParams: PreFilledRegistrationDto & { id: string }): { url: string } {
-    console.log('create started')
     const link = `/lead-registration?${new URLSearchParams(queryParams as any).toString()}`;
     return { url: link };
   }
