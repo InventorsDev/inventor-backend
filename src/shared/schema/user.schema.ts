@@ -8,6 +8,7 @@ import {
   UserStatus,
   UserRole,
   RegistrationMethod,
+  VerificationStatus,
 } from '../interfaces/user.type';
 import { ApiReq, EmailFromType } from '../interfaces';
 import { faker } from '@faker-js/faker';
@@ -64,6 +65,8 @@ export class User {
 
   @Prop({ index: true })
   gender: string;
+  
+  
 
   @Prop({
     type: {
@@ -113,6 +116,15 @@ export class User {
 
   @Prop(raw(SocialsRawSchema))
   socials: Socials;
+  
+@Prop({
+  index: true,
+  default: VerificationStatus.NOT_VERIFIED
+})
+ verificationStatus: VerificationStatus;
+
+ @Prop({ type: Date })
+ nextVerificationRequestDate: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
@@ -241,13 +253,12 @@ UserSchema.statics.signUp = async function signUp(
   createUserDto: CreateUserDto | UserInviteDto,
   sso: boolean = false,
 ) {
-
   let generatePassword: string;
   if ('password' in createUserDto) {
     const createUserDtoWithType = createUserDto as CreateUserDto;
     generatePassword = createUserDtoWithType.password.trim();
   } else {
-    generatePassword = faker.internet.password({length: 5}) + '$?wE';
+    generatePassword = faker.internet.password({ length: 5 }) + '$?wE';
   }
   passwordMatch(generatePassword);
 
@@ -255,10 +266,7 @@ UserSchema.statics.signUp = async function signUp(
   const email = createUserDto.email.trim().toLowerCase();
 
   const existingUser = await this.findOne({ email }, { _id: 1 });
-  if (existingUser)
-    throw new BadRequestException(
-      'User already exists.',
-    );
+  if (existingUser) throw new BadRequestException('User already exists.');
 
   const data: any = {
     ...createUserDto,
@@ -266,10 +274,10 @@ UserSchema.statics.signUp = async function signUp(
     lastName: firstCapitalize(createUserDto.lastName.trim()),
     email,
     password,
-    role: [ UserRole.USER ],
+    role: [UserRole.USER],
   };
 
-  if(req.query.invitation === RegistrationMethod.INVITATION){
+  if (req.query.invitation === RegistrationMethod.INVITATION) {
     data.pendingInvitation = true;
   }
 
