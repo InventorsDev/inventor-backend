@@ -6,10 +6,15 @@ import { Model } from 'mongoose';
 import { Registration } from './schemas/lead_registration.schema';
 import { User, UserDocument } from '../shared/schema/user.schema';
 
+//generate links
+import { v4 as uuidv4 } from 'uuid';
+import { PreFilledRegistrationDto } from './dto/pre-filled-lead_registration.dto';
+
 @Injectable()
 export class LeadRegistrationService {
 
   // private readonly logger = new Logger(LeadRegistrationService.name);
+  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/lead-registrations'; // Update with your base URL
 
   constructor(
   @InjectModel(Registration.name) private registrationModel: Model<Registration>,
@@ -42,7 +47,7 @@ export class LeadRegistrationService {
       {
         userId,
         role: createLeadRegistrationDto.role,
-        status: createLeadRegistrationDto.status,
+        status: createLeadRegistrationDto.status || 'pending',
         createdAt: new Date(),
       }
     );
@@ -85,5 +90,14 @@ export class LeadRegistrationService {
     await user.save();
     console.log(`User role updated successfully for userId: ${userId} to role: ${newRole}`);
     return user;
+  }
+
+  //generate unique links
+  generateUniqueLink(userId: string, role: string, status: string, preFilledParams: PreFilledRegistrationDto): string {
+    console.log('unique link gets called')
+    const uniqueId = uuidv4();
+    const queryParams = new URLSearchParams({userId, role, status, ...preFilledParams as any}).toString();
+    console.log(`Genreated link: ${this.baseUrl}?id=${uniqueId}&${queryParams}`);
+    return `${this.baseUrl}?id=${uniqueId}&${queryParams}`;
   }
 }
