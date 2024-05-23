@@ -1,4 +1,4 @@
-import {IsString, IsIn, IsNotEmpty, IsEmail, IsDefined, IsOptional, isString } from 'class-validator';
+import { IsString, IsIn, IsNotEmpty, IsEmail } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateLeadRegistrationDto{
