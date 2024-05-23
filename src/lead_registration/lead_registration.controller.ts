@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiBody, ApiQuery, ApiParam, ApiTags } fro
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { LeadRegistrationService } from './lead_registration.service';
 import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
-import { Registration } from './schemas/lead_registration.schema';
+import { Registration } from 'src/shared/schema/lead_registration.schema';
 import { promises } from 'dns';
 import { UpdateLeadRegistrationDto } from './dto/update-lead_registration.dto';
 import { PreFilledRegistrationDto } from './dto/pre-filled-lead_registration.dto';

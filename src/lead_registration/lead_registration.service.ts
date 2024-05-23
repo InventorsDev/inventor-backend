@@ -3,7 +3,7 @@ import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
 import { UpdateLeadRegistrationDto } from './dto/update-lead_registration.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Registration } from './schemas/lead_registration.schema';
+import { Registration } from 'src/shared/schema/lead_registration.schema';
 import { User, UserDocument } from '../shared/schema/user.schema';
 //generate links
 import { v4 as uuidv4 } from 'uuid';
@@ -35,7 +35,7 @@ export class LeadRegistrationService {
       {
         userId,
         role: createLeadRegistrationDto.role,
-        status: createLeadRegistrationDto.status || 'pending',
+        status: createLeadRegistrationDto.lead_approved_status || 'pending',
         createdAt: new Date(),
       }
     );
