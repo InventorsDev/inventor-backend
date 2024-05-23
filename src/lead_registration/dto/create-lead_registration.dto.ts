@@ -1,45 +1,36 @@
 import { IsString, IsIn, IsNotEmpty, IsEmail } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { UserRole } from 'src/shared/interfaces';
+import Mailgun from 'mailgun.js';
 
 export class CreateLeadRegistrationDto{
-  @ApiProperty({
-    description: 'Position the user is applying for',
-    example: 'Backend lead'
-  })
+  // @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  role: string;
+  role: UserRole.LEAD;
 
-  @ApiProperty({
-    description: 'status of registration', 
-    example: 'pending',
-    enum: ['pending', 'approved', 'rejected']
-  })
+  // @ApiProperty()
   @IsString()
   @IsNotEmpty()
   @IsIn(['pending', 'approved', 'rejected'])
-  lead_approved_status: string;
+  lead_approved_status: 'pending';
 
-  @ApiProperty()
+  @ApiProperty({example: "frontend_1 || backend_2 ||..."})
   @IsString()
   @IsNotEmpty()
   leadPosition: string;
 
-  @ApiProperty()
+  @ApiProperty({example: "example@mail.com"})
   @IsNotEmpty()
   @IsEmail()
   email: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  password: string;
-
-  @ApiProperty()
+  // @ApiProperty()
   @IsString()
   @IsNotEmpty()
   firstName: string;
 
-  @ApiProperty()
+  // @ApiProperty()
   @IsString()
   @IsNotEmpty()
   lastName: string;

@@ -35,7 +35,7 @@ export class LeadRegistrationService {
       {
         userId,
         role: createLeadRegistrationDto.role,
-        status: createLeadRegistrationDto.lead_approved_status || 'pending',
+        // status: createLeadRegistrationDto.lead_approved_status || 'pending',
         createdAt: new Date(),
       }
     );
@@ -71,9 +71,9 @@ export class LeadRegistrationService {
   }
 
   //generates and return the unique link
-  generateUniqueLink(userId: string, role: string, status: string, preFilledParams: PreFilledRegistrationDto): string {
+  generateUniqueLink(email:string, preFilledParams: PreFilledRegistrationDto): string {
     const uniqueId = uuidv4();
-    const queryParams = new URLSearchParams({userId, role, status, ...preFilledParams as any}).toString();
+    const queryParams = new URLSearchParams({email, ...preFilledParams as any}).toString();
     return `${this.baseUrl}?id=${uniqueId}&${queryParams}`;
   }
 }

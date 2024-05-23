@@ -61,10 +61,10 @@ export class LeadRegistrationController {
   @ApiOperation({summary: 'generate application links'})
   @Post()
   generateLink(
-    @Body() generateLinkDto: GenerateLinkDto): {link: string}{
-    const { userId, role, status, ...preFilledParams } = generateLinkDto;
-    const link = this.registrationService.generateUniqueLink(userId, role, status, preFilledParams);
-    return { link };
+    @Body() createLinkDto: CreateLeadRegistrationDto): {link:string}{
+    const { email, ...preFilledParams } = createLinkDto;
+    const link = this.registrationService.generateUniqueLink(email, preFilledParams);
+    return {link} ;
   }
 
   @ApiBearerAuth()
@@ -72,7 +72,7 @@ export class LeadRegistrationController {
   @Get('create')
   @ApiOperation({summary: 'helper method for generating links'})
   @Redirect()
-  redirectToCreate(@Query() queryParams: PreFilledRegistrationDto & { id: string }): { url: string } {
+  redirectToCreate(@Query() queryParams: PreFilledRegistrationDto & {email: string }): { url: string } {
     const link = `/lead-registration?${new URLSearchParams(queryParams as any).toString()}`;
     return { url: link };
   }
