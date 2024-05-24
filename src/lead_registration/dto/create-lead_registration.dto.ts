@@ -1,7 +1,6 @@
 import { IsString, IsIn, IsNotEmpty, IsEmail } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from 'src/shared/interfaces';
-import Mailgun from 'mailgun.js';
 
 export class CreateLeadRegistrationDto{
   // @ApiProperty()

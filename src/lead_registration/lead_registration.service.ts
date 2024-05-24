@@ -4,8 +4,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Registration } from 'src/shared/schema/lead_registration.schema';
 import { User, UserDocument } from '../shared/schema/user.schema';
-//generate links
-import * as CryptoJS from 'crypto-js'
+import { NewUserLeadRegistrationDto } from './dto/new-user-lear-registration.dto';
+import * as CryptoJS from 'crypto-js' //generate links
 import { TempLeadRegistration } from 'src/shared/schema/temp_lead_registration.schema';
 import { UserRole } from 'src/shared/interfaces';
 
@@ -36,13 +36,22 @@ export class LeadRegistrationService {
   paraseEncryptedParams(encryptedParams: string): any {
     // decrypt the data and convert into an object url param
     const decryptParams = this.decrypt(encryptedParams)
-    return Object.fromEntries(new URLSearchParams(decryptParams))
+    const params = new URLSearchParams(decryptParams)
+    // return Object.fromEntries(new URLSearchParams(decryptParams))
+    return {email: params.get('email'), userId: params.get('userId')}
   }
 
   //check if a user exists
   async userExists(userId: string): Promise<boolean> {
     const user = await this.userModel.findById(userId).exec();
     return !!user;
+  }
+  
+  // find user by id
+  async findUserById(userId: string): Promise<User>{
+    const user = await this.userModel.findById(userId).exec()
+    if(!user){throw new NotFoundException(`user with id ${userId} not found`)}
+    return user;
   }
 
   // the create function retuns the user registration
@@ -57,6 +66,30 @@ export class LeadRegistrationService {
         // status: createLeadRegistrationDto.lead_approved_status || 'pending',
         createdAt: new Date(),});
     return await newRegistration.save();
+  }
+
+  // create new user and lead
+  async createNewUserAndLead(newUserLeadDto: NewUserLeadRegistrationDto): Promise<Registration>{
+    const newUser = new this.userModel({
+      email: newUserLeadDto.email,
+      password: newUserLeadDto.password,
+      firstName: newUserLeadDto.firstName,
+      lastName: newUserLeadDto.lastName,
+      joinMethod: newUserLeadDto.joinMethod,
+      location: newUserLeadDto.location,
+      deviceId: newUserLeadDto.deviceId,
+      deviceToken: newUserLeadDto.deviceToken,
+    })
+    const savedUser = await newUser.save()
+
+    const newLead = new this.registrationModel({
+      role: newUserLeadDto.role,
+      lead_approved_status: newUserLeadDto.lead_approved_status,
+      leadPosition: newUserLeadDto.leadPosition,
+      userId: savedUser._id,
+      email: savedUser.email,
+    })
+    return await newLead.save()
   }
 
   // view all applications
@@ -116,14 +149,12 @@ export class LeadRegistrationService {
   async generateUniqueLink(email:string): Promise<string>{
      // confirm the emaail
     const user = await this.userModel.findOne({email: email});
-    if (!user) { throw new NotFoundException(`User with email: ${email} not found`) }
-
     // store user variable
     const preFilledParams = {
-      userId: user._id,
-      email: user.email,
-      first_name: user.firstName,
-      last_name: user.lastName,
+      userId: user ? user._id : null,
+      email: email,
+      first_name: user ? user.firstName: null,
+      last_name: user ? user.lastName: null,
       // other params can go here, but do we need others?
     };
 
@@ -131,7 +162,7 @@ export class LeadRegistrationService {
     const qureyString = new URLSearchParams(preFilledParams as any).toString();
     // encrypt the data
     const encryptedParams = this.encrypt(qureyString)
-    return `${this.baseUrl}?data=${encodeURIComponent(encryptedParams)}`;
+    return `${this.baseUrl}/register?data=${encodeURIComponent(encryptedParams)}`;
   }
 
   // store the temporary lead inforamtion

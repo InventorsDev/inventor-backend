@@ -4,6 +4,8 @@ import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { LeadRegistrationService } from './lead_registration.service';
 import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
 import { Registration } from 'src/shared/schema/lead_registration.schema';
+import { NewUserLeadRegistrationDto } from './dto/new-user-lear-registration.dto';
+import { TempLeadRegistration } from 'src/shared/schema/temp_lead_registration.schema';
 
 @Controller('lead-registration')
 export class LeadRegistrationController {
@@ -12,7 +14,7 @@ export class LeadRegistrationController {
   // lis tall applications
   @ApiBearerAuth()
   @ApiTags('admins')
-  @UseGuards(JwtAdminsGuard)
+  // @UseGuards(JwtAdminsGuard)
   @ApiOperation({summary: 'view al submitted applications'})
   @Get()
   async viewApplications(): Promise<Registration[]>{
@@ -26,7 +28,7 @@ export class LeadRegistrationController {
   @ApiOperation({summary: 'create a new lead application and store it'})
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiBody({ description: 'Registration Data', type: CreateLeadRegistrationDto,})
-  @Post('/lead-registration/:userId')
+  @Post('create')
   async create(
     @Body() createRegistrationDto: CreateLeadRegistrationDto,
   ): Promise<{ tempRegistrationId: string}>{
@@ -37,7 +39,7 @@ export class LeadRegistrationController {
   // verify application by regisration_id
   @ApiBearerAuth()
   @ApiTags('admins')
-  @UseGuards(JwtAdminsGuard)
+  // @UseGuards(JwtAdminsGuard)
   @ApiOperation({summary: 'approve a temporary applicaion'})
   @ApiParam({ name: 'tempRegistrationId', description: 'Id of the tempRegistration' })
   @Put('approve/:tempRegistrationId') // have the tempReg in the parms
@@ -48,7 +50,7 @@ export class LeadRegistrationController {
   // generate registration link
   @ApiBearerAuth()
   @ApiTags('admins')
-  @UseGuards(JwtAdminsGuard)
+  // @UseGuards(JwtAdminsGuard)
   @ApiOperation({summary: 'generate application links'})
   // @ApiParam({name: 'userEmail', description: 'the email of the user'})
   @Get('generate-link/:email') // receive the email param
@@ -66,16 +68,58 @@ export class LeadRegistrationController {
   @Redirect()
   async register(@Query('data') encryptedData: string): Promise<{ url: string }> {
     try{
-      const params = this.registrationService.paraseEncryptedParams(encryptedData);
-      const link = `/lead-registration/create?${new URLSearchParams(params).toString()}`;
-      return { url: link };
+      const {userId, email} = this.registrationService.paraseEncryptedParams(encryptedData);
+      //check the user Id
+      if (userId){
+        const userExists = await this.registrationService.userExists(userId)
+        // if the id does not exist
+        if (!userExists){throw new NotFoundException('User Not found')}
+
+        //if the user exists
+        const link = `/lead-registration/create?${new URLSearchParams({userId,email}).toString()}`
+        return {url: link}
+      }
+      else{ 
+        // if user dones not exist
+        const newReglink = `/lead-registration/new-user-form?${new URLSearchParams(email).toString()}`;
+        return { url: newReglink };
+      } 
     } catch (error){throw new NotFoundException('Invalid link')};
+  }
+
+  // new route for existing users from generated link
+  @Get('pre-filed-form')
+  @ApiOperation({summary: 'lead registration form with pre filled information'})
+  async preFilledForm(@Query('email') email:string, @Query('userId') userId: string): Promise<{email:string, userId: string}>{
+    const user = await this.registrationService.findUserById(userId);
+    if (!user){throw new NotFoundException('User not found')} //just in case
+    return {email: user.email, userId: userId}
+  }
+
+  // route for new users from generated link
+    @Get('new-user-form')
+    @ApiOperation({summary: 'new user and lead registration form'})
+    async newUserForm(@Query('email') email: string,): Promise<{email: string}>{
+      return{email}
+    }
+
+  // register new user
+  @ApiTags('users')
+  @Post('register-new-user')
+  @ApiOperation({summary: 'register a new user and a lead'})
+  @ApiBody({
+    description: 'new user and lead registration data',
+    type: NewUserLeadRegistrationDto,
+  })
+  async registerNewUser(@Body() newUserLeadDto: NewUserLeadRegistrationDto): Promise<{tempRegistrationId: string}>{
+    const registration = await this.registrationService.createNewUserAndLead(newUserLeadDto)
+    return {tempRegistrationId: registration._id}
   }
 
   // find an application by email
   @ApiBearerAuth()
   @ApiTags('admins')
-  @UseGuards(JwtAdminsGuard)
+  // @UseGuards(JwtAdminsGuard)
   @ApiOperation({summary: 'view an application by email'})
   @ApiQuery({name: 'email', description: 'user email'})
   @Get('application')
