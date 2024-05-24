@@ -8,11 +8,6 @@ export class Registration extends Document{
   @Prop({ index: true, unique: true})
   leadPosition: string
 
-  @Prop({ required: true,
-    default: "pending"
-   })
-  lead_approved_status: string;
-
   @Prop({ default: Date.now })
   createdAt: Date;
 

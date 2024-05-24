@@ -1,22 +1,43 @@
 import { Injectable, NotFoundException, BadRequestException} from '@nestjs/common';
 import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
-import { UpdateLeadRegistrationDto } from './dto/update-lead_registration.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Registration } from 'src/shared/schema/lead_registration.schema';
 import { User, UserDocument } from '../shared/schema/user.schema';
 //generate links
-import { v4 as uuidv4 } from 'uuid';
-import { PreFilledRegistrationDto } from './dto/pre-filled-lead_registration.dto';
+import * as CryptoJS from 'crypto-js'
+import { TempLeadRegistration } from 'src/shared/schema/temp_lead_registration.schema';
+import { UserRole } from 'src/shared/interfaces';
+
 
 @Injectable()
 export class LeadRegistrationService {
   private readonly baseUrl = 'http://localhost:3888/docs/api/v1/lead-registrations'; // Base URL
+  private readonly secretkey = "Inventors24" // secret key for encryptionand decryption
 
   constructor(
   @InjectModel(Registration.name) private registrationModel: Model<Registration>,
-  @InjectModel(User.name) private userModel: Model<UserDocument>
+  @InjectModel(User.name) private userModel: Model<UserDocument>,
+  @InjectModel(TempLeadRegistration.name) private tempLeadRegistrationModel: Model<TempLeadRegistration>,
   ){}
+
+  // encrypt link
+  encrypt(link: string): string { 
+    return CryptoJS.AES.encrypt(link, this.secretkey).toString(); // convert the link to a random hash
+  }
+
+  // decrypt link
+  decrypt(link: string): string{
+    const bytes = CryptoJS.AES.decrypt(link, this.secretkey);
+    return bytes.toString(CryptoJS.enc.Utf8); //standadize the string
+  }
+
+  //phrase encrypted data
+  paraseEncryptedParams(encryptedParams: string): any {
+    // decrypt the data and convert into an object url param
+    const decryptParams = this.decrypt(encryptedParams)
+    return Object.fromEntries(new URLSearchParams(decryptParams))
+  }
 
   //check if a user exists
   async userExists(userId: string): Promise<boolean> {
@@ -30,18 +51,15 @@ export class LeadRegistrationService {
     if (!userExists){
       throw new NotFoundException(`user with Id ${userId} not found`);
     }
-    // save registration info
-    const newRegistration = new this.registrationModel(
-      {
+    const newRegistration = new this.registrationModel({
         userId,
         role: createLeadRegistrationDto.role,
         // status: createLeadRegistrationDto.lead_approved_status || 'pending',
-        createdAt: new Date(),
-      }
-    );
+        createdAt: new Date(),});
     return await newRegistration.save();
   }
 
+  // view all applications
   async viewApplications(): Promise<Registration[]> {
     const L_Applications = await this.registrationModel.find();
     if (!L_Applications || L_Applications.length == 0) {
@@ -50,30 +68,75 @@ export class LeadRegistrationService {
     return L_Applications;
   }
 
-  async approveApplication(userId: string, updateLeadRegistrationDto: UpdateLeadRegistrationDto): Promise<Registration>{
-    const existingApplication =  await this.registrationModel.findOneAndUpdate({userId}, {updateLeadRegistrationDto}, {new:true})
-    if (!existingApplication) {
-      throw new NotFoundException(`Application for #${userId} not found`);
+  // view single aplication
+  async ViewOneApplicaiton(email:string): Promise<Registration>{
+    const application = await this.registrationModel.findOne({email}).exec()
+    if (!application){
+      throw new NotFoundException(`no application with email: ${email} found`)
     }
-    try{
-      await this.updateUserRole(userId, updateLeadRegistrationDto.role);
-      return existingApplication;
-    }catch (error){ throw new BadRequestException('Error saving user data') }
+    return application
   }
 
-  //update user role
-  async updateUserRole(userId: string, newRole: string): Promise<User> {
-    const user = await this.userModel.findById(userId).exec();
-    if (!user) { throw new NotFoundException(`User with ID ${userId} not found`) }
-    user.role.concat[newRole] //update the use role. I dont know how to refrence this
+  // verify an application
+  async approveTempApplication(tempRegistrationId: string): Promise<Registration>{
+
+    const existingApplication =  await this.tempLeadRegistrationModel.findById(tempRegistrationId).exec()
+    if (!existingApplication) {
+      throw new NotFoundException(`Application for #${tempRegistrationId} not found`);
+    }
+
+     // check if usre exists
+     const user = await this.userModel.findById(existingApplication.userId).exec();
+     if (!user){throw new BadRequestException(`No user with id: ${existingApplication.userId} found.`)}
+      // change user role to lead and save
+    user.role = UserRole[existingApplication.role]
     await user.save();
-    return user;
+
+    // set lead registration data
+    const newRegistration = new this.registrationModel({
+      userId: user._id,
+      role: user.role,
+      status: user.status,
+      password: user.password,
+      leadPosition: existingApplication.leadPosition,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      createdAt: new Date(),
+      socials: user.socials,
+      currentCompany: user.currentCompany,
+      jobTitle: user.jobTitle,
+    })
+    await newRegistration.save(); // save to the  updated data lead database
+    await this.tempLeadRegistrationModel.findByIdAndDelete(tempRegistrationId).exec() // remove the rudundant data from database
+
+    return newRegistration;
   }
 
   //generates and return the unique link
-  generateUniqueLink(email:string, preFilledParams: PreFilledRegistrationDto): string {
-    const uniqueId = uuidv4();
-    const queryParams = new URLSearchParams({email, ...preFilledParams as any}).toString();
-    return `${this.baseUrl}?id=${uniqueId}&${queryParams}`;
+  async generateUniqueLink(email:string): Promise<string>{
+     // confirm the emaail
+    const user = await this.userModel.findOne({email: email});
+    if (!user) { throw new NotFoundException(`User with email: ${email} not found`) }
+
+    // store user variable
+    const preFilledParams = {
+      userId: user._id,
+      email: user.email,
+      first_name: user.firstName,
+      last_name: user.lastName,
+      // other params can go here, but do we need others?
+    };
+
+    // convert the parmms
+    const qureyString = new URLSearchParams(preFilledParams as any).toString();
+    // encrypt the data
+    const encryptedParams = this.encrypt(qureyString)
+    return `${this.baseUrl}?data=${encodeURIComponent(encryptedParams)}`;
+  }
+
+  // store the temporary lead inforamtion
+  async createTempRegistration(createLeadRegistrationDto: CreateLeadRegistrationDto): Promise<TempLeadRegistration>{
+    const newTempRegistration = new this.tempLeadRegistrationModel(createLeadRegistrationDto)
+    return await newTempRegistration.save()
   }
 }
