@@ -18,6 +18,12 @@ export enum UserStatus {
   DELETE = 'DELETE',
 }
 
+export enum VerificationStatus {
+  NOT_VERIFIED = 'NOT_VERIFIED',
+  PENDING = 'PENDING',
+  VERIFIED = 'VERIFIED',
+}
+
 export type Contact = {
   phoneNumber: string;
   email: string;
@@ -41,3 +47,4 @@ export const SocialsRawSchema = {
 export const userRoles = Object.values(UserRole);
 export const userStatuses = Object.values(UserStatus);
 export const registrationMethods = Object.values(RegistrationMethod);
+export const verificationStatuses = Object.values(VerificationStatus);

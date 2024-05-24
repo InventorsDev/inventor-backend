@@ -5,7 +5,6 @@ export class UserAddPhotoDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsDefined()
-  @IsUrl()
   photo: string;
 
   @ApiProperty()

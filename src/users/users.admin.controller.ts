@@ -17,7 +17,12 @@ import { User, UserDocument } from 'src/shared/schema';
 import { Model } from 'mongoose';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { UserInviteDto } from './dto/user-invite.dto';
-import { ApiReq, UserStatus, userRoles, userStatuses } from 'src/shared/interfaces';
+import {
+  ApiReq,
+  UserStatus,
+  userRoles,
+  userStatuses,
+} from 'src/shared/interfaces';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
@@ -28,7 +33,9 @@ import { UserChangePasswordDto } from './dto/user-change-password.dto';
 export class UsersAdminsController {
   constructor(
     @Inject(User.name)
-    private readonly userModel: Model<UserDocument>, private readonly usersService: UsersService) {}
+    private readonly userModel: Model<UserDocument>,
+    private readonly usersService: UsersService,
+  ) {}
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
@@ -125,7 +132,7 @@ export class UsersAdminsController {
   ) {
     return this.usersService.addPhoto(payload.userId, payload);
   }
-  
+
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
   @Put('users/:userId/change-password')
@@ -154,11 +161,20 @@ export class UsersAdminsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Post('users/:userId/email-verification')
-  async sendEmailVerificationToken(
+  @Patch('users/:userId/request-verification')
+  async RequestVerificationToken(
     @Request() req: ApiReq,
     @Param('userId') userId: string,
   ) {
-    return this.usersService.sendEmailVerificationToken(req, userId);
+    return this.usersService.requestVerification(req, userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @Patch('users/:userId/generate-invite')
+  async generateLink(@Body() data: any) {
+    const { roles } = data; // Assuming roles are passed in the request body
+    const link = await this.usersService.generateUniqueLink(roles);
+    return { link };
   }
 }
