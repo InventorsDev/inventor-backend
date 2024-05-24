@@ -168,4 +168,10 @@ export class LeadRegistrationService {
     const newTempRegistration = new this.tempLeadRegistrationModel(createLeadRegistrationDto)
     return await newTempRegistration.save()
   }
+
+  async rejectTempApplication(tempRegistrationId: string, message: string): Promise<string>{
+    const existingApplication = await this.tempLeadRegistrationModel.findByIdAndDelete(tempRegistrationId)
+    if (!existingApplication){throw new NotFoundException('Application not found')}
+    return `Rejection message: ${message}`
+  }
 }

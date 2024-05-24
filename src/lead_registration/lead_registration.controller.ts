@@ -1,10 +1,11 @@
-import { UseGuards, Redirect, Query, Controller, Post, Param, Body, Get, Put, NotFoundException } from '@nestjs/common';
+import { UseGuards, Redirect, Query, Controller, Post, Param, Body, Get, Put, NotFoundException, Delete } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiBody, ApiQuery, ApiParam, ApiTags } from '@nestjs/swagger';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { LeadRegistrationService } from './lead_registration.service';
 import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
 import { Registration } from 'src/shared/schema/lead_registration.schema';
 import { NewUserLeadRegistrationDto } from './dto/new-user-lear-registration.dto';
+import { RejectLeadRegistrationDto } from './dto/reject-lead-regstration.dto';
 
 @Controller('lead-registration')
 export class LeadRegistrationController {
@@ -123,5 +124,19 @@ export class LeadRegistrationController {
   @Get('application')
   async getApplicationByEmail (@Query('email')email: string): Promise<Registration>{
     return await this.registrationService.ViewOneApplicaiton(email)
+  }
+
+  // reject a lead request
+  @ApiBearerAuth()
+  @ApiTags('admins')
+  @UseGuards(JwtAdminsGuard)
+  @ApiOperation({summary: 'reject(delete) an application'})
+  @ApiParam({name: 'tempRegistrationId', description: 'the temp registration id to be deleted'})
+  @Delete('reject/:tempRegistrationId')
+  async reject(
+    @Param('tempRegistrationId') tempRegistrationId: string,
+    @Body()rejectLeadRegistrationDto: RejectLeadRegistrationDto): Promise<{message: string}>{
+    const message = await this.registrationService.rejectTempApplication(tempRegistrationId, rejectLeadRegistrationDto.message)
+    return {message}
   }
 }
