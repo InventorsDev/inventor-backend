@@ -5,7 +5,6 @@ import { LeadRegistrationService } from './lead_registration.service';
 import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
 import { Registration } from 'src/shared/schema/lead_registration.schema';
 import { NewUserLeadRegistrationDto } from './dto/new-user-lear-registration.dto';
-import { TempLeadRegistration } from 'src/shared/schema/temp_lead_registration.schema';
 
 @Controller('lead-registration')
 export class LeadRegistrationController {
@@ -14,7 +13,7 @@ export class LeadRegistrationController {
   // lis tall applications
   @ApiBearerAuth()
   @ApiTags('admins')
-  // @UseGuards(JwtAdminsGuard)
+  @UseGuards(JwtAdminsGuard)
   @ApiOperation({summary: 'view al submitted applications'})
   @Get()
   async viewApplications(): Promise<Registration[]>{
@@ -39,7 +38,7 @@ export class LeadRegistrationController {
   // verify application by regisration_id
   @ApiBearerAuth()
   @ApiTags('admins')
-  // @UseGuards(JwtAdminsGuard)
+  @UseGuards(JwtAdminsGuard)
   @ApiOperation({summary: 'approve a temporary applicaion'})
   @ApiParam({ name: 'tempRegistrationId', description: 'Id of the tempRegistration' })
   @Put('approve/:tempRegistrationId') // have the tempReg in the parms
@@ -50,9 +49,8 @@ export class LeadRegistrationController {
   // generate registration link
   @ApiBearerAuth()
   @ApiTags('admins')
-  // @UseGuards(JwtAdminsGuard)
+  @UseGuards(JwtAdminsGuard)
   @ApiOperation({summary: 'generate application links'})
-  // @ApiParam({name: 'userEmail', description: 'the email of the user'})
   @Get('generate-link/:email') // receive the email param
   async generateLink(@Param('email') email: string,): Promise<{link: string}>{
     // generate and return the link
@@ -119,7 +117,7 @@ export class LeadRegistrationController {
   // find an application by email
   @ApiBearerAuth()
   @ApiTags('admins')
-  // @UseGuards(JwtAdminsGuard)
+  @UseGuards(JwtAdminsGuard)
   @ApiOperation({summary: 'view an application by email'})
   @ApiQuery({name: 'email', description: 'user email'})
   @Get('application')

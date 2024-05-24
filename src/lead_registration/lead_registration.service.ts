@@ -37,7 +37,6 @@ export class LeadRegistrationService {
     // decrypt the data and convert into an object url param
     const decryptParams = this.decrypt(encryptedParams)
     const params = new URLSearchParams(decryptParams)
-    // return Object.fromEntries(new URLSearchParams(decryptParams))
     return {email: params.get('email'), userId: params.get('userId')}
   }
 
@@ -63,7 +62,6 @@ export class LeadRegistrationService {
     const newRegistration = new this.registrationModel({
         userId,
         role: createLeadRegistrationDto.role,
-        // status: createLeadRegistrationDto.lead_approved_status || 'pending',
         createdAt: new Date(),});
     return await newRegistration.save();
   }
