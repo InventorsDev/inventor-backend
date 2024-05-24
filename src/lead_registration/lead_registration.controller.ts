@@ -50,7 +50,7 @@ export class LeadRegistrationController {
   @ApiTags('admins')
   @UseGuards(JwtAdminsGuard)
   @ApiOperation({summary: 'generate application links'})
-  @ApiParam({name: 'userEmail', description: 'the email of the user'})
+  // @ApiParam({name: 'userEmail', description: 'the email of the user'})
   @Get('generate-link/:email') // receive the email param
   async generateLink(@Param('email') email: string,): Promise<{link: string}>{
     // generate and return the link
