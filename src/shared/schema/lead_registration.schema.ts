@@ -5,6 +5,9 @@ import { RegistrationMethod, UserRole, UserStatus, Socials, SocialsRawSchema } f
 @Schema()
 export class Registration extends Document{
 
+  @Prop({index: true, unique: true})
+  userId: string
+
   @Prop({ index: true, unique: true})
   leadPosition: string
 

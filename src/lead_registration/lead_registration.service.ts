@@ -23,19 +23,21 @@ export class LeadRegistrationService {
 
   // encrypt link
   encrypt(link: string): string { 
-    return CryptoJS.AES.encrypt(link, this.secretkey).toString(); // convert the link to a random hash
+    return CryptoJS.AES.encrypt(link, this.secretkey).toString(); // encrypt the link
   }
 
   // decrypt link
   decrypt(link: string): string{
     const bytes = CryptoJS.AES.decrypt(link, this.secretkey);
-    return bytes.toString(CryptoJS.enc.Utf8); //standadize the string
+    const new_link = bytes.toString(CryptoJS.enc.Utf8); //standadize the string
+    return new_link
   }
 
   //phrase encrypted data
   paraseEncryptedParams(encryptedParams: string): any {
     // decrypt the data and convert into an object url param
-    const decryptParams = this.decrypt(encryptedParams)
+    let originParams = decodeURIComponent(encryptedParams)
+    const decryptParams = this.decrypt(originParams)
     const params = new URLSearchParams(decryptParams)
     return {email: params.get('email'), userId: params.get('userId')}
   }
@@ -47,7 +49,7 @@ export class LeadRegistrationService {
   }
   
   // find user by id
-  async findUserById(userId: string): Promise<User>{
+  async findUserById(userId: string): Promise<any>{
     const user = await this.userModel.findById(userId).exec()
     if(!user){throw new NotFoundException(`user with id ${userId} not found`)}
     return user;
@@ -158,8 +160,10 @@ export class LeadRegistrationService {
 
     // convert the parmms
     const qureyString = new URLSearchParams(preFilledParams as any).toString();
+    console.log(`Query string: ${qureyString}`)
     // encrypt the data
     const encryptedParams = this.encrypt(qureyString)
+    console.log(`Encrypted data: ${encryptedParams}\n Encoded data: ${encodeURIComponent(encryptedParams)}`)
     return `${this.baseUrl}/register?data=${encodeURIComponent(encryptedParams)}`;
   }
 

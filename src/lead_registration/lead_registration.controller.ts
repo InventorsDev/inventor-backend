@@ -50,7 +50,7 @@ export class LeadRegistrationController {
   // generate registration link
   @ApiBearerAuth()
   @ApiTags('admins')
-  @UseGuards(JwtAdminsGuard)
+  // @UseGuards(JwtAdminsGuard)
   @ApiOperation({summary: 'generate application links'})
   @Get('generate-link/:email') // receive the email param
   async generateLink(@Param('email') email: string,): Promise<{link: string}>{
@@ -60,14 +60,13 @@ export class LeadRegistrationController {
   }
 
   // link create application
-  @ApiBearerAuth()
-  @UseGuards(JwtAdminsGuard)
   @Get('register')
   @ApiOperation({summary: 'register a lead using a generated link'})
   @Redirect()
   async register(@Query('data') encryptedData: string): Promise<{ url: string }> {
     try{
-      const {userId, email} = this.registrationService.paraseEncryptedParams(encryptedData);
+      const data = new URL(encryptedData).searchParams.get('data'); // extract the data from the url
+      const {userId, email} = this.registrationService.paraseEncryptedParams(data);
       //check the user Id
       if (userId){
         const userExists = await this.registrationService.userExists(userId)
@@ -75,32 +74,38 @@ export class LeadRegistrationController {
         if (!userExists){throw new NotFoundException('User Not found')}
 
         //if the user exists
-        const link = `/lead-registration/create?${new URLSearchParams({userId,email}).toString()}`
+        const link = `/lead-registration/pre-filled-form/{id}?${new URLSearchParams({userId}).toString()}`
         return {url: link}
       }
       else{ 
         // if user dones not exist
-        const newReglink = `/lead-registration/new-user-form?${new URLSearchParams(email).toString()}`;
+        const newReglink = `/lead-registration/new-user-form?${new URLSearchParams({email}).toString()}`;
         return { url: newReglink };
       } 
     } catch (error){throw new NotFoundException('Invalid link')};
   }
 
   // new route for existing users from generated link
-  @Get('pre-filed-form')
+  @Get('pre-filled-form/:id')
   @ApiOperation({summary: 'lead registration form with pre filled information'})
-  async preFilledForm(@Query('email') email:string, @Query('userId') userId: string): Promise<{email:string, userId: string}>{
+  async preFilledForm(@Query('userId') userId: string): Promise<{}>{
     const user = await this.registrationService.findUserById(userId);
     if (!user){throw new NotFoundException('User not found')} //just in case
-    return {email: user.email, userId: userId}
+    const params = {
+      email: user.email,
+      userId: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName
+     }
+    return params
   }
 
   // route for new users from generated link
-    @Get('new-user-form')
-    @ApiOperation({summary: 'new user and lead registration form'})
-    async newUserForm(@Query('email') email: string,): Promise<{email: string}>{
-      return{email}
-    }
+  @Get('new-user-form')
+  @ApiOperation({summary: 'new user and lead registration form'})
+  async newUserForm(@Query('email') email: string,): Promise<{email: string}>{
+    return{email}
+  }
 
   // register new user
   @ApiTags('users')
@@ -119,7 +124,7 @@ export class LeadRegistrationController {
   @ApiBearerAuth()
   @ApiTags('admins')
   @UseGuards(JwtAdminsGuard)
-  @ApiOperation({summary: 'view an application by email'})
+  @ApiOperation({summary: 'view an appliation by email'})
   @ApiQuery({name: 'email', description: 'user email'})
   @Get('application')
   async getApplicationByEmail (@Query('email')email: string): Promise<Registration>{
