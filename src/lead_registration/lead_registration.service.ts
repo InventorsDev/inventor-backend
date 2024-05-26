@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException} from '@nestjs/common';
-import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
+import { CreateLeadRegistrationDto } from './dto/create-lead-registration.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Registration } from 'src/shared/schema/lead_registration.schema';
+import { Registration } from 'src/shared/schema/lead-registration.schema';
 import { User, UserDocument } from '../shared/schema/user.schema';
 import { NewUserLeadRegistrationDto } from './dto/new-user-lear-registration.dto';
 import * as CryptoJS from 'crypto-js' //generate links
-import { TempLeadRegistration } from 'src/shared/schema/temp_lead_registration.schema';
+import { TempLeadRegistration } from 'src/shared/schema/temp-lead_registration.schema';
 import { UserRole } from 'src/shared/interfaces';
 
 

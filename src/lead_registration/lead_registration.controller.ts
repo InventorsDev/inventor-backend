@@ -2,8 +2,8 @@ import { UseGuards, Redirect, Query, Controller, Post, Param, Body, Get, Put, No
 import { ApiBearerAuth, ApiOperation, ApiBody, ApiQuery, ApiParam, ApiTags } from '@nestjs/swagger';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { LeadRegistrationService } from './lead_registration.service';
-import { CreateLeadRegistrationDto } from './dto/create-lead_registration.dto';
-import { Registration } from 'src/shared/schema/lead_registration.schema';
+import { CreateLeadRegistrationDto } from './dto/create-lead-registration.dto';
+import { Registration } from 'src/shared/schema/lead-registration.schema';
 import { NewUserLeadRegistrationDto } from './dto/new-user-lear-registration.dto';
 import { RejectLeadRegistrationDto } from './dto/reject-lead-regstration.dto';
 
