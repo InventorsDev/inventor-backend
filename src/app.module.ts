@@ -7,8 +7,8 @@ import { AllExceptionsFilter } from './shared/exceptions';
 import { AuthModule } from './shared/auth/auth.module';
 import { DataLogsModule } from './shared/datalogs';
 import { UsersModule } from './users/users.module';
+import { LinkModel,LinkSchema } from './users/link.model'; // Import LinkModel
 import { MongooseModule } from '@nestjs/mongoose';
-import { LeadRegistrationModule } from './lead_registration/lead_registration.module';
 
 @Module({
   imports: [
@@ -19,10 +19,10 @@ import { LeadRegistrationModule } from './lead_registration/lead_registration.mo
         limit: +process.env.RATE_LIMIT_REQUEST_SIZE,
       },
     ]),
-    MongooseModule.forRoot('mongodb://localhost:27017/inventor_app'),
     DataLogsModule,
     UsersModule,
-    LeadRegistrationModule,
+    MongooseModule.forRoot('mongodb://localhost:27017/inventor_app'),
+    MongooseModule.forFeature([{ name: 'Link', schema: LinkSchema }]),
   ],
   controllers: [AppController],
   providers: [
