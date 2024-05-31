@@ -78,7 +78,7 @@ export class AuthService {
 
   private generateToken(payload) {
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: global.jwtService.sign(payload),
     };
   }
 }
