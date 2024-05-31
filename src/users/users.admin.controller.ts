@@ -168,13 +168,4 @@ export class UsersAdminsController {
   ) {
     return this.usersService.requestVerification(req, userId);
   }
-
-  @ApiBearerAuth()
-  @UseGuards(JwtAdminsGuard)
-  @Patch('users/:userId/generate-invite')
-  async generateLink(@Body() data: any) {
-    const { roles } = data; // Assuming roles are passed in the request body
-    const link = await this.usersService.generateUniqueLink(roles);
-    return { link };
-  }
 }

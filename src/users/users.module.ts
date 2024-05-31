@@ -3,15 +3,14 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { UsersAdminsController } from './users.admin.controller';
 import { DBModule } from 'src/shared/schema';
-import {LinkSchema} from './link.model';
+// need to accec module outside
 import { MongooseModule } from '@nestjs/mongoose';
+import { User, UserSchema } from '../shared/schema/user.schema';
 
 @Module({
-  imports: [DBModule, 
-    MongooseModule.forFeature([{ name: 'Link', schema: LinkSchema }]),
-  ],
+  imports: [DBModule, MongooseModule.forFeature([{ name: User.name, schema: UserSchema }])],
   controllers: [UsersController, UsersAdminsController],
   providers: [UsersService],
-  exports: [UsersService],
+  exports: [UsersService, MongooseModule],
 })
 export class UsersModule {}
