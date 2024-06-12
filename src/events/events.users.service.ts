@@ -20,19 +20,7 @@ export class EventService {
 
 
   async createEvent(payload: EventDto): Promise<Event> {
-    return this.eventModel.create({
-      title: payload.title,
-      shortDesc: payload.shortDesc,
-      description: payload.description,
-      host: payload.host,
-      coHost: payload.coHost,
-      location: payload.location,
-      photo: payload.photo,
-      joinMethod: payload.joinMethod,
-      link: payload.link,
-      socialsLinks: payload.socialsLinks,
-      eventDate: payload.eventDate,
-    });
+    return this.eventModel.create({payload});
   }
 
 
@@ -73,9 +61,6 @@ export class EventService {
     if (!result) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
-  }
-
-
-  
+  }  
 }
 
