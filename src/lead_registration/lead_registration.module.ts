@@ -4,7 +4,6 @@ import { LeadRegistrationController } from './lead_registration.controller';
 import { UsersModule } from 'src/users/users.module';
 import { DBModule } from 'src/shared/schema';
 
-
 @Module({
   imports: [DBModule, UsersModule],
   providers: [LeadRegistrationService],
