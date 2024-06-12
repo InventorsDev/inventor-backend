@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
-import { UserRole } from "../interfaces";
 
 @Schema()
 export class TempLeadRegistration extends Document { 
