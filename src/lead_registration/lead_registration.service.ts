@@ -1,9 +1,15 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Model } from 'mongoose';
 import { TempLeadRegistration, User, UserDocument } from 'src/shared/schema';
 import { TempLeadnDto } from './dto/temp-lead.dto';
 import { UsersService } from 'src/users/users.service';
-import { UserRole } from 'src/shared/interfaces';
+import { ApplicationStatus, UserRole } from 'src/shared/interfaces';
+import { format } from 'date-fns';
 @Injectable()
 export class LeadRegistrationService {
   constructor(
@@ -27,12 +33,33 @@ export class LeadRegistrationService {
     const { email } = tempLeadDto;
     const u = await this.usersService.findByEmail(email);
     // TODO: set a time limit to user application
+    const today = new Date();
+    if (u.nextApplicationTime < today) {
+      throw new BadRequestException(
+        `The next time you can apply as a lead is ${format(u.nextApplicationTime, 'eeee, MMMM do, h:mm a')}`,
+      );
+    }
+
     const modifiedDto = {
       ...tempLeadDto,
       createdAt: new Date(),
       firstname: u.firstName,
       lastname: u.lastName,
     };
+
+    // change next application to 3 months
+    const futureDate = new Date();
+    futureDate.setMonth(futureDate.getMonth() + 3);
+    // update the user data that has to do with application
+    await this.tempLeadModel.db.collection('users').updateOne(
+      { email: email },
+      {
+        $set: {
+          applicationStatus: ApplicationStatus.PENDING,
+          nextAppliactionTime: futureDate,
+        },
+      },
+    );
     console.log(`Email: ${email}\nUser: ${u}\nModified: ${modifiedDto}`);
     const newTempRegistration = new this.tempLeadModel(modifiedDto);
     return await newTempRegistration.save();
@@ -58,6 +85,8 @@ export class LeadRegistrationService {
         $set: {
           role: [UserRole.LEAD],
           leadPosition: tempRegistration.leadPosition,
+          applicatonStatus: ApplicationStatus.APPROVED,
+          // should also change user 'applicatonStatus'
         },
       },
     );
