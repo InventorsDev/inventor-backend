@@ -8,6 +8,7 @@ import {
   UserStatus,
   UserRole,
   RegistrationMethod,
+  ApplicationStatus,
 } from '../interfaces/user.type';
 import { ApiReq, EmailFromType } from '../interfaces';
 import { faker } from '@faker-js/faker';
@@ -93,8 +94,15 @@ export class User {
   })
   role: UserRole[];
 
+  // added for lead application purposes
   @Prop({ required: false })
   leadPosition: string;
+
+  @Prop({ index: true, required: false })
+  applicationStatus: ApplicationStatus;
+
+  @Prop({ required: false })
+  nextApplicationTime: Date;
 
   @Prop({
     index: true,
