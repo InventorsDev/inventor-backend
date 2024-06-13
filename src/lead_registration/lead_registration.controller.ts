@@ -1,23 +1,24 @@
 import {
-  UseGuards,
+  // UseGuards,
   Controller,
   Get,
   Post,
   Body,
-  // Param,
+  Param,
   // Query,
   UsePipes,
   ValidationPipe,
+  Put,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
-  // ApiParam,
+  ApiParam,
   // ApiQuery,
-  ApiTags,
+  // ApiTags,
 } from '@nestjs/swagger';
-import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
+// import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { LeadRegistrationService } from './lead_registration.service';
 import { TempLeadRegistration } from 'src/shared/schema';
 import { TempLeadnDto } from './dto/temp-lead.dto';
@@ -49,5 +50,23 @@ export class LeadRegistrationController {
     const tempRegistration =
       await this.registrationService.createTempRegistration(tempLeadDto);
     return { tempRegistrationId: tempRegistration._id };
+  }
+
+  // verify application by regisration_id
+  @ApiBearerAuth()
+  // @ApiTags('admins')
+  // @UseGuards(JwtAdminsGuard)
+  @ApiOperation({ summary: 'approve a temporary applicaion' })
+  @ApiParam({
+    name: 'tempRegistrationId',
+    description: 'Id of the tempRegistration',
+  })
+  @Put('approve/:tempRegistrationId') // have the tempReg in the parms
+  async approveApplication(
+    @Param('tempRegistrationId') tempRegistrationId: string,
+  ): Promise<string> {
+    return await this.registrationService.approveTempApplication(
+      tempRegistrationId,
+    );
   }
 }
