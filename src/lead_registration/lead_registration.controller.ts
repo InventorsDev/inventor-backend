@@ -9,12 +9,14 @@ import {
   UsePipes,
   ValidationPipe,
   Put,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   // ApiQuery,
   // ApiTags,
 } from '@nestjs/swagger';
@@ -26,7 +28,7 @@ import { TempLeadnDto } from './dto/temp-lead.dto';
 export class LeadRegistrationController {
   constructor(private readonly registrationService: LeadRegistrationService) {}
 
-  // lis tall applications
+  // list all applications
   @ApiBearerAuth()
   // @ApiTags('admins')
   // @UseGuards(JwtAdminsGuard)
@@ -34,6 +36,19 @@ export class LeadRegistrationController {
   @Get()
   async viewApplications(): Promise<TempLeadRegistration[]> {
     return await this.registrationService.viewApplications();
+  }
+
+  // find an application by email
+  // @ApiBearerAuth()
+  // @ApiTags('admins')
+  // @UseGuards(JwtAdminsGuard)
+  @ApiOperation({ summary: 'view an appliation by email' })
+  @ApiQuery({ name: 'email', description: 'user email' })
+  @Get('application')
+  getApplicationByEmail(
+    @Query('email') email: string,
+  ): Promise<TempLeadRegistration> {
+    return this.registrationService.viewOneApplication(email);
   }
 
   // user regestring to be a lead

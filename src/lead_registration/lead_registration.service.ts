@@ -18,6 +18,16 @@ export class LeadRegistrationService {
     private readonly tempLeadModel: Model<TempLeadRegistration>,
     private readonly usersService: UsersService,
   ) {}
+
+  // view single application
+  async viewOneApplication(email: string): Promise<TempLeadRegistration> {
+    const application = await this.tempLeadModel.findOne({ email }).exec();
+    if (!application) {
+      throw new NotFoundException(`Application with email ${email} not found`);
+    }
+    return application;
+  }
+
   // view all lead applications
   async viewApplications(): Promise<TempLeadRegistration[]> {
     const L_Applications = await this.tempLeadModel.find();
