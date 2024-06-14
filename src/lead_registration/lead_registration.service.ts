@@ -10,8 +10,11 @@ import { TempLeadnDto } from './dto/temp-lead.dto';
 import { UsersService } from 'src/users/users.service';
 import { ApplicationStatus, UserRole } from 'src/shared/interfaces';
 import { format } from 'date-fns';
+import { encrypt } from 'src/shared/utils';
 @Injectable()
 export class LeadRegistrationService {
+  private readonly baseUrl =
+    'http://localhost:3888/docs/api/v1/lead-registrations'; // Base URL
   constructor(
     @Inject(User.name) private userModel: Model<UserDocument>, // Use @Inject with the model name
     @Inject(TempLeadRegistration.name)
@@ -126,5 +129,22 @@ export class LeadRegistrationService {
     );
     await this.removeTempApplication(tempRegistrationId);
     return user;
+  }
+
+  // generate encrypted links
+  async generateUniqueLink(email: string): Promise<string> {
+    const user = await this.userModel.findOne({ email: email });
+    const preFilledParams = {
+      userId: user ? user._id : '',
+      email: email,
+      firstName: user ? user.firstName : '',
+      lastName: user ? user.lastName : '',
+    };
+
+    const queryString = new URLSearchParams(preFilledParams as any).toString();
+    // console.log(`Query string: ${queryString}`);
+    const encryptedParams = encrypt(queryString);
+    console.log(`Encrypted data: ${encryptedParams}\nEncoded data: ${encodeURIComponent(encryptedParams)}`);
+    return `${this.baseUrl}/register?data=${encodeURIComponent(encryptedParams)}`;
   }
 }

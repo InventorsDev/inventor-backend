@@ -106,4 +106,16 @@ export class LeadRegistrationController {
       await this.registrationService.rejectTempApplication(tempRegistrationId);
     return { message: rejectionMessage, userId: user.email };
   }
+
+  // generate registration link
+  // @ApiBearerAuth()
+  // @ApiTags('admins')
+  // @UseGuards(JwtAdminsGuard)
+  @ApiOperation({ summary: 'generate application links' })
+  @Get('generate-link/:email') // receive the email param
+  async generateLink(@Param('email') email: string): Promise<{ link: string }> {
+    // generate and return the link
+    const link = await this.registrationService.generateUniqueLink(email);
+    return { link };
+  }
 }

@@ -2,6 +2,7 @@ import { ApiReq, LogLevel } from '../interfaces';
 import * as dateFns from 'date-fns';
 import { BadRequestException } from '@nestjs/common';
 import UAParser from 'ua-parser-js';
+import * as CryptoJS from 'crypto-js';
 
 const MILES_TO_RADIAN = 0.000142857 as number;
 
@@ -206,4 +207,18 @@ export const splitName = (
   const [firstName, ...lastNameArray] = name.split(' ');
   const lastName = lastNameArray.join(' ') || firstName;
   return { firstName, lastName };
+};
+
+// encrypt and decrypt
+export const encrypt = (link: string): string => {
+  const secretkey = 'Inventors';
+  return CryptoJS.AES.encrypt(link, secretkey).toString(); // encrypt the link
+};
+
+// decrypt link
+export const decrypt = (link: string): string => {
+  const secretkey = 'Inventors';
+  const bytes = CryptoJS.AES.decrypt(link, secretkey);
+  const new_link = bytes.toString(CryptoJS.enc.Utf8); //standadize the string
+  return new_link;
 };
