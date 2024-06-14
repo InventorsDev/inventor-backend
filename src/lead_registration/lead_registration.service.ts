@@ -107,4 +107,28 @@ export class LeadRegistrationService {
   async removeTempApplication(tempId: string): Promise<void> {
     await this.tempLeadModel.findByIdAndDelete(tempId).exec();
   }
+
+  // reject a lead application
+  async rejectTempApplication(
+    tempRegistrationId: string,
+    message?: string,
+  ): Promise<string> {
+    const tempRegistration = await this.tempLeadModel
+      .findById(tempRegistrationId)
+      .exec();
+    if (!tempRegistration) {
+      throw new NotFoundException(
+        `Temp registration with ID ${tempRegistrationId} not found`,
+      );
+    }
+    // change the application status and delte the temp application
+    const user = await this.userModel.findOne({
+      email: tempRegistration.email,
+    });
+    user.applicationStatus = ApplicationStatus.REJECTED;
+    user.save();
+    await this.removeTempApplication(tempRegistrationId);
+
+    return `Application for ${user._id} Rejected\n${message}`;
+  }
 }

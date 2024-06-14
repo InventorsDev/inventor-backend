@@ -10,6 +10,7 @@ import {
   ValidationPipe,
   Put,
   Query,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -83,5 +84,28 @@ export class LeadRegistrationController {
     return await this.registrationService.approveTempApplication(
       tempRegistrationId,
     );
+  }
+
+  // reject a lead request
+  // @ApiBearerAuth()
+  // @ApiTags('admins')
+  // @UseGuards(JwtAdminsGuard)
+  @ApiOperation({ summary: 'reject(delete) an application' })
+  @ApiParam({
+    name: 'tempRegistrationId',
+    description: 'the temp registration id to be deleted',
+  })
+  @Delete('reject/:tempRegistrationId')
+  async reject(
+    @Param('tempRegistrationId') tempRegistrationId: string,
+    @Body('message') message: string,
+  ): Promise<{ message: string }> {
+    const defaultMessage = 'Your application was rejected';
+    const rejectionMessage = message || defaultMessage;
+    await this.registrationService.rejectTempApplication(
+      tempRegistrationId,
+      rejectionMessage,
+    );
+    return { message: rejectionMessage };
   }
 }
