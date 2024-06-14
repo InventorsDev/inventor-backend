@@ -10,7 +10,7 @@ import { TempLeadnDto } from './dto/temp-lead.dto';
 import { UsersService } from 'src/users/users.service';
 import { ApplicationStatus, UserRole } from 'src/shared/interfaces';
 import { format } from 'date-fns';
-import { encrypt } from 'src/shared/utils';
+import { decrypt, encrypt } from 'src/shared/utils';
 @Injectable()
 export class LeadRegistrationService {
   private readonly baseUrl =
@@ -144,7 +144,19 @@ export class LeadRegistrationService {
     const queryString = new URLSearchParams(preFilledParams as any).toString();
     // console.log(`Query string: ${queryString}`);
     const encryptedParams = encrypt(queryString);
-    console.log(`Encrypted data: ${encryptedParams}\nEncoded data: ${encodeURIComponent(encryptedParams)}`);
+    // console.log(`Encrypted data: ${encryptedParams}\nEncoded data: ${encodeURIComponent(encryptedParams)}`);
     return `${this.baseUrl}/register?data=${encodeURIComponent(encryptedParams)}`;
+  }
+
+  // decode generated link
+  paraseEncryptedParams(encryptedParams: string): {
+    email: string;
+    userId: string;
+  } {
+    const decryptedParams = decrypt(decodeURIComponent(encryptedParams));
+    const [email, userId] = decryptedParams
+      .split('&')
+      .map((param) => param.split('=')[1]);
+    return { email, userId };
   }
 }
