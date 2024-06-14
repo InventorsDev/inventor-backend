@@ -99,13 +99,11 @@ export class LeadRegistrationController {
   async reject(
     @Param('tempRegistrationId') tempRegistrationId: string,
     @Body('message') message: string,
-  ): Promise<{ message: string }> {
+  ): Promise<{ message: string; userId: string }> {
     const defaultMessage = 'Your application was rejected';
     const rejectionMessage = message || defaultMessage;
-    await this.registrationService.rejectTempApplication(
-      tempRegistrationId,
-      rejectionMessage,
-    );
-    return { message: rejectionMessage };
+    const user =
+      await this.registrationService.rejectTempApplication(tempRegistrationId);
+    return { message: rejectionMessage, userId: user.email };
   }
 }
