@@ -122,7 +122,7 @@ export class LeadRegistrationController {
   // @ApiTags('admins')
   // @UseGuards(JwtAdminsGuard)
   @ApiOperation({ summary: 'generate application links' })
-  @Get('generate-link/:email') // receive the email param
+  @Get('generate-link') // receive the email param
   async generateLink(@Param('email') email: string): Promise<{ link: string }> {
     // generate and return the link
     const link = await this.registrationService.generateUniqueLink(email);
@@ -134,12 +134,11 @@ export class LeadRegistrationController {
   @ApiOperation({ summary: 'Handle generated link routing' })
   @Redirect()
   async register(
-    @Query('link') encryptedData: string,
+    @Query('data') encryptedData: string,
   ): Promise<{ url: string }> {
     try {
-      const { userId, email } = this.registrationService.paraseEncryptedParams(
-        new URL(encryptedData).searchParams.get('link'),
-      );
+      const { userId, email } =
+        this.registrationService.paraseEncryptedParams(encryptedData);
       if (!userId)
         return {
           url: `/leads/new-user-form?${new URLSearchParams({ email }).toString()}`,

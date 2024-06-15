@@ -161,7 +161,7 @@ export class LeadRegistrationService {
     return { userId, email };
   }
 
-  // refrence reating a new user
+  // refrence routing a new user
   async createUser(userData: CreateUserDto) {
     return (this.userModel as any).signUp(userData);
   }
