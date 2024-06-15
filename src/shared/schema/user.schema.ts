@@ -65,6 +65,8 @@ export class User {
 
   @Prop({ index: true })
   gender: string;
+  
+  
 
   @Prop({
     type: {
@@ -124,6 +126,15 @@ export class User {
 
   @Prop(raw(SocialsRawSchema))
   socials: Socials;
+  
+@Prop({
+  index: true,
+  default: VerificationStatus.NOT_VERIFIED
+})
+ verificationStatus: VerificationStatus;
+
+ @Prop({ type: Date })
+ nextVerificationRequestDate: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

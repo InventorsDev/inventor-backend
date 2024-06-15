@@ -24,7 +24,7 @@ export class JwtUsersGuard
       throw new UnauthorizedException();
     }
     try {
-      const payload = await global.jwtService.decode(token);
+      const payload = await global.jwtService.verify(token);
       if (payload?.role != UserRole.USER) throw new Error('Invalid user role');
       request['user'] = payload;
     } catch (error) {
@@ -33,7 +33,7 @@ export class JwtUsersGuard
     return true;
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
+ private extractTokenFromHeader(request: Request): string | undefined {
     const [type, token] = request.headers['authorization']?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }

@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDefined, IsEmail, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
+import {
+  IsDefined,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 import { LocationDto } from './location.dto';
 import { RegistrationMethod, registrationMethods } from '../interfaces';
 import { BadRequestException } from '@nestjs/common';

@@ -25,8 +25,7 @@ export class JwtAdminsGuard
       throw new UnauthorizedException();
     }
     try {
-      const payload = await global.jwtService.decode(token);
-      console.log(payload, payload.role);
+      const payload = await global.jwtService.verify(token);
       if (payload?.role != UserRole.ADMIN) throw new Error();
       request['user'] = payload;
     } catch (error) {

@@ -10,19 +10,35 @@ import { faker } from '@faker-js/faker';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { User, UserDocument } from 'src/shared/schema';
-import { BcryptUtil, CloudinaryFolders, firstCapitalize, getMailTemplate, getPaginated, getPagingParams, passwordMatch, sendMail, uploadToCloudinary, verifyHandle } from 'src/shared/utils';
-import { ApiReq, EmailFromType, UserRole, UserStatus } from 'src/shared/interfaces';
+import {
+  BcryptUtil,
+  CloudinaryFolders,
+  firstCapitalize,
+  getMailTemplate,
+  getPaginated,
+  getPagingParams,
+  passwordMatch,
+  sendMail,
+  uploadToCloudinary,
+  verifyHandle,
+} from 'src/shared/utils';
+import {
+  ApiReq,
+  EmailFromType,
+  UserRole,
+  UserStatus,
+} from 'src/shared/interfaces';
 import { UserInviteDto } from './dto/user-invite.dto';
-
+import { VerificationStatus } from 'src/shared/interfaces/user.type';
 @Injectable()
 export class UsersService {
   constructor(
     @Inject(User.name)
-    private readonly userModel: Model<UserDocument>) {}
-
+    private readonly userModel: Model<UserDocument>,
+  ) { }
 
   sendEmailVerificationToken(req: any, userId: string) {
-    (this.userModel as any).sendEmailVerificationToken(req, userId)
+    (this.userModel as any).sendEmailVerificationToken(req, userId);
   }
 
   private async verifyUserHandle(handle: string, userId: string) {
@@ -41,7 +57,9 @@ export class UsersService {
   }
 
   async userInvite(payload: UserInviteDto): Promise<User> {
-    const password = await BcryptUtil.generateHash(faker.internet.password(5) + '$?wE');
+    const password = await BcryptUtil.generateHash(
+      faker.internet.password(5) + '$?wE',
+    );
     const email = payload.email.trim().toLowerCase();
     return this.userModel.create({
       firstName: firstCapitalize(payload.firstName.trim()),
@@ -82,9 +100,9 @@ export class UsersService {
     return user;
   }
 
-  async findByEmail(email: string, project: any = {}): Promise<User>  {
+  async findByEmail(email: string, project: any = {}): Promise<User> {
     const user = await this.userModel
-      .findOne({email, status: UserStatus.ACTIVE}, project, { lean: true })
+      .findOne({ email, status: UserStatus.ACTIVE }, project, { lean: true })
       .select('-password')
       .exec();
     if (!user) {
@@ -99,11 +117,11 @@ export class UsersService {
       throw new BadRequestException('Photo must include a data image');
     }
 
-    const updateData = payload ;
+    const updateData = payload;
     if (firstName) payload.firstName = firstCapitalize(firstName.trim());
     if (lastName) payload.lastName = firstCapitalize(lastName.trim());
     if (userHandle) {
-      payload.userHandle = userHandle.toLowerCase().trim().replace(/@/g, '')
+      payload.userHandle = userHandle.toLowerCase().trim().replace(/@/g, '');
       await this.verifyUserHandle(updateData.userHandle, userId);
     }
 
@@ -113,7 +131,7 @@ export class UsersService {
         CloudinaryFolders.PHOTOS,
       );
     }
-    
+
     return this.userModel
       .findOneAndUpdate(
         { _id: new Types.ObjectId(userId) },
@@ -127,7 +145,7 @@ export class UsersService {
   }
 
   async addPhoto(userId: string, payload: UserAddPhotoDto): Promise<User> {
-    const { photo } = payload;
+    const photo = await uploadToCloudinary(payload.photo);
 
     return this.userModel.findOneAndUpdate(
       { _id: new Types.ObjectId(userId) },
@@ -147,7 +165,7 @@ export class UsersService {
     return deletedUser;
   }
 
-  async findMe(req: ApiReq): Promise<User>  {
+  async findMe(req: ApiReq): Promise<User> {
     return await this.userModel
       .findOne(
         { _id: new Types.ObjectId(req.user._id.toString()) },
@@ -253,4 +271,33 @@ export class UsersService {
       )
       .select('email firstName lastName');
   }
+
+  async requestVerification(req: ApiReq, userId: string) {
+    //1. Retrieve user information and check that user exists
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    //2. Check that current date > nextRequestVerificationDate
+    const currentDate = new Date();
+    if (user.nextVerificationRequestDate && currentDate < user.nextVerificationRequestDate) {
+      throw new Error('Verification request not allowed at this time');
+    }
+
+    //3. Check that the user verification status is not verified
+    if (user.verificationStatus === VerificationStatus.VERIFIED) {
+      throw new Error('User is already verified');
+    }
+
+    //4. Update user verification status and next verification date to 3 months from now
+    user.verificationStatus = VerificationStatus.PENDING;
+    const nextVerificationDate = new Date();
+    nextVerificationDate.setMonth(nextVerificationDate.getMonth() + 3);
+    user.nextVerificationRequestDate = nextVerificationDate;
+
+    //5. Save the updated user
+    await user.save();
+  }
 }
+
