@@ -30,7 +30,7 @@ import { TempLeadRegistration, User } from 'src/shared/schema';
 import { TempLeadnDto } from './dto/temp-lead.dto';
 import { UsersService } from 'src/users/users.service';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
-@Controller('lead-registration')
+@Controller('leads')
 export class LeadRegistrationController {
   constructor(
     private readonly registrationService: LeadRegistrationService,
@@ -42,7 +42,7 @@ export class LeadRegistrationController {
   // @ApiTags('admins')
   // @UseGuards(JwtAdminsGuard)
   @ApiOperation({ summary: 'view all submitted applications' })
-  @Get()
+  @Get('applications')
   async viewApplications(): Promise<TempLeadRegistration[]> {
     return await this.registrationService.viewApplications();
   }
@@ -53,7 +53,7 @@ export class LeadRegistrationController {
   // @UseGuards(JwtAdminsGuard)
   @ApiOperation({ summary: 'view an appliation by email' })
   @ApiQuery({ name: 'email', description: 'user email' })
-  @Get('application')
+  @Get('application/:email')
   getApplicationByEmail(
     @Query('email') email: string,
   ): Promise<TempLeadRegistration> {
@@ -64,7 +64,7 @@ export class LeadRegistrationController {
   // @ApiTags('users')
   // @ApiBearerAuth()
   // @UseGuards(JwtAdminsGuard)
-  @Post('create')
+  @Post('register')
   @ApiOperation({ summary: 'Register to be a lead' })
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiBody({ type: TempLeadnDto })
@@ -130,26 +130,26 @@ export class LeadRegistrationController {
   }
 
   // handle generated links
-  @Get('register')
+  @Get('invite-link')
   @ApiOperation({ summary: 'Handle generated link routing' })
   @Redirect()
   async register(
-    @Query('data') encryptedData: string,
+    @Query('link') encryptedData: string,
   ): Promise<{ url: string }> {
     try {
       const { userId, email } = this.registrationService.paraseEncryptedParams(
-        new URL(encryptedData).searchParams.get('data'),
+        new URL(encryptedData).searchParams.get('link'),
       );
       if (!userId)
         return {
-          url: `/lead-registration/new-user-form?${new URLSearchParams({ email }).toString()}`,
+          url: `/leads/new-user-form?${new URLSearchParams({ email }).toString()}`,
         };
 
       const userExists = await this.usersService.findById(userId);
       if (!userExists) throw new NotFoundException('User Not found');
 
       return {
-        url: `/lead-registration/create?email=${userExists.email}`,
+        url: `/leads/create?email=${userExists.email}`,
       };
     } catch (error) {
       throw new NotFoundException('Invalid link');
@@ -163,7 +163,7 @@ export class LeadRegistrationController {
     try {
       const user = await this.registrationService.createUser(userData);
       return {
-        url: `/lead-registration/create?email=${user.email}`,
+        url: `/leads/create?email=${user.email}`,
       };
     } catch (error) {
       throw new InternalServerErrorException('Failed to create user');
@@ -171,7 +171,7 @@ export class LeadRegistrationController {
   }
 
   // view all leads
-  @Get('leads-users')
+  @Get()
   @ApiOperation({ summary: 'Get all users with lead role' })
   async getUsersWithLeadRole(): Promise<User[]> {
     return this.registrationService.getUsersWithLeadRole();

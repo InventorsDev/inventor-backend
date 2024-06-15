@@ -15,8 +15,7 @@ import { decrypt, encrypt } from 'src/shared/utils';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 @Injectable()
 export class LeadRegistrationService {
-  private readonly baseUrl =
-    'http://localhost:3888/docs/api/v1/lead-registrations'; // Base URL
+  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/leads'; // Base URL
   constructor(
     @Inject(User.name) private userModel: Model<UserDocument>, // Use @Inject with the model name
     @Inject(TempLeadRegistration.name)
@@ -147,7 +146,7 @@ export class LeadRegistrationService {
     // console.log(`Query string: ${queryString}`);
     const encryptedParams = encrypt(queryString);
     // console.log(`Encrypted data: ${encryptedParams}\nEncoded data: ${encodeURIComponent(encryptedParams)}`);
-    return `${this.baseUrl}/register?data=${encodeURIComponent(encryptedParams)}`;
+    return `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
   }
 
   // decode generated link
