@@ -1,11 +1,10 @@
 import {
-  // UseGuards,
+  UseGuards,
   Controller,
   Get,
   Post,
   Body,
   Param,
-  // Query,
   UsePipes,
   ValidationPipe,
   Put,
@@ -21,10 +20,9 @@ import {
   ApiOperation,
   ApiParam,
   ApiQuery,
-  // ApiQuery,
-  // ApiTags,
+  ApiTags,
 } from '@nestjs/swagger';
-// import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
+import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { LeadRegistrationService } from './lead_registration.service';
 import { TempLeadRegistration, User } from 'src/shared/schema';
 import { TempLeadnDto } from './dto/temp-lead.dto';
@@ -39,8 +37,8 @@ export class LeadRegistrationController {
 
   // list all applications
   @ApiBearerAuth()
-  // @ApiTags('admins')
-  // @UseGuards(JwtAdminsGuard)
+  @ApiTags('admins')
+  @UseGuards(JwtAdminsGuard)
   @ApiOperation({ summary: 'view all submitted applications' })
   @Get('applications')
   async viewApplications(): Promise<TempLeadRegistration[]> {
@@ -48,9 +46,9 @@ export class LeadRegistrationController {
   }
 
   // find an application by email
-  // @ApiBearerAuth()
-  // @ApiTags('admins')
-  // @UseGuards(JwtAdminsGuard)
+  @ApiBearerAuth()
+  @ApiTags('admins')
+  @UseGuards(JwtAdminsGuard)
   @ApiOperation({ summary: 'view an appliation by email' })
   @ApiQuery({ name: 'email', description: 'user email' })
   @Get('application/:email')
@@ -61,9 +59,9 @@ export class LeadRegistrationController {
   }
 
   // user regestring to be a lead
-  // @ApiTags('users')
-  // @ApiBearerAuth()
-  // @UseGuards(JwtAdminsGuard)
+  @ApiTags('users')
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
   @Post('register')
   @ApiOperation({ summary: 'Register to be a lead' })
   @UsePipes(new ValidationPipe({ transform: true }))
@@ -80,8 +78,8 @@ export class LeadRegistrationController {
 
   // verify application by regisration_id
   @ApiBearerAuth()
-  // @ApiTags('admins')
-  // @UseGuards(JwtAdminsGuard)
+  @ApiTags('admins')
+  @UseGuards(JwtAdminsGuard)
   @ApiOperation({ summary: 'approve a temporary applicaion' })
   @ApiParam({
     name: 'tempRegistrationId',
@@ -97,9 +95,9 @@ export class LeadRegistrationController {
   }
 
   // reject a lead request
-  // @ApiBearerAuth()
-  // @ApiTags('admins')
-  // @UseGuards(JwtAdminsGuard)
+  @ApiBearerAuth()
+  @ApiTags('admins')
+  @UseGuards(JwtAdminsGuard)
   @ApiOperation({ summary: 'reject(delete) an application' })
   @ApiParam({
     name: 'tempRegistrationId',
@@ -118,9 +116,9 @@ export class LeadRegistrationController {
   }
 
   // generate registration link
-  // @ApiBearerAuth()
-  // @ApiTags('admins')
-  // @UseGuards(JwtAdminsGuard)
+  @ApiBearerAuth()
+  @ApiTags('admins')
+  @UseGuards(JwtAdminsGuard)
   @ApiOperation({ summary: 'generate application links' })
   @Get('generate-link') // receive the email param
   async generateLink(@Param('email') email: string): Promise<{ link: string }> {
