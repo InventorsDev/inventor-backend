@@ -11,6 +11,7 @@ import { UsersService } from 'src/users/users.service';
 import { ApplicationStatus, UserRole } from 'src/shared/interfaces';
 import { format } from 'date-fns';
 import { decrypt, encrypt } from 'src/shared/utils';
+
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 @Injectable()
 export class LeadRegistrationService {
@@ -164,5 +165,12 @@ export class LeadRegistrationService {
   // refrence reating a new user
   async createUser(userData: CreateUserDto) {
     return (this.userModel as any).signUp(userData);
+  }
+
+  // get all leads
+  // decided to go the crude way since i couldn't get the one in userServices to work
+  async getUsersWithLeadRole(): Promise<User[]> {
+    const users = await this.userModel.find({ role: 'LEAD' }).exec();
+    return users;
   }
 }

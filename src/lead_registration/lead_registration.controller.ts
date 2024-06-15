@@ -26,7 +26,7 @@ import {
 } from '@nestjs/swagger';
 // import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { LeadRegistrationService } from './lead_registration.service';
-import { TempLeadRegistration } from 'src/shared/schema';
+import { TempLeadRegistration, User } from 'src/shared/schema';
 import { TempLeadnDto } from './dto/temp-lead.dto';
 import { UsersService } from 'src/users/users.service';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
@@ -168,5 +168,12 @@ export class LeadRegistrationController {
     } catch (error) {
       throw new InternalServerErrorException('Failed to create user');
     }
+  }
+
+  // view all leads
+  @Get('leads-users')
+  @ApiOperation({ summary: 'Get all users with lead role' })
+  async getUsersWithLeadRole(): Promise<User[]> {
+    return this.registrationService.getUsersWithLeadRole();
   }
 }
