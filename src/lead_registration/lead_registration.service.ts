@@ -11,6 +11,7 @@ import { UsersService } from 'src/users/users.service';
 import { ApplicationStatus, UserRole } from 'src/shared/interfaces';
 import { format } from 'date-fns';
 import { decrypt, encrypt } from 'src/shared/utils';
+import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 @Injectable()
 export class LeadRegistrationService {
   private readonly baseUrl =
@@ -154,9 +155,14 @@ export class LeadRegistrationService {
     userId: string;
   } {
     const decryptedParams = decrypt(decodeURIComponent(encryptedParams));
-    const [email, userId] = decryptedParams
+    const [userId, email] = decryptedParams
       .split('&')
       .map((param) => param.split('=')[1]);
-    return { email, userId };
+    return { userId, email };
+  }
+
+  // refrence reating a new user
+  async createUser(userData: CreateUserDto) {
+    return (this.userModel as any).signUp(userData);
   }
 }
