@@ -65,8 +65,6 @@ export class User {
 
   @Prop({ index: true })
   gender: string;
-  
-  
 
   @Prop({
     type: {
