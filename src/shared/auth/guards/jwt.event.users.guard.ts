@@ -1,15 +1,15 @@
 import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '../../interfaces';
 
 @Injectable()
 export class JwtEventUserGuard extends AuthGuard('jwt-user') {
-  constructor(private jwtService: JwtService) {
+  constructor() {
     super();
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
     
@@ -43,6 +43,7 @@ export class JwtEventUserGuard extends AuthGuard('jwt-user') {
   }
 
   private hasRequiredRoles(userRoles: UserRole[], requiredRoles: UserRole[]): boolean {
-    return requiredRoles.every(role => userRoles.includes(role));
+    // checks if events user or admin user can access
+    return requiredRoles.every(role => userRoles.includes(role)) || userRoles.includes(UserRole.ADMIN);
   }
 }

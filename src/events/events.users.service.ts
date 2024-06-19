@@ -10,6 +10,7 @@ import { EventDto } from './dto/event.dto';
 import { ApiReq } from 'src/shared/interfaces/req.type';
 import { getPagingParams, getPaginated } from 'src/shared/utils';
 import { UpdateEventDto } from './dto/updateEvent.dto';
+import { Status } from 'src/shared/interfaces/event.type';
 
 @Injectable()
 export class EventService {
@@ -18,11 +19,9 @@ export class EventService {
     private readonly eventModel: Model<EventDocument>,
   ) { }
 
-
   async createEvent(payload: EventDto): Promise<Event> {
     return this.eventModel.create({payload});
   }
-
 
   async findAll(req: ApiReq) {
     const { page, currentLimit, skip, order, dbQuery } = getPagingParams(req);
@@ -62,5 +61,14 @@ export class EventService {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
   }  
+
+  async softDeleteEvent(id: string): Promise<Event> {
+    return this.eventModel.findByIdAndUpdate(id, { deleted: true }, { new: true });
+  }
+
+
+  async approveEvent(id: string): Promise<Event> {
+    return this.eventModel.findByIdAndUpdate(id, { status: Status.APPROVED }, { new: true });
+  }
 }
 

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { Location, JoinMethod , SocialsLinks, SocialsLinksRawSchema} from '../interfaces/event.type'
+import { Location, JoinMethod, SocialsLinks, Status, SocialsLinksRawSchema } from '../interfaces/event.type';
 import { IsArray, IsString } from 'class-validator';
 
 export type EventDocument = HydratedDocument<Event>;
@@ -8,45 +8,42 @@ export type EventDocument = HydratedDocument<Event>;
 @Schema({ timestamps: true })
 export class Event {
   @Prop({ required: true, index: true })
-  title: string;
+  title: string; 
 
-  @Prop({ required: true,index: true })
-  shortDesc: string;
+  @Prop({ required: true })
+  shortDesc: string; 
 
-  @Prop({ required: true, index: true})
+  @Prop({ required: true })
   description: string;
 
   @Prop({ required: true })
-  host: string;
+  host: string; 
 
-  @Prop({ index: true })
+  @Prop()
   @IsArray()
   @IsString({ each: true })
-  coHost: string[];
+  coHost: string[]; 
 
-  @Prop({ index: true,
-     default: Location.ONLINE,
-   })
-  location: string;
+  @Prop({ enum: Location, default: Location.ONLINE })
+  location: Location; 
 
   @Prop()
   photo: string;
 
-  @Prop({
-    index: true,
-  })
-  joinMethod: JoinMethod;
+  @Prop({ enum: JoinMethod })
+  joinMethod: JoinMethod; 
 
-  @Prop({
-    index: true,
-  })
-  link: string;
+  @Prop()
+  link: string; 
 
   @Prop(raw(SocialsLinksRawSchema))
   socialsLinks: SocialsLinks;
 
-  @Prop({ type: Date })
+  @Prop({ type: Date, index: true })
   eventDate: Date;
+
+  @Prop({ enum: Status, default: Status.PENDING, index: true })
+  status: Status;
 }
 
 export const EventSchema = SchemaFactory.createForClass(Event);

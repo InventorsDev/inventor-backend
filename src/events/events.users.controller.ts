@@ -32,14 +32,11 @@ export class EventUserController {
   }
 
   @ApiBearerAuth()
-  @UseGuards(JwtEventUserGuard)
   @Get()
   async getAllEvents(@Req() req: ApiReq) {
     return this.eventService.findAll(req);
   }
 
-  @ApiBearerAuth()
-  @UseGuards(JwtEventUserGuard)
   @Get(':id')
   @ApiParam({ name: 'id', type: 'string' })
   async getEventById(@Param('id') id: string) {

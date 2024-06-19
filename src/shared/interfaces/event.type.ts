@@ -8,6 +8,12 @@ export enum JoinMethod {
   TWITTER = 'TWITTER',
 }
 
+export enum Status {
+  APPROVED = 'APPROVED',
+  PENDING = 'PENDING',
+  DELETED = 'DELETED',
+}
+
 export type SocialsLinks = {
   linkedIn: string;
   twitter: string;
