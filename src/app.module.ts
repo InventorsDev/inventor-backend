@@ -7,6 +7,9 @@ import { AllExceptionsFilter } from './shared/exceptions';
 import { AuthModule } from './shared/auth/auth.module';
 import { DataLogsModule } from './shared/datalogs';
 import { UsersModule } from './users/users.module';
+import { LeadRegistrationController } from './lead_registration/lead_registration.controller';
+import { LeadRegistrationModule } from './lead_registration/lead_registration.module';
+import { User } from './shared/schema';
 import { EventModule } from './events/events.users.module';
 
 @Module({
@@ -20,9 +23,10 @@ import { EventModule } from './events/events.users.module';
     ]),
     DataLogsModule,
     UsersModule,
+    LeadRegistrationModule,
     EventModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, LeadRegistrationController],
   providers: [
     AppService,
     Logger,

@@ -4,16 +4,19 @@ import { configs } from '../configs';
 import { Connection, ConnectOptions, createConnection } from 'mongoose';
 import { Module } from '@nestjs/common';
 import { User, UserSchema } from './user.schema';
+import { TempLeadRegistration, TempLeadSchema } from './tempLead.schema';
 import { EventSchema } from './events.schema';
 
 // All Schema Models
 export * from './data.log.schema';
 export * from './user.schema';
+export * from './tempLead.schema';
 export * from './events.schema';
 
 const SCHEMA_LIST = [
   { name: User.name, schema: UserSchema, dbPrefix: 'APP' },
   { name: Event.name, schema: EventSchema, dbPrefix: 'APP' },
+  { name: TempLeadRegistration.name, schema: TempLeadSchema, dbPrefix: 'APP' },
   { name: DataLog.name, schema: DataLogSchema, dbPrefix: 'LOG' },
 ];
 
