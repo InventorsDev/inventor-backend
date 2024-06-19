@@ -66,7 +66,6 @@ export class EventService {
     if (!deleteEvent) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
-
     return deleteEvent;
   }
 
