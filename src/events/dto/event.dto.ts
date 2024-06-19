@@ -25,18 +25,17 @@ export class EventDto {
 
   @ApiProperty()
   @IsNotEmpty()
-   @IsString()
-  host?: string;
+  @IsString()
+  host: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
   coHost?: string[];
 
   @ApiProperty()
   @IsNotEmpty()
-  @IsString()
   @IsEnum(Location)
-  location: string;
+  location: Location;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -47,17 +46,17 @@ export class EventDto {
   @IsNotEmpty()
   @IsString()
   @IsEnum(JoinMethod)
-  joinMethod?: string;
+  joinMethod: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  link: string;
+  link?: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  socialsLinks: SocialsLinks;
+  socialsLinks?: SocialsLinks;
 
   @ApiProperty()
   @IsNotEmpty()
