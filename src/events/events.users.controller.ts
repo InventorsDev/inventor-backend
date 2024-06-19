@@ -13,7 +13,7 @@ import {
 import { EventService } from './events.users.service';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 import { JwtEventUserGuard } from 'src/shared/auth/guards/jwt.event.users.guard';
-import { ApiReq} from 'src/shared/interfaces';
+import { ApiReq } from 'src/shared/interfaces';
 import { EventDto } from './dto/event.dto';
 import { UpdateEventDto } from './dto/updateEvent.dto';
 import { JwtUsersGuard } from 'src/shared/auth/guards/jwt.users.guard';
@@ -21,8 +21,7 @@ import { JwtUsersGuard } from 'src/shared/auth/guards/jwt.users.guard';
 @ApiTags('event')
 @Controller('event')
 export class EventUserController {
-  constructor(private readonly eventService: EventService,
-  ) {}
+  constructor(private readonly eventService: EventService) {}
 
   @ApiBearerAuth()
   @UseGuards(JwtEventUserGuard)
@@ -34,6 +33,8 @@ export class EventUserController {
   @ApiBearerAuth()
   @Get()
   async getAllEvents(@Req() req: ApiReq) {
+    //Todo:
+    // Determine how the wouild be queried
     return this.eventService.findAll(req);
   }
 
@@ -59,8 +60,6 @@ export class EventUserController {
   @Delete(':id')
   @ApiParam({ name: 'id', type: 'string' })
   async deleteEvent(@Param('id') id: string) {
-    return this.eventService.deleteEvent(id);
+    return this.eventService.softDeleteEvent(id);
   }
-
 }
-

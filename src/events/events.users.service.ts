@@ -1,8 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { Event } from 'src/shared/schema';
 import { EventDocument } from 'src/shared/schema/events.schema';
@@ -17,10 +13,10 @@ export class EventService {
   constructor(
     @Inject(Event.name)
     private readonly eventModel: Model<EventDocument>,
-  ) { }
+  ) {}
 
   async createEvent(payload: EventDto): Promise<Event> {
-    return this.eventModel.create({payload});
+    return this.eventModel.create({ payload });
   }
 
   async findAll(req: ApiReq) {
@@ -39,7 +35,7 @@ export class EventService {
     );
   }
 
-   async findById(id: string): Promise<EventDocument> {
+  async findById(id: string): Promise<EventDocument> {
     const event = await this.eventModel.findById(id).lean().exec();
     if (!event) {
       throw new NotFoundException(`Event with ID ${id} not found`);
@@ -47,28 +43,43 @@ export class EventService {
     return event;
   }
 
-   async updateEvent(id: string, updateEventDto: UpdateEventDto): Promise<EventDocument> {
-    const updatedEvent = await this.eventModel.findByIdAndUpdate(id, updateEventDto, { new: true, lean: true }).exec();
+  async updateEvent(
+    id: string,
+    updateEventDto: UpdateEventDto,
+  ): Promise<EventDocument> {
+    const updatedEvent = await this.eventModel
+      .findByIdAndUpdate(id, updateEventDto, { new: true, lean: true })
+      .exec();
+      
     if (!updatedEvent) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
     return updatedEvent;
   }
 
-   async deleteEvent(id: string): Promise<void> {
-    const result = await this.eventModel.findByIdAndDelete(id).exec();
-    if (!result) {
+  async softDeleteEvent(id: string): Promise<Event> {
+    let deleteEvent = this.eventModel.findByIdAndUpdate(
+      id,
+      { status: Status.DELETED },
+      { new: true },
+    );
+    if (!deleteEvent) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
-  }  
 
-  async softDeleteEvent(id: string): Promise<Event> {
-    return this.eventModel.findByIdAndUpdate(id, { deleted: true }, { new: true });
+    return deleteEvent;
   }
-
 
   async approveEvent(id: string): Promise<Event> {
-    return this.eventModel.findByIdAndUpdate(id, { status: Status.APPROVED }, { new: true });
+    let approveEvent = this.eventModel.findByIdAndUpdate(
+      id,
+      { status: Status.APPROVED },
+      { new: true },
+    );
+    if (!approveEvent) {
+      throw new NotFoundException(`Event with ID ${id} not found`);
+    }
+
+    return approveEvent;
   }
 }
-
