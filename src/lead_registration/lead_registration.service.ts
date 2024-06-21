@@ -25,11 +25,14 @@ export class LeadRegistrationService {
 
   // view single application
   async viewOneApplication(email: string): Promise<TempLeadRegistration> {
-    const application = await this.tempLeadModel.findOne({ email }).exec();
+    const application = await this.userModel.findOne({ email }).exec();
     if (!application) {
       throw new NotFoundException(`Application with email ${email} not found`);
     }
-    return application;
+    if (application.applicationStatus == ApplicationStatus.PENDING) {
+      return application;
+    }
+    throw new NotFoundException(`${email} has no pendign application`);
   }
 
   // view all lead applications
