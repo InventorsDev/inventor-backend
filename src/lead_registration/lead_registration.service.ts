@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { TempLeadRegistration, User, UserDocument } from 'src/shared/schema';
-import { TempLeadnDto } from './dto/temp-lead.dto';
 import { UsersService } from 'src/users/users.service';
 import { ApplicationStatus, UserRole } from 'src/shared/interfaces';
 import { format } from 'date-fns';
@@ -24,7 +23,7 @@ export class LeadRegistrationService {
   ) {}
 
   // view single application
-  async viewOneApplication(email: string): Promise<TempLeadRegistration> {
+  async viewOneApplication(email: string): Promise<UserDocument> {
     const application = await this.userModel.findOne({ email }).exec();
     if (!application) {
       throw new NotFoundException(`Application with email ${email} not found`);
@@ -36,20 +35,20 @@ export class LeadRegistrationService {
   }
 
   // view all lead applications
-  async viewApplications(): Promise<TempLeadRegistration[]> {
-    const L_Applications = await this.tempLeadModel.find();
-    if (!L_Applications || L_Applications.length == 0) {
+  async viewApplications(): Promise<UserDocument[]> {
+    const leadApplications = await this.userModel
+      .find({ applicationStatus: ApplicationStatus.PENDING })
+      .exec();
+    if (!leadApplications) {
       throw new NotFoundException('No application data found!');
     }
-    return L_Applications;
+    return leadApplications;
   }
+
   // create lead application for active user
-  async createTempRegistration(
-    tempLeadDto: TempLeadnDto,
-  ): Promise<TempLeadRegistration> {
-    const { email } = tempLeadDto;
+  async createTempRegistration(email: string): Promise<string> {
     const u = await this.usersService.findByEmail(email);
-    // TODO: set a time limit to user application
+    // check the next application time
     const today = new Date();
     if (u.nextApplicationTime < today) {
       throw new BadRequestException(
@@ -57,82 +56,74 @@ export class LeadRegistrationService {
       );
     }
 
-    const modifiedDto = {
-      ...tempLeadDto,
-      createdAt: new Date(),
-      firstname: u.firstName,
-      lastname: u.lastName,
-    };
-
-    // change next application to 3 months
+    // create next application date
     const futureDate = new Date();
     futureDate.setMonth(futureDate.getMonth() + 3);
+
     // update the user data that has to do with application
+    try {
+      await this.userModel.findOneAndUpdate(
+        { email: email },
+        {
+          $set: {
+            applicationStatus: ApplicationStatus.PENDING,
+            nextAppliactionTime: futureDate,
+            // need to pass in a lead position here
+            leadPosition: 'lead position',
+          },
+        },
+      );
+    } catch {
+      return 'Error updating user';
+    }
+    console.log(
+      `Email: ${email}\nUser: ${u}\nUser status: ${u.applicationStatus}`,
+    );
+    return 'Application sent';
+  }
+
+  // approve a lead application
+  async approveTempApplication(email: string): Promise<string> {
+    const userApplication = await this.userModel
+      .findOne({
+        email: email,
+        applicationStatus: ApplicationStatus.PENDING,
+      })
+      .exec();
+    if (!userApplication) {
+      throw new NotFoundException(`Application for ${email} not found`);
+    }
     await this.tempLeadModel.db.collection('users').updateOne(
       { email: email },
       {
         $set: {
-          applicationStatus: ApplicationStatus.PENDING,
-          nextAppliactionTime: futureDate,
-        },
-      },
-    );
-    console.log(`Email: ${email}\nUser: ${u}\nModified: ${modifiedDto}`);
-    const newTempRegistration = new this.tempLeadModel(modifiedDto);
-    return await newTempRegistration.save();
-  }
-
-  // approve a lead application
-  async approveTempApplication(tempRegistrationId: string): Promise<string> {
-    const tempRegistration = await this.tempLeadModel
-      .findById(tempRegistrationId)
-      .exec();
-    if (!tempRegistration) {
-      throw new NotFoundException(
-        `Temp registration with ID ${tempRegistrationId} not found`,
-      );
-    }
-    const u = await this.tempLeadModel.db
-      .collection('users')
-      .findOne({ email: tempRegistration.email });
-
-    await this.tempLeadModel.db.collection('users').updateOne(
-      { email: tempRegistration.email },
-      {
-        $set: {
           role: [UserRole.LEAD],
-          leadPosition: tempRegistration.leadPosition,
           applicatonStatus: ApplicationStatus.APPROVED,
           // should also change user 'applicatonStatus'
         },
       },
     );
-    // remove the temp data
-    await this.removeTempApplication(tempRegistrationId);
-    return `${u.firstName} has been verified as a lead for ${u.leadPosition}`;
+    userApplication.role = [UserRole.LEAD];
+    userApplication.applicationStatus = ApplicationStatus.APPROVED;
+    userApplication.save();
+
+    return `${userApplication.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
   }
+
+  // to be deleted
   async removeTempApplication(tempId: string): Promise<void> {
     await this.tempLeadModel.findByIdAndDelete(tempId).exec();
   }
 
   // reject a lead application
-  async rejectTempApplication(tempRegistrationId: string): Promise<User> {
-    const tempRegistration = await this.tempLeadModel
-      .findById(tempRegistrationId)
-      .exec();
-    if (!tempRegistration) {
-      throw new NotFoundException(
-        `Temp registration with ID ${tempRegistrationId} not found`,
-      );
-    }
-    // change the application status and delete the temp application
-    const user = await this.userModel.findOneAndUpdate(
-      { email: tempRegistration.email },
-      { applicationStatus: ApplicationStatus.REJECTED },
-      { new: true },
-    );
-    await this.removeTempApplication(tempRegistrationId);
-    return user;
+  async rejectTempApplication(email: string): Promise<User> {
+    const userApplication = this.viewOneApplication(email);
+    (await userApplication).leadPosition = '';
+    (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
+    (await userApplication).save();
+
+    //send rejection email here;
+    return userApplication;
   }
 
   // generate encrypted links
