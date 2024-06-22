@@ -4,6 +4,7 @@ export enum UserRole {
   WRITER = 'WRITER',
   MODERATOR = 'MODERATOR',
   USER = 'USER',
+  EVENT_USER = 'EVENT_USER'
 }
 
 export enum RegistrationMethod {
@@ -22,6 +23,7 @@ export enum ApplicationStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
+
 }
 
 export type Contact = {
@@ -47,4 +49,5 @@ export const SocialsRawSchema = {
 export const userRoles = Object.values(UserRole);
 export const userStatuses = Object.values(UserStatus);
 export const registrationMethods = Object.values(RegistrationMethod);
+
 export const applicatonStatus = Object.values(ApplicationStatus);

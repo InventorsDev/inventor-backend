@@ -14,7 +14,10 @@ export class AuthService {
   ) {}
 
   async sendEmailVerificationToken(req: any, userId: string) {
-    return await (this.usersModel as any).sendEmailVerificationToken(req, userId);
+    return await (this.usersModel as any).sendEmailVerificationToken(
+      req,
+      userId,
+    );
   }
 
   async findByUsername(
@@ -67,14 +70,15 @@ export class AuthService {
         `Account with email ${email} does not exist`,
       );
     }
-    if(user.emailVerification) throw new BadRequestException('email has alredy been verified');
-    
+    if (user.emailVerification)
+      throw new BadRequestException('email has alredy been verified');
+
     return await this.sendEmailVerificationToken(req, user._id);
   }
 
   private generateToken(payload) {
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: global.jwtService.sign(payload),
     };
   }
 }

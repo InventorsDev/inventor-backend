@@ -18,7 +18,12 @@ import { User, UserDocument } from 'src/shared/schema';
 import { Model } from 'mongoose';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { UserInviteDto } from './dto/user-invite.dto';
-import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
+import {
+  ApiReq,
+  UserStatus,
+  userRoles,
+  userStatuses,
+} from 'src/shared/interfaces';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
@@ -157,12 +162,12 @@ export class UsersAdminsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Post('users/:userId/email-verification')
-  async sendEmailVerificationToken(
+  @Patch('users/:userId/request-verification')
+  async RequestVerificationToken(
     @Request() req: ApiReq,
     @Param('userId') userId: string,
   ) {
-    return this.usersService.sendEmailVerificationToken(req, userId);
+    return this.usersService.requestVerification(req, userId);
   }
 
   // find an application by email
