@@ -1,7 +1,7 @@
 import { IsString, IsNotEmpty, IsEmail, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class TempLeadnDto {
+export class TempLeadDto {
   @ApiProperty({ example: 'frontend_1 || backend_2 ||...' })
   @IsString()
   @IsNotEmpty()

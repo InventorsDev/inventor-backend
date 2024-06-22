@@ -10,19 +10,41 @@ import { faker } from '@faker-js/faker';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { User, UserDocument } from 'src/shared/schema';
-import { BcryptUtil, CloudinaryFolders, firstCapitalize, getMailTemplate, getPaginated, getPagingParams, passwordMatch, sendMail, uploadToCloudinary, verifyHandle } from 'src/shared/utils';
-import { ApiReq, EmailFromType, UserRole, UserStatus } from 'src/shared/interfaces';
+import {
+  BcryptUtil,
+  CloudinaryFolders,
+  decrypt,
+  encrypt,
+  firstCapitalize,
+  getMailTemplate,
+  getPaginated,
+  getPagingParams,
+  passwordMatch,
+  sendMail,
+  uploadToCloudinary,
+  verifyHandle,
+} from 'src/shared/utils';
+import {
+  ApiReq,
+  ApplicationStatus,
+  EmailFromType,
+  UserRole,
+  UserStatus,
+} from 'src/shared/interfaces';
 import { UserInviteDto } from './dto/user-invite.dto';
+import { format } from 'date-fns';
+import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 
 @Injectable()
 export class UsersService {
+  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/leads'; // Base URL
   constructor(
     @Inject(User.name)
-    private readonly userModel: Model<UserDocument>) {}
-
+    private readonly userModel: Model<UserDocument>,
+  ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
-    (this.userModel as any).sendEmailVerificationToken(req, userId)
+    (this.userModel as any).sendEmailVerificationToken(req, userId);
   }
 
   private async verifyUserHandle(handle: string, userId: string) {
@@ -41,7 +63,9 @@ export class UsersService {
   }
 
   async userInvite(payload: UserInviteDto): Promise<User> {
-    const password = await BcryptUtil.generateHash(faker.internet.password(5) + '$?wE');
+    const password = await BcryptUtil.generateHash(
+      faker.internet.password(5) + '$?wE',
+    );
     const email = payload.email.trim().toLowerCase();
     return this.userModel.create({
       firstName: firstCapitalize(payload.firstName.trim()),
@@ -82,9 +106,9 @@ export class UsersService {
     return user;
   }
 
-  async findByEmail(email: string, project: any = {}): Promise<User>  {
+  async findByEmail(email: string, project: any = {}): Promise<User> {
     const user = await this.userModel
-      .findOne({email, status: UserStatus.ACTIVE}, project, { lean: true })
+      .findOne({ email, status: UserStatus.ACTIVE }, project, { lean: true })
       .select('-password')
       .exec();
     if (!user) {
@@ -99,11 +123,11 @@ export class UsersService {
       throw new BadRequestException('Photo must include a data image');
     }
 
-    const updateData = payload ;
+    const updateData = payload;
     if (firstName) payload.firstName = firstCapitalize(firstName.trim());
     if (lastName) payload.lastName = firstCapitalize(lastName.trim());
     if (userHandle) {
-      payload.userHandle = userHandle.toLowerCase().trim().replace(/@/g, '')
+      payload.userHandle = userHandle.toLowerCase().trim().replace(/@/g, '');
       await this.verifyUserHandle(updateData.userHandle, userId);
     }
 
@@ -113,7 +137,7 @@ export class UsersService {
         CloudinaryFolders.PHOTOS,
       );
     }
-    
+
     return this.userModel
       .findOneAndUpdate(
         { _id: new Types.ObjectId(userId) },
@@ -147,7 +171,7 @@ export class UsersService {
     return deletedUser;
   }
 
-  async findMe(req: ApiReq): Promise<User>  {
+  async findMe(req: ApiReq): Promise<User> {
     return await this.userModel
       .findOne(
         { _id: new Types.ObjectId(req.user._id.toString()) },
@@ -252,5 +276,167 @@ export class UsersService {
         },
       )
       .select('email firstName lastName');
+  }
+
+  // find one application by email
+  async viewOneApplication(email: string): Promise<UserDocument> {
+    const application = await this.userModel.findOne({ email }).exec();
+    if (!application) {
+      throw new NotFoundException(`Application with email ${email} not found`);
+    }
+    if (application.applicationStatus == ApplicationStatus.PENDING) {
+      return application;
+    }
+    throw new NotFoundException(`${email} has no pendign application`);
+  }
+
+  // view all lead applications
+  async viewApplications(): Promise<UserDocument[]> {
+    const leadApplications = await this.userModel
+      .find({ applicationStatus: ApplicationStatus.PENDING })
+      .exec();
+    if (!leadApplications) {
+      throw new NotFoundException('No application data found!');
+    }
+    return leadApplications;
+  }
+
+  // create lead application for existing user
+  async createTempRegistration(
+    email: string,
+    leadPosition: string,
+  ): Promise<string> {
+    const u = await this.findByEmail(email);
+    // check the next application time
+    const today = new Date();
+    if (u.nextApplicationTime < today) {
+      throw new BadRequestException(
+        `The next time you can apply as a lead is ${format(u.nextApplicationTime, 'eeee, MMMM do, h:mm a')}`,
+      );
+    }
+    // create next application date
+    const futureDate = new Date();
+    futureDate.setMonth(futureDate.getMonth() + 3);
+    // update the user data that has to do with application
+    try {
+      await this.userModel.findOneAndUpdate(
+        { email: email },
+        {
+          $set: {
+            applicationStatus: ApplicationStatus.PENDING,
+            nextAppliactionTime: futureDate,
+            leadPosition: leadPosition,
+          },
+        },
+      );
+    } catch {
+      return 'Error updating user';
+    }
+    console.log(
+      `Email: ${email}\nUser: ${u}\nUser status: ${u.applicationStatus}`,
+    );
+    // TODO setup notification template for mail!!
+    // sendMail({
+    //   to: user.email,
+    //   from: EmailFromType.HELLO,
+    //   subject: 'Password Change',
+    //   template: getMailTemplate().,
+    //   templateVariables: {
+    //   },
+    // });
+    return 'Application sent';
+  }
+
+  // approve a lead application
+  async approveTempApplication(email: string): Promise<string> {
+    const userApplication = await this.userModel
+      .findOne({
+        email: email,
+        applicationStatus: ApplicationStatus.PENDING,
+      })
+      .exec();
+    if (!userApplication) {
+      throw new NotFoundException(`Application for ${email} not found`);
+    }
+    userApplication.role = [UserRole.LEAD];
+    userApplication.applicationStatus = ApplicationStatus.APPROVED;
+    userApplication.save();
+    // TODO setup notification template for mail!!
+    // sendMail({
+    //   to: user.email,
+    //   from: EmailFromType.HELLO,
+    //   subject: 'Password Change',
+    //   template: getMailTemplate().,
+    //   templateVariables: {
+    //   },
+    // });
+    return `${userApplication.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
+  }
+
+  // reject a lead application
+  async rejectTempApplication(email: string): Promise<User> {
+    const userApplication = this.viewOneApplication(email);
+    (await userApplication).leadPosition = '';
+    (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
+    (await userApplication).save();
+    // TODO setup notification template for mail!!
+    // sendMail({
+    //   to: user.email,
+    //   from: EmailFromType.HELLO,
+    //   subject: 'Password Change',
+    //   template: getMailTemplate().,
+    //   templateVariables: {
+    //   },
+    // });
+    return userApplication;
+  }
+
+  // generate encrypted links
+  async generateUniqueLink(email: string): Promise<string> {
+    const user = await this.userModel.findOne({ email: email });
+    const preFilledParams = {
+      userId: user ? user._id : '',
+      email: email,
+      firstName: user ? user.firstName : '',
+      lastName: user ? user.lastName : '',
+    };
+
+    const queryString = new URLSearchParams(preFilledParams as any).toString();
+    // console.log(`Query string: ${queryString}`);
+    const encryptedParams = encrypt(queryString);
+    // TODO create ivite lead template
+    // sendMail({
+    //   to: user.email,
+    //   from: EmailFromType.HELLO,
+    //   subject: 'INVENTORS, BECOME ONE OF OUR LEADS',
+    //   template: getMailTemplate().,
+    //   templateVariables: {
+    //   },
+    // });
+    return `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
+  }
+
+  // decode invite link
+  paraseEncryptedParams(encryptedParams: string): {
+    email: string;
+    userId: string;
+  } {
+    const decryptedParams = decrypt(decodeURIComponent(encryptedParams));
+    const [userId, email] = decryptedParams
+      .split('&')
+      .map((param) => param.split('=')[1]);
+    return { userId, email };
+  }
+
+  // get all leads
+  // decided to go the crude way since i couldn't get the one in here to work
+  async getUsersWithLeadRole(): Promise<User[]> {
+    const users = await this.userModel.find({ role: 'LEAD' }).exec();
+    return users;
+  }
+
+  // refrence routing a new user
+  async createUser(userData: CreateUserDto) {
+    return (this.userModel as any).signUp(userData);
   }
 }
