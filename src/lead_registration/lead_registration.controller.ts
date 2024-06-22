@@ -24,7 +24,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { LeadRegistrationService } from './lead_registration.service';
-import { TempLeadRegistration, User } from 'src/shared/schema';
+import { User, UserDocument } from 'src/shared/schema';
 import { TempLeadnDto } from './dto/temp-lead.dto';
 import { UsersService } from 'src/users/users.service';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
@@ -41,7 +41,7 @@ export class LeadRegistrationController {
   @UseGuards(JwtAdminsGuard)
   @ApiOperation({ summary: 'view all submitted applications' })
   @Get('applications')
-  async viewApplications(): Promise<TempLeadRegistration[]> {
+  async viewApplications(): Promise<UserDocument[]> {
     return await this.registrationService.viewApplications();
   }
 
@@ -52,9 +52,7 @@ export class LeadRegistrationController {
   @ApiOperation({ summary: 'view an appliation by email' })
   @ApiQuery({ name: 'email', description: 'user email' })
   @Get('application/:email')
-  getApplicationByEmail(
-    @Query('email') email: string,
-  ): Promise<TempLeadRegistration> {
+  getApplicationByEmail(@Query('email') email: string): Promise<UserDocument> {
     return this.registrationService.viewOneApplication(email);
   }
 
@@ -69,11 +67,17 @@ export class LeadRegistrationController {
   async create(
     @Body() tempLeadDto: TempLeadnDto,
     @Query('email') email: string,
-  ): Promise<{ tempRegistrationId: string }> {
+  ): Promise<string> {
+    // this should take the email and position the user is registering for
+    // save the position info to the user
+    // return a confirmation email for their application
     tempLeadDto.email = email;
     const tempRegistration =
-      await this.registrationService.createTempRegistration(tempLeadDto);
-    return { tempRegistrationId: tempRegistration._id };
+      await this.registrationService.createTempRegistration(
+        tempLeadDto.email,
+        tempLeadDto.leadPosition,
+      );
+    return tempRegistration;
   }
 
   // verify application by regisration_id
@@ -82,16 +86,12 @@ export class LeadRegistrationController {
   @UseGuards(JwtAdminsGuard)
   @ApiOperation({ summary: 'approve a temporary applicaion' })
   @ApiParam({
-    name: 'tempRegistrationId',
-    description: 'Id of the tempRegistration',
+    name: 'email',
+    description: 'Email of the user application',
   })
-  @Put('approve/:tempRegistrationId') // have the tempReg in the parms
-  async approveApplication(
-    @Param('tempRegistrationId') tempRegistrationId: string,
-  ): Promise<string> {
-    return await this.registrationService.approveTempApplication(
-      tempRegistrationId,
-    );
+  @Put('approve/user/:email')
+  async approveApplication(@Param('email') email: string): Promise<string> {
+    return await this.registrationService.approveTempApplication(email);
   }
 
   // reject a lead request
@@ -100,18 +100,17 @@ export class LeadRegistrationController {
   @UseGuards(JwtAdminsGuard)
   @ApiOperation({ summary: 'reject(delete) an application' })
   @ApiParam({
-    name: 'tempRegistrationId',
-    description: 'the temp registration id to be deleted',
+    name: 'Email',
+    description: 'Email of the user application to be deleted',
   })
-  @Delete('reject/:tempRegistrationId')
+  @Delete('reject/user/:email')
   async reject(
-    @Param('tempRegistrationId') tempRegistrationId: string,
+    @Param('email') email: string,
     @Body('message') message: string,
   ): Promise<{ message: string; userId: string }> {
     const defaultMessage = 'Your application was rejected';
     const rejectionMessage = message || defaultMessage;
-    const user =
-      await this.registrationService.rejectTempApplication(tempRegistrationId);
+    const user = await this.registrationService.rejectTempApplication(email);
     return { message: rejectionMessage, userId: user.email };
   }
 

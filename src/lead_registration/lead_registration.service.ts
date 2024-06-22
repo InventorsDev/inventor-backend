@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { TempLeadRegistration, User, UserDocument } from 'src/shared/schema';
+import { User, UserDocument } from 'src/shared/schema';
 import { UsersService } from 'src/users/users.service';
 import { ApplicationStatus, UserRole } from 'src/shared/interfaces';
 import { format } from 'date-fns';
@@ -17,8 +17,6 @@ export class LeadRegistrationService {
   private readonly baseUrl = 'http://localhost:3888/docs/api/v1/leads'; // Base URL
   constructor(
     @Inject(User.name) private userModel: Model<UserDocument>, // Use @Inject with the model name
-    @Inject(TempLeadRegistration.name)
-    private readonly tempLeadModel: Model<TempLeadRegistration>,
     private readonly usersService: UsersService,
   ) {}
 
@@ -46,7 +44,10 @@ export class LeadRegistrationService {
   }
 
   // create lead application for active user
-  async createTempRegistration(email: string): Promise<string> {
+  async createTempRegistration(
+    email: string,
+    leadPosition: string,
+  ): Promise<string> {
     const u = await this.usersService.findByEmail(email);
     // check the next application time
     const today = new Date();
@@ -69,7 +70,7 @@ export class LeadRegistrationService {
             applicationStatus: ApplicationStatus.PENDING,
             nextAppliactionTime: futureDate,
             // need to pass in a lead position here
-            leadPosition: 'lead position',
+            leadPosition: leadPosition,
           },
         },
       );
@@ -79,6 +80,7 @@ export class LeadRegistrationService {
     console.log(
       `Email: ${email}\nUser: ${u}\nUser status: ${u.applicationStatus}`,
     );
+    // TODO: should send an email confiramtion here
     return 'Application sent';
   }
 
@@ -93,26 +95,11 @@ export class LeadRegistrationService {
     if (!userApplication) {
       throw new NotFoundException(`Application for ${email} not found`);
     }
-    await this.tempLeadModel.db.collection('users').updateOne(
-      { email: email },
-      {
-        $set: {
-          role: [UserRole.LEAD],
-          applicatonStatus: ApplicationStatus.APPROVED,
-          // should also change user 'applicatonStatus'
-        },
-      },
-    );
     userApplication.role = [UserRole.LEAD];
     userApplication.applicationStatus = ApplicationStatus.APPROVED;
     userApplication.save();
 
     return `${userApplication.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
-  }
-
-  // to be deleted
-  async removeTempApplication(tempId: string): Promise<void> {
-    await this.tempLeadModel.findByIdAndDelete(tempId).exec();
   }
 
   // reject a lead application
@@ -122,7 +109,7 @@ export class LeadRegistrationService {
     (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
     (await userApplication).save();
 
-    //send rejection email here;
+    //TODO: send rejection email here;
     return userApplication;
   }
 
