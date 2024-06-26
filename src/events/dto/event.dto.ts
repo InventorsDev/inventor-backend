@@ -5,7 +5,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { JoinMethod, SocialsLinks, Location} from '../../shared/interfaces/event.type';
+import { JoinMethod, SocialsLinks, Location, Status} from '../../shared/interfaces/event.type';
 
 export class EventDto {
   @ApiProperty()
@@ -25,19 +25,17 @@ export class EventDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  @IsOptional()
-  host?: string;
+  @IsString()
+  host: string;
 
   @ApiProperty()
-  @IsNotEmpty()
   @IsOptional()
   coHost?: string[];
 
   @ApiProperty()
   @IsNotEmpty()
-  @IsString()
   @IsEnum(Location)
-  location: string;
+  location: Location;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -48,23 +46,20 @@ export class EventDto {
   @IsNotEmpty()
   @IsString()
   @IsEnum(JoinMethod)
-  joinMethod?: string;
+  joinMethod: string;
 
   @ApiProperty()
-  @IsNotEmpty()
   @IsOptional()
   @IsString()
-  link: string;
+  link?: string;
 
   @ApiProperty()
-  @IsNotEmpty()
   @IsOptional()
   @IsString()
-  socialsLinks: SocialsLinks;
+  socialsLinks?: SocialsLinks;
 
   @ApiProperty()
   @IsNotEmpty()
-  @IsOptional()
   @IsString()
   eventDate: Date;
 }
