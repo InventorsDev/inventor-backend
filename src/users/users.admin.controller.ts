@@ -10,8 +10,9 @@ import {
   Put,
   Patch,
   Inject,
+  Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { User, UserDocument } from 'src/shared/schema';
 import { Model } from 'mongoose';
@@ -167,5 +168,64 @@ export class UsersAdminsController {
     @Param('userId') userId: string,
   ) {
     return this.usersService.requestVerification(req, userId);
+  }
+
+  // find an application by email
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @ApiQuery({ name: 'email', description: 'user email' })
+  @Get('application/:email')
+  getApplicationByEmail(@Query('email') email: string): Promise<UserDocument> {
+    return this.usersService.viewOneApplication(email);
+  }
+
+  // list all lead applications
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @Get('applications')
+  async viewApplications(): Promise<UserDocument[]> {
+    return await this.usersService.viewApplications();
+  }
+
+  // verify application by regisration_id
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @ApiParam({
+    name: 'email',
+    description: 'Email of the user application',
+  })
+  @Put('approve/user/:email')
+  async approveApplication(@Param('email') email: string): Promise<string> {
+    return await this.usersService.approveTempApplication(email);
+  }
+
+  // reject a lead request
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @Delete('reject/user/:email')
+  async reject(
+    @Param('email') email: string,
+    @Body('message') message: string,
+  ): Promise<{ message: string; userId: string }> {
+    const defaultMessage = 'Your application was rejected';
+    const rejectionMessage = message || defaultMessage;
+    const user = await this.usersService.rejectTempApplication(email);
+    return { message: rejectionMessage, userId: user.email };
+  }
+
+  // generate registration link
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @Get('generate-link') // receive the email param
+  async generateLink(@Param('email') email: string): Promise<{ link: string }> {
+    // generate and return the link
+    const link = await this.usersService.generateUniqueLink(email);
+    return { link };
+  }
+
+  // view all leads
+  @Get()
+  async getUsersWithLeadRole(): Promise<User[]> {
+    return this.usersService.getUsersWithLeadRole();
   }
 }
