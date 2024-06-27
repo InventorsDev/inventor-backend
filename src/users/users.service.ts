@@ -304,4 +304,15 @@ export class UsersService {
     //5. Save the updated user
     await user.save();
   }
+  async updateStatus(userId: string, status: UserStatus): Promise<User> {
+    return this.userModel.findByIdAndUpdate(userId, { status }, { new: true }).exec();
+  }
+
+  async deactivateAccount(userId: string): Promise<User> {
+    return this.userModel.findByIdAndUpdate(userId, { status: UserStatus.DEACTIVATED }, { new: true }).exec();
+  }
+
+  async requestReactivation(userId: string): Promise<User> {
+    return this.userModel.findByIdAndUpdate(userId, { status: UserStatus.ACTIVE }, { new: true }).exec();
+  }
 }

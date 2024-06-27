@@ -15,7 +15,7 @@ export enum RegistrationMethod {
 export enum UserStatus {
   ACTIVE = 'ACTIVE',
   DISABLE = 'DISABLE',
-  DELETE = 'DELETE',
+  DEACTIVATED = 'DEACTIVATED',
 }
 
 export enum VerificationStatus {

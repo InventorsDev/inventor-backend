@@ -27,6 +27,8 @@ import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+
 
 @ApiTags('admins')
 @Controller('admins')
@@ -167,5 +169,16 @@ export class UsersAdminsController {
     @Param('userId') userId: string,
   ) {
     return this.usersService.requestVerification(req, userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @Patch('users/:userId/status')
+  async updateUserStatus(
+    @Request() req: any,
+    @Param('userId') userId: string,
+    @Body() payload: UpdateUserStatusDto,
+  ) {
+    return this.usersService.updateStatus(userId, payload.status);
   }
 }
