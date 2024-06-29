@@ -38,6 +38,7 @@ export const configs = () => ({
       generalLogin: 'inventors-signin-notification',
       generalEmailVerification: 'inventors-email-verification',
       userBirthdayNotification: 'inventors-birthday-notification',
+      generalLeadRegistration: 'inventors-lead-invite',
     },
   },
 });

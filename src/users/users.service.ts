@@ -309,7 +309,7 @@ export class UsersService {
     const u = await this.findByEmail(email);
     // check the next application time
     const today = new Date();
-    if (u.nextApplicationTime < today) {
+    if (u.nextApplicationTime > today) {
       throw new BadRequestException(
         `The next time you can apply as a lead is ${format(u.nextApplicationTime, 'eeee, MMMM do, h:mm a')}`,
       );
@@ -324,7 +324,7 @@ export class UsersService {
         {
           $set: {
             applicationStatus: ApplicationStatus.PENDING,
-            nextAppliactionTime: futureDate,
+            nextApplicationTime: futureDate,
             leadPosition: leadPosition,
           },
         },
@@ -335,15 +335,13 @@ export class UsersService {
     console.log(
       `Email: ${email}\nUser: ${u}\nUser status: ${u.applicationStatus}`,
     );
-    // TODO setup notification template for mail!!
-    // sendMail({
-    //   to: user.email,
-    //   from: EmailFromType.HELLO,
-    //   subject: 'Password Change',
-    //   template: getMailTemplate().,
-    //   templateVariables: {
-    //   },
-    // });
+    sendMail({
+      to: u.email,
+      from: EmailFromType.HELLO,
+      subject: 'YOUR APPLICATION HAS BEEN RECEIVED',
+      template: getMailTemplate().generalLeadRegistration,
+      templateVariables: { email: u.email, leadPosition: u.leadPosition },
+    });
     return 'Application sent';
   }
 
@@ -361,38 +359,42 @@ export class UsersService {
     userApplication.role = [UserRole.LEAD];
     userApplication.applicationStatus = ApplicationStatus.APPROVED;
     userApplication.save();
-    // TODO setup notification template for mail!!
-    // sendMail({
-    //   to: user.email,
-    //   from: EmailFromType.HELLO,
-    //   subject: 'Password Change',
-    //   template: getMailTemplate().,
-    //   templateVariables: {
-    //   },
-    // });
+
+    sendMail({
+      to: email,
+      from: EmailFromType.HELLO,
+      subject: 'CONGRATULATIONS',
+      template: getMailTemplate().generalLeadRegistration,
+      templateVariables: {
+        email: email,
+        message: 'Congratulations! \nYou have been approved to become a lead',
+      },
+    });
     return `${userApplication.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
   }
 
   // reject a lead application
-  async rejectTempApplication(email: string): Promise<User> {
+  async rejectTempApplication(email: string, message: string): Promise<User> {
     const userApplication = this.viewOneApplication(email);
     (await userApplication).leadPosition = '';
     (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
     (await userApplication).save();
-    // TODO setup notification template for mail!!
-    // sendMail({
-    //   to: user.email,
-    //   from: EmailFromType.HELLO,
-    //   subject: 'Password Change',
-    //   template: getMailTemplate().,
-    //   templateVariables: {
-    //   },
-    // });
+
+    sendMail({
+      to: email,
+      from: EmailFromType.HELLO,
+      subject: 'LEAD APPLICATION STATUS',
+      template: getMailTemplate().generalLeadRegistration,
+      templateVariables: {
+        email: email,
+        message: `Thank you for your intrest in becoming a lead in the inventors community. Unfortunately, you applcation has been declined \n${message}`,
+      },
+    });
     return userApplication;
   }
 
   // generate encrypted links
-  async generateUniqueLink(email: string): Promise<string> {
+  async inviteLead(email: string): Promise<string> {
     const user = await this.userModel.findOne({ email: email });
     const preFilledParams = {
       userId: user ? user._id : '',
@@ -404,16 +406,21 @@ export class UsersService {
     const queryString = new URLSearchParams(preFilledParams as any).toString();
     // console.log(`Query string: ${queryString}`);
     const encryptedParams = encrypt(queryString);
+    const fullLink = `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
     // TODO create ivite lead template
-    // sendMail({
-    //   to: user.email,
-    //   from: EmailFromType.HELLO,
-    //   subject: 'INVENTORS, BECOME ONE OF OUR LEADS',
-    //   template: getMailTemplate().,
-    //   templateVariables: {
-    //   },
-    // });
-    return `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
+    sendMail({
+      to: email,
+      from: EmailFromType.HELLO,
+      subject: 'BECOME ONE OF OUR LEADS - INVENTORS',
+      template: getMailTemplate().generalLeadRegistration,
+      templateVariables: {
+        email: user.email,
+        link: fullLink,
+        firstName: user.firstName,
+      },
+    });
+    console.log(fullLink);
+    return 'Invite link sent';
   }
 
   // decode invite link

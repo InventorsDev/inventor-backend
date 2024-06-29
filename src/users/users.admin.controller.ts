@@ -189,7 +189,7 @@ export class UsersAdminsController {
     name: 'email',
     description: 'Email of the user application',
   })
-  @Put('approve/user/:email')
+  @Patch(':email/approve')
   async approveApplication(@Param('email') email: string): Promise<string> {
     return await this.usersService.approveTempApplication(email);
   }
@@ -197,24 +197,27 @@ export class UsersAdminsController {
   // reject a lead request
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Delete('reject/user/:email')
+  @Patch(':email/reject')
   async reject(
     @Param('email') email: string,
     @Body('message') message: string,
   ): Promise<{ message: string; userId: string }> {
     const defaultMessage = 'Your application was rejected';
     const rejectionMessage = message || defaultMessage;
-    const user = await this.usersService.rejectTempApplication(email);
+    const user = await this.usersService.rejectTempApplication(
+      email,
+      rejectionMessage,
+    );
     return { message: rejectionMessage, userId: user.email };
   }
 
   // generate registration link
-  @ApiBearerAuth()
-  @UseGuards(JwtAdminsGuard)
-  @Get('generate-link') // receive the email param
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAdminsGuard)
+  @Get('inviteLead/:email') // receive the email param
   async generateLink(@Param('email') email: string): Promise<{ link: string }> {
     // generate and return the link
-    const link = await this.usersService.generateUniqueLink(email);
+    const link = await this.usersService.inviteLead(email);
     return { link };
   }
 
