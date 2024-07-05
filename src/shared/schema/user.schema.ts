@@ -124,6 +124,9 @@ export class User {
 
   @Prop(raw(SocialsRawSchema))
   socials: Socials;
+
+  @Prop({ type: Date })
+  nextVerificationRequestDate: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

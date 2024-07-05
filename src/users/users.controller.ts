@@ -186,4 +186,13 @@ export class UsersController {
       throw new InternalServerErrorException('Failed to create user');
     }
   }
+  @ApiBearerAuth()
+  @UseGuards(JwtUsersGuard)
+  @Patch(':userId/request-verification')
+  async RequestVerificationToken(
+    @Request() req: ApiReq,
+    @Param('userId') userId: string,
+  ) {
+    return this.usersService.requestVerification(req, userId);
+  }
 }
