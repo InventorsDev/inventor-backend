@@ -41,4 +41,38 @@ export const configs = () => ({
       generalLeadRegistration: 'inventors-lead-invite',
     },
   },
+  // create transponder object for nodeMailer
+  // unorthodox name because of confusion in mailing service
+  node_mailer: {
+    host: process.env.SMTP_HOST, //email provider ie gmail
+    port: parseInt(process.env.SMTP_PORT),
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    defaultEmailReciver: 'dev@inventors.com',
+    defaultEmailTO: {
+      support: 'support@.com',
+      engineering: 'engineering@inventors.com',
+      marketing: 'marketing@inventors.com',
+    },
+    defaultEmailFrom: {
+      hello: 'hello@inventors.com',
+      support: 'Joshua from inventors <support@inventors.com>',
+      engineering: 'Joshua from inventors <engineering@inventors.com>',
+      marketing: 'Joshua from inventors <marketing@inventors.com>',
+      financeeee: 'Joshua from inventors <finance@inventors.com>',
+    },
+    templates: {
+      generalSignUp: 'inventors-welcome',
+      generalAccountDeletion: 'inventors-account-deletion',
+      generalPasswordChange: 'inventors-password-change',
+      generalLogin: 'inventors-signin-notification',
+      generalEmailVerification: 'inventors-email-verification',
+      userBirthdayNotification: 'inventors-birthday-notification',
+      generalLeadRegistration: 'inventors-lead-invite',
+      leadApplicationStauts: 'lead-application-status',
+    },
+  },
 });

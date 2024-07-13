@@ -35,10 +35,16 @@ import { UserInviteDto } from './dto/user-invite.dto';
 import { format } from 'date-fns';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 // import { VerificationStatus } from 'src/shared/interfaces/user.type';
+import {
+  NodeMailer,
+  nodeMailerTemplate,
+} from 'src/shared/utils/node-mailer.util';
+import {} from 'src/shared/configs';
 @Injectable()
 export class UsersService {
-  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/leads'; // Base URL
+  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/leads';
   constructor(
+    private readonly nodeMailer: NodeMailer,
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
   ) {}
@@ -254,11 +260,22 @@ export class UsersService {
     const newPassword = faker.internet.password(5) + '$?wE';
     const password = await BcryptUtil.generateHash(newPassword);
 
-    sendMail({
+    // sendMail({
+    //   to: user.email,
+    //   from: EmailFromType.HELLO,
+    //   subject: 'Password Change',
+    //   template: getMailTemplate().generalPasswordChange,
+    //   templateVariables: {
+    //     password: newPassword,
+    //     firstName: user.firstName,
+    //     email: user.email,
+    //   },
+    // });
+    this.nodeMailer.sendMail({
       to: user.email,
       from: EmailFromType.HELLO,
-      subject: 'Password Change',
-      template: getMailTemplate().generalPasswordChange,
+      subject: 'Passsword change',
+      template: nodeMailerTemplate().generalPasswordChange,
       templateVariables: {
         password: newPassword,
         firstName: user.firstName,
@@ -306,12 +323,12 @@ export class UsersService {
     email: string,
     leadPosition: string,
   ): Promise<string> {
-    const u = await this.findByEmail(email);
+    const user = await this.findByEmail(email);
     // check the next application time
     const today = new Date();
-    if (u.nextApplicationTime > today) {
+    if (user.nextApplicationTime > today) {
       throw new BadRequestException(
-        `The next time you can apply as a lead is ${format(u.nextApplicationTime, 'eeee, MMMM do, h:mm a')}`,
+        `The next time you can apply as a lead is ${format(user.nextApplicationTime, 'eeee, MMMM do, h:mm a')}`,
       );
     }
     // create next application date
@@ -333,15 +350,19 @@ export class UsersService {
       return 'Error updating user';
     }
     console.log(
-      `Email: ${email}\nUser: ${u}\nUser status: ${u.applicationStatus}`,
+      `Email: ${email}\nUser: ${user}\nUser status: ${user.applicationStatus}`,
     );
-    sendMail({
-      to: u.email,
+    this.nodeMailer.sendMail({
+      to: user.email,
       from: EmailFromType.HELLO,
-      subject: 'YOUR APPLICATION HAS BEEN RECEIVED',
-      template: getMailTemplate().generalLeadRegistration,
-      templateVariables: { email: u.email, leadPosition: u.leadPosition },
+      subject: 'Lead Registration',
+      template: nodeMailerTemplate().generalLeadRegistration,
+      templateVariables: {
+        firstName: user.firstName,
+        position: leadPosition,
+      },
     });
+    console.log(`email sent to ${user}`);
     return 'Application sent';
   }
 
@@ -360,14 +381,15 @@ export class UsersService {
     userApplication.applicationStatus = ApplicationStatus.APPROVED;
     userApplication.save();
 
-    sendMail({
-      to: email,
+    this.nodeMailer.sendMail({
+      to: userApplication.email,
       from: EmailFromType.HELLO,
-      subject: 'CONGRATULATIONS',
-      template: getMailTemplate().generalLeadRegistration,
+      subject: 'Application status',
+      template: nodeMailerTemplate().leadApplicationStauts,
       templateVariables: {
-        email: email,
-        message: 'Congratulations! \nYou have been approved to become a lead',
+        status: true,
+        firstName: userApplication.firstName,
+        email: userApplication.email,
       },
     });
     return `${userApplication.firstName} has been verified as a lead for ${userApplication.leadPosition}`;

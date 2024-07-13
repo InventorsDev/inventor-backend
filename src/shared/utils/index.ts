@@ -9,3 +9,4 @@ export * from './mailgun.util';
 export * from './redis.util';
 export * from './google-auth.util';
 export * from './apple-auth.util';
+export * from './node-mailer.util';
