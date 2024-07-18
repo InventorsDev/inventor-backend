@@ -9,12 +9,12 @@ import { promisify } from 'util';
 
 export const getMailTemplate = () => configs().node_mailer.templates;
 
-// export const getTemplateKey = (templateValue) => {
-//   const templates = getMailTemplate();
-//   return Object.entries(templates).filter(
-//     ([key, value]) => value === templateValue,
-//   )?.[0]?.[0];
-// };
+export const getTemplateKey = (templateValue) => {
+  const templates = getMailTemplate();
+  return Object.entries(templates).filter(
+    ([key, value]) => value === templateValue,
+  )?.[0]?.[0];
+};
 
 const readFileSync = promisify(readFile);
 
@@ -44,7 +44,7 @@ async function laodTemplate(
       'mail-templates',
       `${templateName}.hbs`,
     );
-    console.log(`folder pathh`, templatePath);
+    console.log(`folder pathh:`, templatePath);
     const templateSource = await readFileSync(templatePath, 'utf8');
     templateCache[templateName] = handlebars.compile(templateSource);
   }

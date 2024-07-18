@@ -8,7 +8,7 @@ export const configs = () => ({
   redisConfig: {
     socket: {
       tls: ['production', 'stage'].includes(
-        process.env.NODE_ENV.toLowerCase().trim(),
+        (process.env.NODE_ENV || 'development').toLowerCase().trim(), //default to dev, if for whatever reason, node_env isn't found
       ),
       rejectUnauthorized: false,
       connectTimeout: 300_000,
