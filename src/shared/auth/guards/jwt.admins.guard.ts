@@ -21,11 +21,13 @@ export class JwtAdminsGuard
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
+    console.log(token);
     if (!token) {
       throw new UnauthorizedException();
     }
     try {
       const payload = await global.jwtService.verify(token);
+      console.log(`user role: ${payload.role}`);
       if (payload?.role != UserRole.ADMIN) throw new Error();
       request['user'] = payload;
     } catch (error) {

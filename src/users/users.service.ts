@@ -35,16 +35,11 @@ import { UserInviteDto } from './dto/user-invite.dto';
 import { format } from 'date-fns';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 // import { VerificationStatus } from 'src/shared/interfaces/user.type';
-import {
-  NodeMailer,
-  nodeMailerTemplate,
-} from 'src/shared/utils/node-mailer.util';
 import {} from 'src/shared/configs';
 @Injectable()
 export class UsersService {
   private readonly baseUrl = 'http://localhost:3888/docs/api/v1/leads';
   constructor(
-    private readonly nodeMailer: NodeMailer,
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
   ) {}
@@ -271,11 +266,11 @@ export class UsersService {
     //     email: user.email,
     //   },
     // });
-    this.nodeMailer.sendMail({
+    sendMail({
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Passsword change',
-      template: nodeMailerTemplate().generalPasswordChange,
+      template: getMailTemplate().generalPasswordChange,
       templateVariables: {
         password: newPassword,
         firstName: user.firstName,
@@ -283,16 +278,16 @@ export class UsersService {
       },
     });
 
-    return this.userModel
-      .findOneAndUpdate(
-        { _id: user._id },
-        { $set: { password } },
-        {
-          new: true,
-          lean: true,
-        },
-      )
-      .select('email firstName lastName');
+    // return this.userModel
+    //   .findOneAndUpdate(
+    //     { _id: user._id },
+    //     { $set: { password } },
+    //     {
+    //       new: true,
+    //       lean: true,
+    //     },
+    //   )
+    //   .select('email firstName lastName');
   }
 
   // find one application by email
@@ -352,11 +347,11 @@ export class UsersService {
     console.log(
       `Email: ${email}\nUser: ${user}\nUser status: ${user.applicationStatus}`,
     );
-    this.nodeMailer.sendMail({
+    sendMail({
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Lead Registration',
-      template: nodeMailerTemplate().generalLeadRegistration,
+      template: getMailTemplate().generalLeadRegistration,
       templateVariables: {
         firstName: user.firstName,
         position: leadPosition,
@@ -381,11 +376,11 @@ export class UsersService {
     userApplication.applicationStatus = ApplicationStatus.APPROVED;
     userApplication.save();
 
-    this.nodeMailer.sendMail({
+    sendMail({
       to: userApplication.email,
       from: EmailFromType.HELLO,
       subject: 'Application status',
-      template: nodeMailerTemplate().leadApplicationStauts,
+      template: getMailTemplate().leadApplicationStauts,
       templateVariables: {
         status: true,
         firstName: userApplication.firstName,

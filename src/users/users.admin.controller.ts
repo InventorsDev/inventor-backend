@@ -187,9 +187,9 @@ export class UsersAdminsController {
     return await this.usersService.viewApplications();
   }
 
-  // verify application by regisration_id
-  @ApiBearerAuth()
-  @UseGuards(JwtAdminsGuard)
+  // approve lead application
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAdminsGuard)
   @ApiParam({
     name: 'email',
     description: 'Email of the user application',

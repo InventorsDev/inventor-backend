@@ -3,58 +3,75 @@ import * as nodemailer from 'nodemailer';
 import * as handlebars from 'handlebars';
 import { configs } from '../configs';
 import { join } from 'path';
-import { readFileSync } from 'fs';
+import { readFile } from 'fs';
+// import { Injectable } from '@nestjs/common';
+import { promisify } from 'util';
 
-export const nodeMailerTemplate = () => configs().node_mailer.templates;
-class NodeMailer {
-  private transporter: nodemailer.Transporter;
+export const getMailTemplate = () => configs().node_mailer.templates;
 
-  constructor() {
-    const nodeMailer = configs().node_mailer;
-    this.transporter = nodemailer.createTransport({
-      host: nodeMailer.host,
-      port: nodeMailer.port,
-      secure: nodeMailer.port === 456, //set to false
-      auth: {
-        user: nodeMailer.auth.user,
-        pass: nodeMailer.auth.pass,
-      },
-    });
-  }
+// export const getTemplateKey = (templateValue) => {
+//   const templates = getMailTemplate();
+//   return Object.entries(templates).filter(
+//     ([key, value]) => value === templateValue,
+//   )?.[0]?.[0];
+// };
 
-  private laodTemplate(templateName: string, variables: any): string {
+const readFileSync = promisify(readFile);
+
+// let transporter: nodemailer.Transporter;
+let templateCache: {
+  [templateName: string]: handlebars.TemplateDelegate;
+};
+
+const nodeMailer = configs().node_mailer;
+const transporter = nodemailer.createTransport({
+  host: nodeMailer.host,
+  port: nodeMailer.port,
+  secure: nodeMailer.port === 456, //set to false
+  auth: {
+    user: nodeMailer.auth.user,
+    pass: nodeMailer.auth.pass,
+  },
+});
+
+async function laodTemplate(
+  templateName: string,
+): Promise<handlebars.TemplateDelegate> {
+  if (!this.templateCache[templateName]) {
     const templatePath = join(
       __dirname,
+      '..',
       'mail-templates',
       `${templateName}.hbs`,
     );
-    const templateSource = readFileSync(templatePath, 'utf8');
-    const compiledTemplate = handlebars.compile(templateSource);
-    return compiledTemplate(variables);
+    console.log(`folder pathh`, templatePath);
+    const templateSource = await readFileSync(templatePath, 'utf8');
+    templateCache[templateName] = handlebars.compile(templateSource);
   }
-
-  async sendMail(options: {
-    to: string;
-    from: string;
-    subject: string;
-    template: string;
-    templateVariables: any;
-  }) {
-    const html = this.laodTemplate(options.template, options.templateVariables);
-    const mailOptions = {
-      from: options.from,
-      to: options.to,
-      subject: options.subject,
-      html: html,
-    };
-
-    try {
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent: ' + info.response);
-    } catch (error) {
-      console.error('Error sending email: ' + error.message);
-    }
-  }
+  return templateCache[templateName];
 }
 
-export { NodeMailer };
+export async function sendMail(options: {
+  to: string;
+  from: string;
+  subject: string;
+  template: string;
+  templateVariables: any;
+}) {
+  const template = await laodTemplate(options.template);
+  const html = template(options.templateVariables);
+  const mailOptions = {
+    from: options.from,
+    to: options.to,
+    subject: options.subject,
+    html,
+  };
+
+  try {
+    const info = await this.transporter.sendMail(mailOptions);
+    console.log('Email sent: ' + info.response);
+  } catch (error) {
+    console.error('Error sending email: ' + error.message);
+    throw error;
+  }
+}
