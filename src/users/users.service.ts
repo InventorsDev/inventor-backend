@@ -42,7 +42,7 @@ export class UsersService {
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
-  ) {}
+  ) { }
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
