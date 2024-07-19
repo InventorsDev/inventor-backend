@@ -1,3 +1,7 @@
+// enviroment variables were not getting loaded here. The below import fixes that
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 export const configs = () => ({
   dbConfig: { autoIndex: false },
   cloudinary: {
@@ -8,7 +12,7 @@ export const configs = () => ({
   redisConfig: {
     socket: {
       tls: ['production', 'stage'].includes(
-        (process.env.NODE_ENV || 'development').toLowerCase().trim(), //default to dev, if for whatever reason, node_env isn't found
+        process.env.NODE_ENV.toLowerCase().trim(),
       ),
       rejectUnauthorized: false,
       connectTimeout: 300_000,
@@ -45,7 +49,7 @@ export const configs = () => ({
   // unorthodox name because of confusion in mailing service
   node_mailer: {
     host: process.env.SMTP_HOST, //email provider ie gmail
-    port: parseInt(process.env.SMTP_PORT),
+    port: parseInt(process.env.SMTP_PORT, 10),
     secure: false,
     auth: {
       user: process.env.SMTP_USER,

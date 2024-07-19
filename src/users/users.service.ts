@@ -42,7 +42,7 @@ export class UsersService {
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
-  ) { }
+  ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
@@ -493,5 +493,19 @@ export class UsersService {
 
     //5. Save the updated user
     await user.save();
+  }
+
+  pingMail() {
+    sendMail({
+      to: 'snebo54@gmail.com',
+      from: EmailFromType.HELLO,
+      subject: 'Mail check',
+      template: getMailTemplate().generalLeadRegistration,
+      templateVariables: {
+        firstName: 'test bot',
+        position: 'test-position',
+      },
+    });
+    return true;
   }
 }

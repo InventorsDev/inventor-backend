@@ -231,4 +231,9 @@ export class UsersAdminsController {
   async getUsersWithLeadRole(): Promise<User[]> {
     return this.usersService.getUsersWithLeadRole();
   }
+
+  @Get('send-mail')
+  sendmail() {
+    return this.usersService.pingMail();
+  }
 }
