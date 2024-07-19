@@ -20,7 +20,7 @@ import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { UserInviteDto } from './dto/user-invite.dto';
 import {
   ApiReq,
-  UserStatus,
+  // UserStatus,
   userRoles,
   userStatuses,
 } from 'src/shared/interfaces';
@@ -188,8 +188,8 @@ export class UsersAdminsController {
   }
 
   // approve lead application
-  // @ApiBearerAuth()
-  // @UseGuards(JwtAdminsGuard)
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
   @ApiParam({
     name: 'email',
     description: 'Email of the user application',
@@ -206,19 +206,18 @@ export class UsersAdminsController {
   async reject(
     @Param('email') email: string,
     @Body('message') message: string,
-  ): Promise<{ message: string; userId: string }> {
+  ): Promise<string> {
     const defaultMessage = 'Your application was rejected';
     const rejectionMessage = message || defaultMessage;
-    const user = await this.usersService.rejectTempApplication(
+    return await this.usersService.rejectTempApplication(
       email,
       rejectionMessage,
     );
-    return { message: rejectionMessage, userId: user.email };
   }
 
   // generate registration link
-  // @ApiBearerAuth()
-  // @UseGuards(JwtAdminsGuard)
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
   @Get('inviteLead/:email') // receive the email param
   async generateLink(@Param('email') email: string): Promise<{ link: string }> {
     // generate and return the link
@@ -230,10 +229,5 @@ export class UsersAdminsController {
   @Get()
   async getUsersWithLeadRole(): Promise<User[]> {
     return this.usersService.getUsersWithLeadRole();
-  }
-
-  @Get('send-mail')
-  sendmail() {
-    return this.usersService.pingMail();
   }
 }

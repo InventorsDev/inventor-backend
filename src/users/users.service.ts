@@ -34,7 +34,6 @@ import {
 import { UserInviteDto } from './dto/user-invite.dto';
 import { format } from 'date-fns';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
-// import { VerificationStatus } from 'src/shared/interfaces/user.type';
 import {} from 'src/shared/configs';
 @Injectable()
 export class UsersService {
@@ -255,39 +254,27 @@ export class UsersService {
     const newPassword = faker.internet.password(5) + '$?wE';
     const password = await BcryptUtil.generateHash(newPassword);
 
-    // sendMail({
-    //   to: user.email,
-    //   from: EmailFromType.HELLO,
-    //   subject: 'Password Change',
-    //   template: getMailTemplate().generalPasswordChange,
-    //   templateVariables: {
-    //     password: newPassword,
-    //     firstName: user.firstName,
-    //     email: user.email,
-    //   },
-    // });
     sendMail({
       to: user.email,
       from: EmailFromType.HELLO,
-      subject: 'Passsword change',
+      subject: 'PASSWORD CHANGE',
       template: getMailTemplate().generalPasswordChange,
       templateVariables: {
+        firstName: 'test bot',
         password: newPassword,
-        firstName: user.firstName,
         email: user.email,
       },
     });
-
-    // return this.userModel
-    //   .findOneAndUpdate(
-    //     { _id: user._id },
-    //     { $set: { password } },
-    //     {
-    //       new: true,
-    //       lean: true,
-    //     },
-    //   )
-    //   .select('email firstName lastName');
+    return this.userModel
+      .findOneAndUpdate(
+        { _id: user._id },
+        { $set: { password } },
+        {
+          new: true,
+          lean: true,
+        },
+      )
+      .select('email firstName lastName');
   }
 
   // find one application by email
@@ -344,20 +331,16 @@ export class UsersService {
     } catch {
       return 'Error updating user';
     }
-    console.log(
-      `Email: ${email}\nUser: ${user}\nUser status: ${user.applicationStatus}`,
-    );
-    sendMail({
+    await sendMail({
       to: user.email,
       from: EmailFromType.HELLO,
-      subject: 'Lead Registration',
+      subject: 'Application Received',
       template: getMailTemplate().generalLeadRegistration,
       templateVariables: {
         firstName: user.firstName,
         position: leadPosition,
       },
     });
-    console.log(`email sent to ${user}`);
     return 'Application sent';
   }
 
@@ -387,11 +370,22 @@ export class UsersService {
         email: userApplication.email,
       },
     });
+    sendMail({
+      to: userApplication.email,
+      from: EmailFromType.HELLO,
+      subject: 'Lead Application Status',
+      template: getMailTemplate().leadApplicationStauts,
+      templateVariables: {
+        firstName: userApplication.firstName,
+        status: true,
+        email: userApplication.email,
+      },
+    });
     return `${userApplication.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
   }
 
   // reject a lead application
-  async rejectTempApplication(email: string, message: string): Promise<User> {
+  async rejectTempApplication(email: string, message: string): Promise<string> {
     const userApplication = this.viewOneApplication(email);
     (await userApplication).leadPosition = '';
     (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
@@ -400,14 +394,14 @@ export class UsersService {
     sendMail({
       to: email,
       from: EmailFromType.HELLO,
-      subject: 'LEAD APPLICATION STATUS',
-      template: getMailTemplate().generalLeadRegistration,
+      subject: 'Lead Application Status',
+      template: getMailTemplate().leadApplicationStauts,
       templateVariables: {
         email: email,
-        message: `Thank you for your intrest in becoming a lead in the inventors community. Unfortunately, you applcation has been declined \n${message}`,
+        message: `Thank you for your intrest in becoming a lead in inventors community. Unfortunately, your application has been declined \n${message}`,
       },
     });
-    return userApplication;
+    return `${email} application has been rejected`;
   }
 
   // generate encrypted links
@@ -421,23 +415,20 @@ export class UsersService {
     };
 
     const queryString = new URLSearchParams(preFilledParams as any).toString();
-    // console.log(`Query string: ${queryString}`);
     const encryptedParams = encrypt(queryString);
     const fullLink = `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
-    // TODO create ivite lead template
     sendMail({
       to: email,
       from: EmailFromType.HELLO,
-      subject: 'BECOME ONE OF OUR LEADS - INVENTORS',
+      subject: 'INVENTORS LEADS INVITE',
       template: getMailTemplate().generalLeadRegistration,
       templateVariables: {
-        email: user.email,
-        link: fullLink,
+        email: email,
         firstName: user.firstName,
+        link: fullLink,
       },
     });
-    console.log(fullLink);
-    return 'Invite link sent';
+    return `Invite link[ ${fullLink} ] sent to ${email}`;
   }
 
   // decode invite link
@@ -453,25 +444,25 @@ export class UsersService {
   }
 
   // get all leads
-  // decided to go the crude way since i couldn't get the one in here to work
+  // decided to go the crude way since i couldn't get the function to work without changing it [lean value giving issues]
   async getUsersWithLeadRole(): Promise<User[]> {
     const users = await this.userModel.find({ role: 'LEAD' }).exec();
     return users;
   }
 
-  // refrence routing a new user
+  // reference routing a new user
   async createUser(userData: CreateUserDto) {
     return (this.userModel as any).signUp(userData);
   }
 
   async requestVerification(req: ApiReq, userId: string) {
-    //1. Retrieve user information and check that user exists
+    // 1. Retrieve user information and check that user exists
     const user = await this.userModel.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
 
-    //2. Check that current date > nextRequestVerificationDate
+    // 2. Check that current date > nextRequestVerificationDate
     const currentDate = new Date();
     if (
       user.nextVerificationRequestDate &&
@@ -480,21 +471,22 @@ export class UsersService {
       throw new Error('Verification request not allowed at this time');
     }
 
-    //3. Check that the user verification status is not verified
+    // 3. Check that the user verification status is not verified
     if (user.applicationStatus === ApplicationStatus.APPROVED) {
       throw new Error('User is already verified');
     }
 
-    //4. Update user verification status and next verification date to 3 months from now
+    // 4. Update user verification status and next verification date to 3 months from now
     user.applicationStatus = ApplicationStatus.PENDING;
     const nextVerificationDate = new Date();
     nextVerificationDate.setMonth(nextVerificationDate.getMonth() + 3);
     user.nextVerificationRequestDate = nextVerificationDate;
 
-    //5. Save the updated user
+    // 5. Save the updated user
     await user.save();
   }
 
+  // service for testing mail
   pingMail() {
     sendMail({
       to: 'snebo54@gmail.com',

@@ -45,8 +45,7 @@ export const configs = () => ({
       generalLeadRegistration: 'inventors-lead-invite',
     },
   },
-  // create transponder object for nodeMailer
-  // unorthodox name because of confusion in mailing service
+
   node_mailer: {
     host: process.env.SMTP_HOST, //email provider ie gmail
     port: parseInt(process.env.SMTP_PORT, 10),

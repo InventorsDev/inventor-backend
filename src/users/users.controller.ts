@@ -36,6 +36,7 @@ import { TempLeadDto } from './dto/temp-lead.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // i think this api call is elsewhere
   @Post()
   create(@Request() req: ApiReq, @Body() createUserDto: CreateUserDto) {
     // return this.usersService.create(req, createUserDto);
@@ -133,8 +134,8 @@ export class UsersController {
   }
 
   // user regestring to be a lead
-  // @ApiBearerAuth()
-  // @UseGuards(JwtUsersGuard)
+  @ApiBearerAuth()
+  @UseGuards(JwtUsersGuard)
   @Post('/lead-registration')
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiBody({ type: TempLeadDto })
@@ -148,7 +149,6 @@ export class UsersController {
 
   // handle generated links
   @Get('invite-link')
-  // @ApiHttpMethod('GET')
   @ApiOperation({ summary: 'Handle generated link routing' })
   @Redirect()
   async register(
