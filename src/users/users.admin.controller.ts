@@ -24,12 +24,7 @@ import { User, UserDocument } from 'src/shared/schema';
 import { Model } from 'mongoose';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { UserInviteDto } from './dto/user-invite.dto';
-import {
-  ApiReq,
-  // UserStatus,
-  userRoles,
-  userStatuses,
-} from 'src/shared/interfaces';
+import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';

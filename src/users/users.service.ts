@@ -257,7 +257,7 @@ export class UsersService {
     sendMail({
       to: user.email,
       from: EmailFromType.HELLO,
-      subject: 'PASSWORD CHANGE',
+      subject: 'Password Change',
       template: getMailTemplate().generalPasswordChange,
       templateVariables: {
         firstName: 'test bot',

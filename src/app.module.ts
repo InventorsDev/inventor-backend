@@ -8,8 +8,6 @@ import { AuthModule } from './shared/auth/auth.module';
 import { DataLogsModule } from './shared/datalogs';
 import { UsersModule } from './users/users.module';
 import { EventModule } from './events/events.users.module';
-// import { NodeMailService } from './node-mail/node-mail.service';
-// import { NodeMailModule } from './node-mail/node-mail.module';
 
 @Module({
   imports: [
@@ -23,7 +21,6 @@ import { EventModule } from './events/events.users.module';
     DataLogsModule,
     UsersModule,
     EventModule,
-    // NodeMailModule,
   ],
   controllers: [AppController],
   providers: [
@@ -32,7 +29,6 @@ import { EventModule } from './events/events.users.module';
     ThrottlerGuard,
     LogInterceptor,
     AllExceptionsFilter,
-    // NodeMailService,
   ],
   exports: [AppService, Logger, LogInterceptor, AllExceptionsFilter],
 })
