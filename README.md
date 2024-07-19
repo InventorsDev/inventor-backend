@@ -73,7 +73,7 @@ LOG_DATABASE_URL=mongodb://localhost:27017/inventor_log?retryWrites=true&w=major
 
 JWT_SECRET=
 
-JWT_EXPIRES=60
+JWT_EXPIRES=1h
 
 RATE_LIMIT_REQUEST_SIZE=60
 
