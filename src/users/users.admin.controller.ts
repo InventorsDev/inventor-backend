@@ -12,7 +12,13 @@ import {
   Inject,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { User, UserDocument } from 'src/shared/schema';
 import { Model } from 'mongoose';
@@ -28,6 +34,7 @@ import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
+import { RejectApplicationDto } from './dto/reject-lead-application.dto';
 
 @ApiTags('admins')
 @Controller('admins')
@@ -174,7 +181,7 @@ export class UsersAdminsController {
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
   @ApiQuery({ name: 'email', description: 'user email' })
-  @Get('application/:email')
+  @Get('lead/application/:email')
   getApplicationByEmail(@Query('email') email: string): Promise<UserDocument> {
     return this.usersService.viewOneApplication(email);
   }
@@ -182,7 +189,7 @@ export class UsersAdminsController {
   // list all lead applications
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Get('applications')
+  @Get('lead/applications')
   async viewApplications(): Promise<UserDocument[]> {
     return await this.usersService.viewApplications();
   }
@@ -194,7 +201,7 @@ export class UsersAdminsController {
     name: 'email',
     description: 'Email of the user application',
   })
-  @Patch(':email/approve')
+  @Patch('lead/:email/approve')
   async approveApplication(@Param('email') email: string): Promise<string> {
     return await this.usersService.approveTempApplication(email);
   }
@@ -202,13 +209,14 @@ export class UsersAdminsController {
   // reject a lead request
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Patch(':email/reject')
+  @ApiBody({ type: RejectApplicationDto })
+  @Patch('lead/:email/reject')
   async reject(
     @Param('email') email: string,
-    @Body('message') message: string,
+    @Body() rejectApplicationDto: RejectApplicationDto,
   ): Promise<string> {
     const defaultMessage = 'Your application was rejected';
-    const rejectionMessage = message || defaultMessage;
+    const rejectionMessage = rejectApplicationDto.message || defaultMessage;
     return await this.usersService.rejectTempApplication(
       email,
       rejectionMessage,

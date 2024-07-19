@@ -292,7 +292,10 @@ export class UsersService {
   // view all lead applications
   async viewApplications(): Promise<UserDocument[]> {
     const leadApplications = await this.userModel
-      .find({ applicationStatus: ApplicationStatus.PENDING })
+      .find(
+        { applicationStatus: ApplicationStatus.PENDING },
+        'email leadPosition',
+      )
       .exec();
     if (!leadApplications) {
       throw new NotFoundException('No application data found!');
@@ -358,18 +361,6 @@ export class UsersService {
     userApplication.role = [UserRole.LEAD];
     userApplication.applicationStatus = ApplicationStatus.APPROVED;
     userApplication.save();
-
-    sendMail({
-      to: userApplication.email,
-      from: EmailFromType.HELLO,
-      subject: 'Application status',
-      template: getMailTemplate().leadApplicationStauts,
-      templateVariables: {
-        status: true,
-        firstName: userApplication.firstName,
-        email: userApplication.email,
-      },
-    });
     sendMail({
       to: userApplication.email,
       from: EmailFromType.HELLO,
