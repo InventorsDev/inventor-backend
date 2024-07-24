@@ -32,7 +32,6 @@ import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { RejectApplicationDto } from './dto/reject-lead-application.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 
-
 @ApiTags('admins')
 @Controller('admins')
 export class UsersAdminsController {
@@ -184,65 +183,67 @@ export class UsersAdminsController {
   ) {
     return this.usersService.updateStatus(userId, payload.status);
   }
+  // find an application by email
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @ApiQuery({ name: 'email', description: 'user email' })
+  @Get('lead/application/:email')
+  async getApplicationByEmail(
+    @Query('email') email: string,
+  ): Promise<UserDocument> {
+    return this.usersService.viewOneApplication(email);
+  }
+
+  // list all lead applications
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @Get('lead/applications')
+  async viewApplications(): Promise<UserDocument[]> {
+    return await this.usersService.viewApplications();
+  }
+
+  // approve lead application
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @ApiParam({
+    name: 'email',
+    description: 'Email of the user application',
+  })
+  @Patch('lead/:email/approve')
+  async approveApplication(@Param('email') email: string): Promise<string> {
+    return await this.usersService.approveTempApplication(email);
+  }
+
+  // reject a lead request
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @ApiBody({ type: RejectApplicationDto })
+  @Patch('lead/:email/reject')
+  async reject(
+    @Param('email') email: string,
+    @Body() rejectApplicationDto: RejectApplicationDto,
+  ): Promise<string> {
+    const defaultMessage = 'Your application was rejected';
+    const rejectionMessage = rejectApplicationDto.message || defaultMessage;
+    return await this.usersService.rejectTempApplication(
+      email,
+      rejectionMessage,
+    );
+  }
+
+  // generate registration link
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @Get('inviteLead/:email') // receive the email param
+  async generateLink(@Param('email') email: string): Promise<{ link: string }> {
+    // generate and return the link
+    const link = await this.usersService.inviteLead(email);
+    return { link };
+  }
+
+  // view all leads
+  @Get()
+  async getUsersWithLeadRole(): Promise<User[]> {
+    return this.usersService.getUsersWithLeadRole();
+  }
 }
- // find an application by email
- @ApiBearerAuth()
- @UseGuards(JwtAdminsGuard)
- @ApiQuery({ name: 'email', description: 'user email' })
- @Get('lead/application/:email')
- getApplicationByEmail(@Query('email') email: string): Promise<UserDocument> {
-   return this.usersService.viewOneApplication(email);
- }
-
- // list all lead applications
- @ApiBearerAuth()
- @UseGuards(JwtAdminsGuard)
- @Get('lead/applications')
- async viewApplications(): Promise<UserDocument[]> {
-   return await this.usersService.viewApplications();
- }
-
- // approve lead application
- @ApiBearerAuth()
- @UseGuards(JwtAdminsGuard)
- @ApiParam({
-   name: 'email',
-   description: 'Email of the user application',
- })
- @Patch('lead/:email/approve')
- async approveApplication(@Param('email') email: string): Promise<string> {
-   return await this.usersService.approveTempApplication(email);
- }
-
- // reject a lead request
- @ApiBearerAuth()
- @UseGuards(JwtAdminsGuard)
- @ApiBody({ type: RejectApplicationDto })
- @Patch('lead/:email/reject')
- async reject(
-   @Param('email') email: string,
-   @Body() rejectApplicationDto: RejectApplicationDto,
- ): Promise<string> {
-   const defaultMessage = 'Your application was rejected';
-   const rejectionMessage = rejectApplicationDto.message || defaultMessage;
-   return await this.usersService.rejectTempApplication(
-     email,
-     rejectionMessage,
-   );
- }
-
- // generate registration link
- @ApiBearerAuth()
- @UseGuards(JwtAdminsGuard)
- @Get('inviteLead/:email') // receive the email param
- async generateLink(@Param('email') email: string): Promise<{ link: string }> {
-   // generate and return the link
-   const link = await this.usersService.inviteLead(email);
-   return { link };
- }
-
- // view all leads
- @Get()
- async getUsersWithLeadRole(): Promise<User[]> {
-   return this.usersService.getUsersWithLeadRole();
- }
