@@ -125,6 +125,12 @@ export class User {
   @Prop(raw(SocialsRawSchema))
   socials: Socials;
 
+  @Prop({
+    index: true,
+    default: VerificationStatus.NOT_VERIFIED,
+  })
+  verificationStatus: VerificationStatus;
+
   @Prop({ type: Date })
   nextVerificationRequestDate: Date;
 }

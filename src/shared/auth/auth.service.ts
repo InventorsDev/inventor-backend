@@ -36,6 +36,8 @@ export class AuthService {
   async validateUser(email: string, pass: string): Promise<UserDocument | any> {
     const user = await this.findByUsername(email);
     if (!user) return null;
+    if (user.status === UserStatus.DEACTIVATED) return null; 
+
     const isPasswordMatch = await BcryptUtil.verify(
       pass,
       user.password as string,

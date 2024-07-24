@@ -29,7 +29,8 @@ import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
-import { TempLeadDto } from './dto/temp-lead.dto';
+import { DeactivateAccountDto } from './dto/deactivate-account.dto';
+import { RequestReactivationDto } from './dto/request-reactivation.dto';import { TempLeadDto } from './dto/temp-lead.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -194,5 +195,25 @@ export class UsersController {
     @Param('userId') userId: string,
   ) {
     return this.usersService.requestVerification(req, userId);
+  }
+
+  @UseGuards(JwtUsersGuard)
+  @Put(':userId/deactivate')
+  async deactivateAccount(
+    @Request() req: any,
+    @Param('userId') userId: string,
+    @Body() payload: DeactivateAccountDto,
+  ) {
+    // Optional: Use payload.reason if needed
+    return this.usersService.deactivateAccount(userId);
+  }
+
+  @Put(':userId/request-reactivation')
+  async requestReactivation(
+    @Param('userId') userId: string,
+    @Body() payload: RequestReactivationDto,
+  ) {
+    // Optional: Use payload.message if needed
+    return this.usersService.requestReactivation(userId);
   }
 }

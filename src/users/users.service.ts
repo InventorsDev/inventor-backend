@@ -32,9 +32,14 @@ import {
   UserStatus,
 } from 'src/shared/interfaces';
 import { UserInviteDto } from './dto/user-invite.dto';
+<<<<<<< HEAD
 import { format } from 'date-fns';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import {} from 'src/shared/configs';
+=======
+import { VerificationStatus } from 'src/shared/interfaces/user.type';
+
+>>>>>>> 099c28d000461f47b04f8b21bf6a8627a6376cf8
 @Injectable()
 export class UsersService {
   private readonly baseUrl = 'http://localhost:3888/docs/api/v1/leads';
@@ -447,13 +452,22 @@ export class UsersService {
   }
 
   async requestVerification(req: ApiReq, userId: string) {
+<<<<<<< HEAD
     // 1. Retrieve user information and check that user exists
+=======
+    
+   
+>>>>>>> 099c28d000461f47b04f8b21bf6a8627a6376cf8
     const user = await this.userModel.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
 
+<<<<<<< HEAD
     // 2. Check that current date > nextRequestVerificationDate
+=======
+   
+>>>>>>> 099c28d000461f47b04f8b21bf6a8627a6376cf8
     const currentDate = new Date();
     if (
       user.nextVerificationRequestDate &&
@@ -462,6 +476,7 @@ export class UsersService {
       throw new Error('Verification request not allowed at this time');
     }
 
+<<<<<<< HEAD
     // 3. Check that the user verification status is not verified
     if (user.applicationStatus === ApplicationStatus.APPROVED) {
       throw new Error('User is already verified');
@@ -469,10 +484,19 @@ export class UsersService {
 
     // 4. Update user verification status and next verification date to 3 months from now
     user.applicationStatus = ApplicationStatus.PENDING;
+=======
+    if (user.verificationStatus === VerificationStatus.VERIFIED) {
+      throw new Error('User is already verified');
+    }
+
+   
+    user.verificationStatus = VerificationStatus.PENDING;
+>>>>>>> 099c28d000461f47b04f8b21bf6a8627a6376cf8
     const nextVerificationDate = new Date();
     nextVerificationDate.setMonth(nextVerificationDate.getMonth() + 3);
     user.nextVerificationRequestDate = nextVerificationDate;
 
+<<<<<<< HEAD
     // 5. Save the updated user
     await user.save();
   }
@@ -490,5 +514,20 @@ export class UsersService {
       },
     });
     return true;
+=======
+    
+    await user.save();
+  }
+  async updateStatus(userId: string, status: UserStatus): Promise<User> {
+    return this.userModel.findByIdAndUpdate(userId, { status }, { new: true }).exec();
+  }
+
+  async deactivateAccount(userId: string): Promise<User> {
+    return this.userModel.findByIdAndUpdate(userId, { status: UserStatus.DEACTIVATED }, { new: true }).exec();
+  }
+
+  async requestReactivation(userId: string): Promise<User> {
+    return this.userModel.findByIdAndUpdate(userId, { status: UserStatus.ACTIVE }, { new: true }).exec();
+>>>>>>> 099c28d000461f47b04f8b21bf6a8627a6376cf8
   }
 }
