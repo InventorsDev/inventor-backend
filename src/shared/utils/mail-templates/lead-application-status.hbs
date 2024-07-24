@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <title>Application Status</title>
+</head>
+<body>
+    <p>Hello {{firstName}},</p>
+    <p>Your application has been
+        {{#if status}}
+            <span>Approved!</span><br>
+            Welcome to the team...
+        {{else}}
+            Declined!
+            {{message}}
+        {{/if}}
+        </span></p>
+        
+    <p>Thank you,</p>
+    <p>Inventors Team</p>
+</body>
+</html>

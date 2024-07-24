@@ -13,6 +13,8 @@ import { User, UserDocument } from 'src/shared/schema';
 import {
   BcryptUtil,
   CloudinaryFolders,
+  decrypt,
+  encrypt,
   firstCapitalize,
   getMailTemplate,
   getPaginated,
@@ -24,19 +26,22 @@ import {
 } from 'src/shared/utils';
 import {
   ApiReq,
+  ApplicationStatus,
   EmailFromType,
   UserRole,
   UserStatus,
 } from 'src/shared/interfaces';
 import { UserInviteDto } from './dto/user-invite.dto';
-import { VerificationStatus } from 'src/shared/interfaces/user.type';
-
+import { format } from 'date-fns';
+import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
+import {} from 'src/shared/configs';
 @Injectable()
 export class UsersService {
+  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/leads';
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
-  ) { }
+  ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
@@ -255,12 +260,11 @@ export class UsersService {
       subject: 'Password Change',
       template: getMailTemplate().generalPasswordChange,
       templateVariables: {
+        firstName: 'test bot',
         password: newPassword,
-        firstName: user.firstName,
         email: user.email,
       },
     });
-
     return this.userModel
       .findOneAndUpdate(
         { _id: user._id },
@@ -273,15 +277,205 @@ export class UsersService {
       .select('email firstName lastName');
   }
 
+  async updateStatus(userId: string, status: UserStatus): Promise<User> {
+    return this.userModel
+      .findByIdAndUpdate(userId, { status }, { new: true })
+      .exec();
+  }
+
+  async deactivateAccount(userId: string): Promise<User> {
+    return this.userModel
+      .findByIdAndUpdate(
+        userId,
+        { status: UserStatus.DEACTIVATED },
+        { new: true },
+      )
+      .exec();
+  }
+
+  async requestReactivation(userId: string): Promise<User> {
+    return this.userModel
+      .findByIdAndUpdate(userId, { status: UserStatus.ACTIVE }, { new: true })
+      .exec();
+  }
+
+  // find one application by email
+  async viewOneApplication(email: string): Promise<UserDocument> {
+    const application = await this.userModel.findOne({ email }).exec();
+    if (!application) {
+      throw new NotFoundException(`Application with email ${email} not found`);
+    }
+    if (application.applicationStatus == ApplicationStatus.PENDING) {
+      return application;
+    }
+    throw new NotFoundException(`${email} has no pendign application`);
+  }
+
+  // view all lead applications
+  async viewApplications(): Promise<UserDocument[]> {
+    const leadApplications = await this.userModel
+      .find(
+        { applicationStatus: ApplicationStatus.PENDING },
+        'email leadPosition',
+      )
+      .exec();
+    if (!leadApplications) {
+      throw new NotFoundException('No application data found!');
+    }
+    return leadApplications;
+  }
+
+  // create lead application for existing user
+  async createTempRegistration(
+    email: string,
+    leadPosition: string,
+  ): Promise<string> {
+    const user = await this.findByEmail(email);
+    // check the next application time
+    const today = new Date();
+    if (user.nextApplicationTime > today) {
+      throw new BadRequestException(
+        `The next time you can apply as a lead is ${format(user.nextApplicationTime, 'eeee, MMMM do, h:mm a')}`,
+      );
+    }
+    // create next application date
+    const futureDate = new Date();
+    futureDate.setMonth(futureDate.getMonth() + 3);
+    // update the user data that has to do with application
+    try {
+      await this.userModel.findOneAndUpdate(
+        { email: email },
+        {
+          $set: {
+            applicationStatus: ApplicationStatus.PENDING,
+            nextApplicationTime: futureDate,
+            leadPosition: leadPosition,
+          },
+        },
+      );
+    } catch {
+      return 'Error updating user';
+    }
+    await sendMail({
+      to: user.email,
+      from: EmailFromType.HELLO,
+      subject: 'Application Received',
+      template: getMailTemplate().generalLeadRegistration,
+      templateVariables: {
+        firstName: user.firstName,
+        position: leadPosition,
+      },
+    });
+    return 'Application sent';
+  }
+
+  // approve a lead application
+  async approveTempApplication(email: string): Promise<string> {
+    const userApplication = await this.userModel
+      .findOne({
+        email: email,
+        applicationStatus: ApplicationStatus.PENDING,
+      })
+      .exec();
+    if (!userApplication) {
+      throw new NotFoundException(`Application for ${email} not found`);
+    }
+    userApplication.role = [UserRole.LEAD];
+    userApplication.applicationStatus = ApplicationStatus.APPROVED;
+    userApplication.save();
+    sendMail({
+      to: userApplication.email,
+      from: EmailFromType.HELLO,
+      subject: 'Lead Application Status',
+      template: getMailTemplate().leadApplicationStauts,
+      templateVariables: {
+        firstName: userApplication.firstName,
+        status: true,
+        email: userApplication.email,
+      },
+    });
+    return `${userApplication.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
+  }
+
+  // reject a lead application
+  async rejectTempApplication(email: string, message: string): Promise<string> {
+    const userApplication = this.viewOneApplication(email);
+    (await userApplication).leadPosition = '';
+    (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
+    (await userApplication).save();
+
+    sendMail({
+      to: email,
+      from: EmailFromType.HELLO,
+      subject: 'Lead Application Status',
+      template: getMailTemplate().leadApplicationStauts,
+      templateVariables: {
+        email: email,
+        message: `Thank you for your intrest in becoming a lead in inventors community. Unfortunately, your application has been declined \n${message}`,
+      },
+    });
+    return `${email} application has been rejected`;
+  }
+
+  // generate encrypted links
+  async inviteLead(email: string): Promise<string> {
+    const user = await this.userModel.findOne({ email: email });
+    const preFilledParams = {
+      userId: user ? user._id : '',
+      email: email,
+      firstName: user ? user.firstName : '',
+      lastName: user ? user.lastName : '',
+    };
+
+    const queryString = new URLSearchParams(preFilledParams as any).toString();
+    const encryptedParams = encrypt(queryString);
+    const fullLink = `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
+    sendMail({
+      to: email,
+      from: EmailFromType.HELLO,
+      subject: 'INVENTORS LEADS INVITE',
+      template: getMailTemplate().generalLeadRegistration,
+      templateVariables: {
+        email: email,
+        firstName: user.firstName,
+        link: fullLink,
+      },
+    });
+    return `Invite link[ ${fullLink} ] sent to ${email}`;
+  }
+
+  // decode invite link
+  paraseEncryptedParams(encryptedParams: string): {
+    email: string;
+    userId: string;
+  } {
+    const decryptedParams = decrypt(decodeURIComponent(encryptedParams));
+    const [userId, email] = decryptedParams
+      .split('&')
+      .map((param) => param.split('=')[1]);
+    return { userId, email };
+  }
+
+  // get all leads
+  // decided to go the crude way since i couldn't get the function to work without changing it [lean value giving issues]
+  async getUsersWithLeadRole(): Promise<User[]> {
+    const users = await this.userModel.find({ role: 'LEAD' }).exec();
+    return users;
+  }
+
+  // reference routing a new user
+  async createUser(userData: CreateUserDto) {
+    return (this.userModel as any).signUp(userData);
+  }
+
   async requestVerification(req: ApiReq, userId: string) {
-    
-   
+    // 1. Retrieve user information and check that user exists
     const user = await this.userModel.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
 
-   
+    // 2. Check that current date > nextRequestVerificationDate
     const currentDate = new Date();
     if (
       user.nextVerificationRequestDate &&
@@ -290,28 +484,33 @@ export class UsersService {
       throw new Error('Verification request not allowed at this time');
     }
 
-    if (user.verificationStatus === VerificationStatus.VERIFIED) {
+    // 3. Check that the user verification status is not verified
+    if (user.applicationStatus === ApplicationStatus.APPROVED) {
       throw new Error('User is already verified');
     }
 
-   
-    user.verificationStatus = VerificationStatus.PENDING;
+    // 4. Update user verification status and next verification date to 3 months from now
+    user.applicationStatus = ApplicationStatus.PENDING;
     const nextVerificationDate = new Date();
     nextVerificationDate.setMonth(nextVerificationDate.getMonth() + 3);
     user.nextVerificationRequestDate = nextVerificationDate;
 
-    
+    // 5. Save the updated user
     await user.save();
   }
-  async updateStatus(userId: string, status: UserStatus): Promise<User> {
-    return this.userModel.findByIdAndUpdate(userId, { status }, { new: true }).exec();
-  }
 
-  async deactivateAccount(userId: string): Promise<User> {
-    return this.userModel.findByIdAndUpdate(userId, { status: UserStatus.DEACTIVATED }, { new: true }).exec();
-  }
-
-  async requestReactivation(userId: string): Promise<User> {
-    return this.userModel.findByIdAndUpdate(userId, { status: UserStatus.ACTIVE }, { new: true }).exec();
+  // service for testing mail
+  pingMail() {
+    sendMail({
+      to: 'snebo54@gmail.com',
+      from: EmailFromType.HELLO,
+      subject: 'Mail check',
+      template: getMailTemplate().generalLeadRegistration,
+      templateVariables: {
+        firstName: 'test bot',
+        position: 'test-position',
+      },
+    });
+    return true;
   }
 }

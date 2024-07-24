@@ -19,10 +19,10 @@ export enum UserStatus {
   DEACTIVATED = 'DEACTIVATED',
 }
 
-export enum VerificationStatus {
-  NOT_VERIFIED = 'NOT_VERIFIED',
+export enum ApplicationStatus {
   PENDING = 'PENDING',
-  VERIFIED = 'VERIFIED',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
 }
 
 export type Contact = {
@@ -48,4 +48,4 @@ export const SocialsRawSchema = {
 export const userRoles = Object.values(UserRole);
 export const userStatuses = Object.values(UserStatus);
 export const registrationMethods = Object.values(RegistrationMethod);
-export const verificationStatuses = Object.values(VerificationStatus);
+export const applicatonStatus = Object.values(ApplicationStatus);

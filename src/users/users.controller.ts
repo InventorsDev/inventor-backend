@@ -8,22 +8,36 @@ import {
   UseGuards,
   Request,
   Put,
+  UsePipes,
+  ValidationPipe,
+  Redirect,
+  Query,
+  NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtUsersGuard } from 'src/shared/auth/guards/jwt.users.guard';
 import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { DeactivateAccountDto } from './dto/deactivate-account.dto';
-import { RequestReactivationDto } from './dto/request-reactivation.dto';
+import { RequestReactivationDto } from './dto/request-reactivation.dto';import { TempLeadDto } from './dto/temp-lead.dto';
+
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // i think this api call is elsewhere
   @Post()
   create(@Request() req: ApiReq, @Body() createUserDto: CreateUserDto) {
     // return this.usersService.create(req, createUserDto);
@@ -118,6 +132,60 @@ export class UsersController {
   @Put('/profile-photo')
   async addPhoto(@Request() req: ApiReq, @Body() payload: UserAddPhotoDto) {
     return this.usersService.addPhoto(req.user._id.toString(), payload);
+  }
+
+  // user regestring to be a lead
+  @ApiBearerAuth()
+  @UseGuards(JwtUsersGuard)
+  @Post('/lead-registration')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiBody({ type: TempLeadDto })
+  async createLead(@Body() tempLeadDto: TempLeadDto): Promise<string> {
+    const tempRegistration = await this.usersService.createTempRegistration(
+      tempLeadDto.email,
+      tempLeadDto.leadPosition,
+    );
+    return tempRegistration;
+  }
+
+  // handle generated links
+  @Get('invite-link')
+  @ApiOperation({ summary: 'Handle generated link routing' })
+  @Redirect()
+  async register(
+    @Query('data') encryptedData: string,
+  ): Promise<{ url: string }> {
+    try {
+      const { userId, email } =
+        this.usersService.paraseEncryptedParams(encryptedData);
+      if (!userId)
+        return {
+          url: `/leads/new-user-form?${new URLSearchParams({ email }).toString()}`,
+        };
+
+      const userExists = await this.usersService.findById(userId);
+      if (!userExists) throw new NotFoundException('User Not found');
+
+      return {
+        url: `/leads/createLead?email=${userExists.email}`,
+      };
+    } catch (error) {
+      throw new NotFoundException('Invalid link');
+    }
+  }
+
+  // handle unregistered user lead appplication
+  @Post('new-user-form')
+  @ApiOperation({ summary: 'Create a new user and makes them a lead' })
+  async newUserForm(@Body() userData: CreateUserDto): Promise<{ url: string }> {
+    try {
+      const user = await this.usersService.createUser(userData);
+      return {
+        url: `/leads/create?email=${user.email}`,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create user');
+    }
   }
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
