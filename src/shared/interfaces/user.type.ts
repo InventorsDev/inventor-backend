@@ -4,6 +4,7 @@ export enum UserRole {
   WRITER = 'WRITER',
   MODERATOR = 'MODERATOR',
   USER = 'USER',
+  EVENT_USER = 'EVENT_USER'
 }
 
 export enum RegistrationMethod {

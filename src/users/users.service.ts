@@ -36,7 +36,7 @@ export class UsersService {
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
-  ) {}
+  ) { }
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
@@ -146,7 +146,7 @@ export class UsersService {
   }
 
   async addPhoto(userId: string, payload: UserAddPhotoDto): Promise<User> {
-    const { photo } = payload;
+    const photo = await uploadToCloudinary(payload.photo);
 
     return this.userModel.findOneAndUpdate(
       { _id: new Types.ObjectId(userId) },
@@ -275,13 +275,13 @@ export class UsersService {
 
   async requestVerification(req: ApiReq, userId: string) {
     
-    //1. Retrieve user information and check that user exists
+   
     const user = await this.userModel.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
 
-    //2. Check that current date > nextRequestVerificationDate
+   
     const currentDate = new Date();
     if (
       user.nextVerificationRequestDate &&
@@ -290,18 +290,17 @@ export class UsersService {
       throw new Error('Verification request not allowed at this time');
     }
 
-    //3. Check that the user verification status is not verified
     if (user.verificationStatus === VerificationStatus.VERIFIED) {
       throw new Error('User is already verified');
     }
 
-    //4. Update user verification status and next verification date to 3 months from now
+   
     user.verificationStatus = VerificationStatus.PENDING;
     const nextVerificationDate = new Date();
     nextVerificationDate.setMonth(nextVerificationDate.getMonth() + 3);
     user.nextVerificationRequestDate = nextVerificationDate;
 
-    //5. Save the updated user
+    
     await user.save();
   }
   async updateStatus(userId: string, status: UserStatus): Promise<User> {
