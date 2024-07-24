@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { LocalUsersStrategy } from './strategies/local.users.strategy';
 import { JwtUsersStrategy } from './strategies/jwt.users.strategy';
@@ -10,6 +10,7 @@ import { JwtUsersGuard } from './guards/jwt.users.guard';
 import { LocalUsersGuard } from './guards/local.users.guard';
 import { JwtAdminsGuard } from './guards/jwt.admins.guard';
 import { DBModule } from '../schema';
+import { JwtEventUserGuard } from './guards/jwt.event.users.guard';
 
 @Module({
   imports: [
@@ -31,8 +32,9 @@ import { DBModule } from '../schema';
     JwtUsersStrategy,
     JwtAdminsStrategy,
     JwtUsersGuard,
+    JwtEventUserGuard,
     JwtAdminsGuard,
-    LocalUsersGuard,
+    LocalUsersGuard
   ],
   exports: [
     PassportModule,
@@ -44,6 +46,7 @@ import { DBModule } from '../schema';
     JwtUsersGuard,
     JwtAdminsGuard,
     LocalUsersGuard,
+    JwtEventUserGuard
   ],
 })
 export class AuthModule {}

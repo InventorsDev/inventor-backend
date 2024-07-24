@@ -4,6 +4,7 @@ export enum UserRole {
   WRITER = 'WRITER',
   MODERATOR = 'MODERATOR',
   USER = 'USER',
+  EVENT_USER = 'EVENT_USER'
 }
 
 export enum RegistrationMethod {
@@ -15,7 +16,7 @@ export enum RegistrationMethod {
 export enum UserStatus {
   ACTIVE = 'ACTIVE',
   DISABLE = 'DISABLE',
-  DELETE = 'DELETE',
+  DEACTIVATED = 'DEACTIVATED',
 }
 
 export enum VerificationStatus {
