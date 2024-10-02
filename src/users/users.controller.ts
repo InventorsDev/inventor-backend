@@ -149,7 +149,6 @@ export class UsersController {
   }
 
   // handle generated links
-  // 
   @Get('invite-link')
   @ApiOperation({ summary: 'Handle generated link routing' })
   @Redirect()
