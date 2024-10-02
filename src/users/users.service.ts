@@ -437,6 +437,7 @@ export class UsersService {
 
     const queryString = new URLSearchParams(preFilledParams as any).toString();
     const encryptedParams = encrypt(queryString);
+    // TODO: change this baseURL
     const fullLink = `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
     sendMail({
       to: email,

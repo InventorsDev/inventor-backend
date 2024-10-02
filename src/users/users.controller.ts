@@ -175,7 +175,7 @@ export class UsersController {
   }
 
   // handle people not in the db redirected from invite link
-  @Post('new-invitee-form')
+  @Post('new-invitee-form') //TODO: rename this endpoint
   @ApiOperation({ summary: 'Creates a new user and redirect to lead application' })
   async newUserForm(@Body() userData: CreateUserDto): Promise<{ url: string }> {
     try {
