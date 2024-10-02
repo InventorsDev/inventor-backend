@@ -1,4 +1,4 @@
-import { ApiReq, LogLevel } from '../interfaces';
+import { ApiReq, LogLevel, UserRole } from '../interfaces';
 import * as dateFns from 'date-fns';
 import { BadRequestException } from '@nestjs/common';
 import UAParser from 'ua-parser-js';
@@ -222,3 +222,14 @@ export const decrypt = (link: string): string => {
   const new_link = bytes.toString(CryptoJS.enc.Utf8); //standadize the string
   return new_link;
 };
+
+ export const hasRequiredRoles = (
+    userRoles: UserRole[],
+    requiredRoles: UserRole[],
+  ): boolean => {
+    // checks if events user or admin user can access
+    return (
+      requiredRoles.every((role) => userRoles.includes(role)) ||
+      userRoles.includes(UserRole.ADMIN)
+    );
+  }
