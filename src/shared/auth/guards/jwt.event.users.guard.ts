@@ -1,6 +1,7 @@
 import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UserRole } from '../../interfaces';
+import { hasRequiredRoles } from 'src/shared/utils';
 
 @Injectable()
 export class JwtEventUserGuard extends AuthGuard('jwt-user') {
@@ -25,7 +26,7 @@ export class JwtEventUserGuard extends AuthGuard('jwt-user') {
 
       const userRoles: UserRole[] = payload.role;
 
-      if (!this.hasRequiredRoles(userRoles, [UserRole.USER, UserRole.EVENT_USER])) {
+      if (!hasRequiredRoles(userRoles, [UserRole.USER, UserRole.EVENT_USER])) {
         throw new UnauthorizedException('Invalid user roles, user must have event role');
       }
 
@@ -40,10 +41,5 @@ export class JwtEventUserGuard extends AuthGuard('jwt-user') {
   private extractTokenFromHeader(request: Request): string | undefined {
       const [type, token] = request.headers['authorization']?.split(' ') ?? [];
       return type === 'Bearer' ? token : undefined;
-  }
-
-  private hasRequiredRoles(userRoles: UserRole[], requiredRoles: UserRole[]): boolean {
-    // checks if events user or admin user can access
-    return requiredRoles.every(role => userRoles.includes(role)) || userRoles.includes(UserRole.ADMIN);
   }
 }
