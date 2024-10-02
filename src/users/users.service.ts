@@ -9,7 +9,12 @@ import { Model, Types } from 'mongoose';
 import { faker } from '@faker-js/faker';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
-import { User, UserDocument } from 'src/shared/schema';
+import {
+  Notification,
+  NotificationDocument,
+  User,
+  UserDocument,
+} from 'src/shared/schema';
 import {
   BcryptUtil,
   CloudinaryFolders,
@@ -35,8 +40,10 @@ import { VerificationStatus } from 'src/shared/interfaces/user.type';
 export class UsersService {
   constructor(
     @Inject(User.name)
+    @Inject(Notification.name)
     private readonly userModel: Model<UserDocument>,
-  ) { }
+    private readonly notificationModel: Model<NotificationDocument>,
+  ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
@@ -274,14 +281,11 @@ export class UsersService {
   }
 
   async requestVerification(req: ApiReq, userId: string) {
-    
-   
     const user = await this.userModel.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
 
-   
     const currentDate = new Date();
     if (
       user.nextVerificationRequestDate &&
@@ -294,24 +298,81 @@ export class UsersService {
       throw new Error('User is already verified');
     }
 
-   
     user.verificationStatus = VerificationStatus.PENDING;
     const nextVerificationDate = new Date();
     nextVerificationDate.setMonth(nextVerificationDate.getMonth() + 3);
     user.nextVerificationRequestDate = nextVerificationDate;
 
-    
     await user.save();
   }
   async updateStatus(userId: string, status: UserStatus): Promise<User> {
-    return this.userModel.findByIdAndUpdate(userId, { status }, { new: true }).exec();
+    return this.userModel
+      .findByIdAndUpdate(userId, { status }, { new: true })
+      .exec();
   }
 
   async deactivateAccount(userId: string): Promise<User> {
-    return this.userModel.findByIdAndUpdate(userId, { status: UserStatus.DEACTIVATED }, { new: true }).exec();
+    return this.userModel
+      .findByIdAndUpdate(
+        userId,
+        { status: UserStatus.DEACTIVATED },
+        { new: true },
+      )
+      .exec();
   }
 
   async requestReactivation(userId: string): Promise<User> {
-    return this.userModel.findByIdAndUpdate(userId, { status: UserStatus.ACTIVE }, { new: true }).exec();
+    return this.userModel
+      .findByIdAndUpdate(userId, { status: UserStatus.ACTIVE }, { new: true })
+      .exec();
+  }
+
+  // Create a new notification for specific users, roles, or as a general notification
+  async createNotification(
+    message: string,
+    link: string,
+    userIds: string[],
+    roles: string[],
+  ): Promise<Notification> {
+    const notification = new this.notificationModel({
+      message,
+      link,
+      userIds,
+      roles,
+    });
+    return await notification.save();
+  }
+
+  async getNotifications(
+    userIds?: string[],
+    roles?: string[],
+  ): Promise<Notification[]> {
+    const query: any = {
+      $or: [],
+    };
+
+    // If userIds are provided, add them to the query
+    if (userIds && userIds.length > 0) {
+      query.$or.push({ userIds: { $in: userIds } });
+    }
+
+    // If roles are provided, add them to the query
+    if (roles && roles.length > 0) {
+      query.$or.push({ roles: { $in: roles } });
+    }
+
+    // If no filters are provided, return an empty array or all notifications as needed
+    if (query.$or.length === 0) {
+      return []; // or return await this.notificationModel.find().lean().exec(); to fetch all
+    }
+
+    return await this.notificationModel.find(query).lean().exec();
+  }
+
+  async markAsRead(notificationId: string): Promise<Notification> {
+    return await this.notificationModel
+      .findByIdAndUpdate(notificationId, { isRead: true }, { new: true })
+      .lean()
+      .exec();
   }
 }

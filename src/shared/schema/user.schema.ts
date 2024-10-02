@@ -27,6 +27,7 @@ import { CreateUserDto } from '../dtos/create-user.dto';
 import { UserInviteDto } from 'src/users/dto/user-invite.dto';
 
 export type UserDocument = HydratedDocument<User>;
+export type NotificationDocument = HydratedDocument<Notification>;
 
 @Schema({ timestamps: true })
 export class User {
@@ -303,3 +304,24 @@ UserSchema.statics.signUp = async function signUp(
 
   return { ...details, ...user };
 };
+@Schema({ timestamps: true })
+export class Notification {
+  @Prop({ required: true })
+  message: string;
+
+  @Prop({ required: true })
+  link: string;
+
+  @Prop({ type: [String], default: [] }) // Array of user IDs to notify
+  userIds?: string[];
+
+  @Prop({ type: [String], default: [] }) // Array of roles to notify
+  roles: string[];
+
+  @Prop({ default: false }) // Indicates if the notification has been read
+  isRead: boolean;
+
+  @Prop({ default: Date.now }) // Date created
+  createdAt: Date;
+}
+export const NotificationSchema = SchemaFactory.createForClass(Notification);

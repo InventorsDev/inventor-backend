@@ -19,6 +19,7 @@ import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { DeactivateAccountDto } from './dto/deactivate-account.dto';
 import { RequestReactivationDto } from './dto/request-reactivation.dto';
+import { Notification } from 'src/shared/schema';
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
@@ -147,5 +148,32 @@ export class UsersController {
   ) {
     // Optional: Use payload.message if needed
     return this.usersService.requestReactivation(userId);
+  }
+
+  //Notification controller
+
+  @Post(':userId')
+  @ApiBearerAuth()
+  @UseGuards(JwtUsersGuard)
+  async createNotification(
+    @Param('userId') userId: string,
+    @Body() { message, link }: { message: string; link?: string },
+  ): Promise<Notification> {
+    // You need to pass the userId in the userIds array, and any relevant roles
+    const userIds = [userId]; // Assuming you want to notify only this user
+    const roles: string[] = []; // Adjust this as needed
+
+    // Call the service to create the notification
+    return this.usersService.createNotification(message, link, userIds, roles);
+  }
+  @Get(':userId/notifications/:role')
+  @ApiBearerAuth()
+  @UseGuards(JwtUsersGuard)
+  async getNotifications(
+    @Param('userId') userId: string,
+    @Param('role') role: string,
+  ) {
+    // Wrap the role in an array to match the expected type
+    return this.usersService.getNotifications([userId], [role]);
   }
 }
