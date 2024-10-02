@@ -410,7 +410,7 @@ export class UsersService {
     (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
     (await userApplication).save();
     // TODO: reason for rejection should be stored somewhere
-    
+
     // No reason to notify the user about rejection?
     // sendMail({
     //   to: email,
