@@ -330,18 +330,20 @@ export class UsersService {
     email: string,
     leadPosition: string,
   ): Promise<string> {
+    // save the user information to the user obj
     const user = await this.findByEmail(email);
-    // check the next application time
+
+    // check if the user can apply again if he has before
     const today = new Date();
     if (user.nextApplicationTime > today) {
       throw new BadRequestException(
         `The next time you can apply as a lead is ${format(user.nextApplicationTime, 'eeee, MMMM do, h:mm a')}`,
       );
     }
-    // create next application date
+    // create a next valid application date on the user (3months)
     const futureDate = new Date();
     futureDate.setMonth(futureDate.getMonth() + 3);
-    // update the user data that has to do with application
+    // update the user application status to pending and store his role -lead posiition- in the db
     try {
       await this.userModel.findOneAndUpdate(
         { email: email },
@@ -354,8 +356,9 @@ export class UsersService {
         },
       );
     } catch {
-      return 'Error updating user';
+      return 'Failed to send Request';
     }
+    // send application received confirmation mail
     await sendMail({
       to: user.email,
       from: EmailFromType.HELLO,
@@ -380,9 +383,11 @@ export class UsersService {
     if (!userApplication) {
       throw new NotFoundException(`Application for ${email} not found`);
     }
+    //parts of applicant to update when approving
     userApplication.role = [UserRole.LEAD];
     userApplication.applicationStatus = ApplicationStatus.APPROVED;
     userApplication.save();
+    // send confirmation mail to applicant
     sendMail({
       to: userApplication.email,
       from: EmailFromType.HELLO,
@@ -399,21 +404,24 @@ export class UsersService {
 
   // reject a lead application
   async rejectTempApplication(email: string, message: string): Promise<string> {
+    // grab an applicant's lead application
     const userApplication = this.viewOneApplication(email);
     (await userApplication).leadPosition = '';
     (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
     (await userApplication).save();
-
-    sendMail({
-      to: email,
-      from: EmailFromType.HELLO,
-      subject: 'Lead Application Status',
-      template: getMailTemplate().leadApplicationStauts,
-      templateVariables: {
-        email: email,
-        message: `Thank you for your intrest in becoming a lead in inventors community. Unfortunately, your application has been declined \n${message}`,
-      },
-    });
+    // TODO: reason for rejection should be stored somewhere
+    
+    // No reason to notify the user about rejection?
+    // sendMail({
+    //   to: email,
+    //   from: EmailFromType.HELLO,
+    //   subject: 'Lead Application Status',
+    //   template: getMailTemplate().leadApplicationStauts,
+    //   templateVariables: {
+    //     email: email,
+    //     message: `Thank you for your intrest in becoming a lead in inventors community. Unfortunately, your application has been declined \n${message}`,
+    //   },
+    // });
     return `${email} application has been rejected`;
   }
 
