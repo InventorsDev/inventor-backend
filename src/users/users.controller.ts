@@ -37,7 +37,6 @@ import { RequestReactivationDto } from './dto/request-reactivation.dto';import {
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // i think this api call is elsewhere
   @Post()
   create(@Request() req: ApiReq, @Body() createUserDto: CreateUserDto) {
     // return this.usersService.create(req, createUserDto);
@@ -134,7 +133,7 @@ export class UsersController {
     return this.usersService.addPhoto(req.user._id.toString(), payload);
   }
 
-  // user regestring to be a lead
+  // user requesting to be a lead. Update's user's information 
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
   @Post('/lead-registration')
@@ -145,46 +144,48 @@ export class UsersController {
       tempLeadDto.email,
       tempLeadDto.leadPosition,
     );
+    // returns success for failed message <string>
     return tempRegistration;
   }
 
   // handle generated links
+  // 
   @Get('invite-link')
   @ApiOperation({ summary: 'Handle generated link routing' })
   @Redirect()
   async register(
-    @Query('data') encryptedData: string,
+    @Query('data') encryptedData: string, //encryptedData beign the url params
   ): Promise<{ url: string }> {
     try {
       const { userId, email } =
         this.usersService.paraseEncryptedParams(encryptedData);
       if (!userId)
         return {
-          url: `/leads/new-user-form?${new URLSearchParams({ email }).toString()}`,
+          // redirect to newUser, but this also runs createLead automatically
+          url: `/leads/new-invitee-form?${new URLSearchParams({ email }).toString()}`,
         };
 
-      const userExists = await this.usersService.findById(userId);
-      if (!userExists) throw new NotFoundException('User Not found');
-
       return {
-        url: `/leads/createLead?email=${userExists.email}`,
+        // redirect to createLead
+        url: `/leads/createLead?email=${email}`,
       };
     } catch (error) {
       throw new NotFoundException('Invalid link');
     }
   }
 
-  // handle unregistered user lead appplication
-  @Post('new-user-form')
-  @ApiOperation({ summary: 'Create a new user and makes them a lead' })
+  // handle people not in the db redirected from invite link
+  @Post('new-invitee-form')
+  @ApiOperation({ summary: 'Creates a new user and redirect to lead application' })
   async newUserForm(@Body() userData: CreateUserDto): Promise<{ url: string }> {
     try {
+      // collect new user data, run createUser and send to lead registration link
       const user = await this.usersService.createUser(userData);
       return {
         url: `/leads/create?email=${user.email}`,
       };
     } catch (error) {
-      throw new InternalServerErrorException('Failed to create user');
+      throw new InternalServerErrorException('Failed to create user'); // should probable be better named
     }
   }
   @ApiBearerAuth()
