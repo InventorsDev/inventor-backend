@@ -7,7 +7,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "deploy": "node build.js",
-    "build": "concurrently 'nest build'  'npm run docs:struct'",
+    "build": "nest build",
+    "build-dev": "concurrently 'nest build'  'npm run docs:struct'",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "concurrently 'nest start' 'npm run docs:struct'",
     "start:dev": "concurrently \"nest start --watch\" \"npm run docs:struct\"",
@@ -108,6 +109,6 @@
     "testEnvironment": "node"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.12.1"
   }
 }
