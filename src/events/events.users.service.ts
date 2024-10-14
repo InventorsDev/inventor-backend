@@ -16,7 +16,19 @@ export class EventService {
   ) {}
 
   async createEvent(payload: EventDto): Promise<Event> {
-    return this.eventModel.create({ payload });
+       return this.eventModel.create({
+         title: payload.title,
+         shortDesc: payload.shortDesc,
+         description: payload.description,
+         host: payload.host,
+         coHost: payload.coHost,
+         location: payload.location,
+         photo: payload.photo,
+         joinMethod: payload.joinMethod,
+         link: payload.link,
+         socialsLinks: payload.socialsLinks,
+         eventDate: payload.eventDate,
+       });
   }
 
   async findAll(req: ApiReq) {
