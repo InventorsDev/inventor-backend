@@ -3,9 +3,9 @@ import { UsersService } from './users.service';
 import { TestModule } from 'src/shared/testkits';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User } from 'src/shared/schema';
+import { User } from '../shared/schema';
 import { BcryptUtil } from 'src/shared/utils';
-import { RegistrationMethod } from 'src/shared/interfaces';
+import { RegistrationMethod, UserRole } from 'src/shared/interfaces';
 
 describe('UsersService', () => {
   let usersService: UsersService;
@@ -37,8 +37,12 @@ describe('UsersService', () => {
         email: 'test@example.com',
         firstName: 'John',
         lastName: 'Doe',
-        roles: ['ADMIN'],
-        JoinMethod: RegistrationMethod.INVITATION,
+        roles: [UserRole.ADMIN], // Ensure 'ADMIN' is a valid UserRole
+        joinMethod: RegistrationMethod.INVITATION, // Correct casing
+        photo: 'path/to/photo.jpg', // Optional but can be included
+        age: 30, // Optional but can be included
+        phone: '1234567890', // Optional but can be included
+        gender: 'Male', // Optional but can be included
       };
       const createUser = {
         _id: 'someId',
