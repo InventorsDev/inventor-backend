@@ -33,17 +33,23 @@ describe('UsersAdminController', () => {
   });
 
   describe('findByUsername', () => {
-    let requestMock = { email: 'test@example.com' };
+    const requestMock = { email: 'test@example.com' };
     it('should return true', async () => {
       const userMock = createUserMock({
         email: 'test@example.com',
-        status: UserStatus.ACTIVE,
       });
       // redirecting the dbquery to user the userMock
       jest.spyOn(usersService, 'findByEmail').mockResolvedValue(userMock);
       const result = await adminController.findByUsername(requestMock.email);
 
       expect(result).toEqual(true);
+      expect(usersService.findByEmail).toHaveBeenCalledWith('test@example.com');
+    });
+    it('should return false', async () => {
+      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(null);
+      const result = await adminController.findByUsername(requestMock.email);
+
+      expect(result).toEqual(false);
       expect(usersService.findByEmail).toHaveBeenCalledWith('test@example.com');
     });
   });
