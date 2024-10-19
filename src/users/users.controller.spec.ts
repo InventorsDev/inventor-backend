@@ -9,7 +9,13 @@ import {
   RegistrationMethod,
   UserRole,
   UserStatus,
+  ApiReq,
 } from 'src/shared/interfaces';
+// imported to handle the paginated response from findAll
+import { Model, Document, Types } from 'mongoose';
+import { IPageable } from 'src/shared/utils';
+type UserDocument = Document<unknown, {}, User> &
+  User & { _id: Types.ObjectId };
 
 describe('UsersAdminController', () => {
   let controller: UsersController;
@@ -51,6 +57,187 @@ describe('UsersAdminController', () => {
 
       expect(result).toEqual(false);
       expect(usersService.findByEmail).toHaveBeenCalledWith('test@example.com');
+    });
+  });
+
+  describe('findAll', () => {
+    // clearing mock data between test to prevent data leaking
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    // create a diffenent request for api
+    const createRequestMock = (query = {}): ApiReq => ({
+      query: {
+        page: '1',
+        limit: '10',
+        order: 'DESC',
+        ...query,
+      },
+    });
+
+    it('should return paginated users with default parameters', async () => {
+      // Create mock request
+      const requestMock = createRequestMock();
+
+      // mongoose record style and spreads a user data onto it
+      const mockRecords = [
+        {
+          _id: new Types.ObjectId(),
+          ...createUserMock({ email: 'user1@example.com' }),
+        },
+        {
+          _id: new Types.ObjectId(),
+          ...createUserMock({ email: 'user2@example.com' }),
+        },
+      ];
+      // expected findAll service response
+      const mockPaginatedResponse: IPageable<UserDocument> = {
+        results: mockRecords,
+        totalRecords: 2,
+        perPageLimit: 10,
+        totalPages: 1,
+        currentPage: 1,
+        previousPage: null,
+        nextPage: null,
+      };
+      jest
+        .spyOn(usersService, 'findAll')
+        .mockResolvedValue(mockPaginatedResponse);
+      const result = await adminController.findAll(requestMock);
+      expect(result).toEqual(mockPaginatedResponse);
+      expect(usersService.findAll).toHaveBeenCalledWith(requestMock);
+    });
+    it('should handle filtering by user status', async () => {
+      const requestMock = createRequestMock({
+        userByStatuses: `${UserStatus.ACTIVE},${UserStatus.DISABLE}`,
+      });
+
+      const mockRecords = [
+        {
+          _id: new Types.ObjectId(),
+          ...createUserMock({
+            email: 'active@example.com',
+            status: UserStatus.ACTIVE,
+          }),
+        },
+      ];
+
+      const mockPaginatedResponse: IPageable<UserDocument> = {
+        results: mockRecords,
+        totalRecords: 1,
+        perPageLimit: 10,
+        totalPages: 1,
+        currentPage: 1,
+        previousPage: null,
+        nextPage: null,
+      };
+
+      jest
+        .spyOn(usersService, 'findAll')
+        .mockResolvedValue(mockPaginatedResponse);
+
+      const result = await adminController.findAll(requestMock);
+
+      expect(result).toEqual(mockPaginatedResponse);
+      expect(usersService.findAll).toHaveBeenCalledWith(requestMock);
+    });
+
+    it('should handle filtering by user roles', async () => {
+      const requestMock = createRequestMock({
+        userByRoles: `${UserRole.USER},${UserRole.ADMIN}`,
+      });
+
+      const mockRecords = [
+        {
+          _id: new Types.ObjectId(),
+          ...createUserMock({
+            email: 'admin@example.com',
+            role: [UserRole.ADMIN],
+          }),
+        },
+      ];
+
+      const mockPaginatedResponse: IPageable<UserDocument> = {
+        results: mockRecords,
+        totalRecords: 1,
+        perPageLimit: 10,
+        totalPages: 1,
+        currentPage: 1,
+        previousPage: null,
+        nextPage: null,
+      };
+
+      jest
+        .spyOn(usersService, 'findAll')
+        .mockResolvedValue(mockPaginatedResponse);
+
+      const result = await adminController.findAll(requestMock);
+
+      expect(result).toEqual(mockPaginatedResponse);
+      expect(usersService.findAll).toHaveBeenCalledWith(requestMock);
+    });
+
+    it('should handle multiple filters combined', async () => {
+      const requestMock = createRequestMock({
+        userByStatuses: UserStatus.ACTIVE,
+        userByRoles: UserRole.USER,
+        userDateRange: '2023-01-01,2023-12-31',
+        page: '2',
+        limit: '5',
+        order: 'ASC',
+      });
+
+      const mockRecords = [
+        {
+          _id: new Types.ObjectId(),
+          ...createUserMock(),
+        },
+      ];
+
+      const mockPaginatedResponse: IPageable<UserDocument> = {
+        results: mockRecords,
+        totalRecords: 6,
+        perPageLimit: 5,
+        totalPages: 2,
+        currentPage: 2,
+        previousPage: 1,
+        nextPage: null,
+      };
+
+      jest
+        .spyOn(usersService, 'findAll')
+        .mockResolvedValue(mockPaginatedResponse);
+
+      const result = await adminController.findAll(requestMock);
+
+      expect(result).toEqual(mockPaginatedResponse);
+      expect(usersService.findAll).toHaveBeenCalledWith(requestMock);
+    });
+
+    it('should handle empty results', async () => {
+      const requestMock = createRequestMock({
+        userByStatuses: UserStatus.DEACTIVATED,
+      });
+
+      const mockPaginatedResponse: IPageable<UserDocument> = {
+        results: [],
+        totalRecords: 0,
+        perPageLimit: 10,
+        totalPages: 0,
+        currentPage: 1,
+        previousPage: null,
+        nextPage: null,
+      };
+
+      jest
+        .spyOn(usersService, 'findAll')
+        .mockResolvedValue(mockPaginatedResponse);
+
+      const result = await adminController.findAll(requestMock);
+
+      expect(result).toEqual(mockPaginatedResponse);
+      expect(usersService.findAll).toHaveBeenCalledWith(requestMock);
     });
   });
 });
