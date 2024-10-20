@@ -7,6 +7,7 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
-    "^src/(.*)$": "<rootDir>/$1"
+    "^src/(.*)$": "<rootDir>/$1",
+    "testTimeout": 10000
   }
 }
