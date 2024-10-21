@@ -16,6 +16,8 @@ import { Model, Document, Types } from 'mongoose';
 import { IPageable } from 'src/shared/utils';
 type UserDocument = Document<unknown, {}, User> &
   User & { _id: Types.ObjectId };
+import { mock } from 'node:test';
+import { Types } from 'mongoose';
 
 describe('UsersAdminController', () => {
   let controller: UsersController;
@@ -44,7 +46,7 @@ describe('UsersAdminController', () => {
       const userMock = createUserMock({
         email: 'test@example.com',
       });
-      // redirecting the dbquery to user the userMock
+      // redirecting the dbquery to use the userMock
       jest.spyOn(usersService, 'findByEmail').mockResolvedValue(userMock);
       const result = await adminController.findByUsername(requestMock.email);
 
@@ -240,6 +242,38 @@ describe('UsersAdminController', () => {
       expect(usersService.findAll).toHaveBeenCalledWith(requestMock);
     });
   });
+  describe('change Password', () => {
+    const mockUser = createUserMock({_id: new Types.ObjectId(),});
+    const mockRequest = {
+      user: {
+        _id: mockUser._id,
+        email: mockUser.email,
+        role: [UserRole.ADMIN],
+      },
+    };
+    const UserChangePasswordDto = {
+      oldPassword: 'oldPassword@123'
+      newPassword: 'newPassword@123',
+      confirmPassword: 'newPassword@123',
+    };
+
+    it('should change the user password', async () => {
+      const updatedUser = { ...mockUser, password: 'newHashedPassword' };
+      jest.spyOn(usersService, 'changePassword').mockResolvedValue(updatedUser);
+      const result = await adminController.changePassword(
+        mockRequest,
+        mockUser._id.toString(),
+        UserChangePasswordDto,
+      );
+      expect(result).toEqual(updatedUser);
+      expect(usersService.changePassword).toHaveBeenLastCalledWith(
+        mockRequest,
+        mockUser._id.toString(),
+        UserChangePasswordDto,
+        true,
+      );
+    });
+  });
 });
 
 /*
@@ -248,6 +282,7 @@ describe('UsersAdminController', () => {
 */
 const createUserMock = (overrides: Partial<User> = {}): User => {
   return {
+    _id: new Types.ObjectId(),
     firstName: 'John',
     lastName: 'Doe',
     email: 'john.doe@example.com',
