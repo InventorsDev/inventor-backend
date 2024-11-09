@@ -606,4 +606,179 @@ describe('UsersAdminController', () => {
       ).rejects.toThrow('Too many verification requests');
     });
   });
+
+  describe('updateUser Status', () => {
+    const userId = new Types.ObjectId().toString();
+
+    it('should update user status to active', async () => {
+      const statusDto = { status: UserStatus.ACTIVE };
+      const mockReq = { user: createUserMock() };
+      const expectedResult = createUserMock({ status: UserStatus.ACTIVE });
+
+      jest
+        .spyOn(usersService, 'updateStatus')
+        .mockResolvedValue(expectedResult);
+
+      const result = await adminController.updateUserStatus(
+        mockReq,
+        userId,
+        statusDto,
+      );
+
+      expect(result).toEqual(expectedResult);
+      expect(usersService.updateStatus).toHaveBeenCalledWith(
+        userId,
+        statusDto.status,
+      );
+    });
+
+    it('should throw error when updating to invalid status', async () => {
+      const invalidStatusDto = { status: 'INVALID_STATUS' as UserStatus };
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'updateStatus')
+        .mockRejectedValue(new BadRequestException('Invalid user status'));
+
+      await expect(
+        adminController.updateUserStatus(mockReq, userId, invalidStatusDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw error when updating non-existent user', async () => {
+      const statusDto = { status: UserStatus.ACTIVE };
+      const mockReq = { user: createUserMock() };
+
+      // Mocking the service to throw an error when the user is not found
+      jest
+        .spyOn(usersService, 'updateStatus')
+        .mockRejectedValue(new NotFoundException('User  not found'));
+
+      await expect(
+        adminController.updateUserStatus(mockReq, userId, statusDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('Lead application endpoints', () => {
+    describe('getApplicationByEmail', () => {
+      it('should find an application by email', async () => {
+        const email = 'lead@example.com';
+        const expectedResult = createUserMock({ email });
+
+        jest
+          .spyOn(usersService, 'viewOneApplication')
+          .mockResolvedValue(expectedResult);
+
+        const result = await adminController.getApplicationByEmail(email);
+
+        expect(result).toEqual(expectedResult);
+        expect(usersService.viewOneApplication).toHaveBeenCalledWith(email);
+      });
+    });
+
+    describe('viewApplications', () => {
+      it('should return all lead applications', async () => {
+        const expectedResults = [
+          createUserMock({ email: 'lead1@example.com' }),
+          createUserMock({ email: 'lead2@example.com' }),
+        ];
+
+        jest
+          .spyOn(usersService, 'viewApplications')
+          .mockResolvedValue(expectedResults);
+
+        const result = await adminController.viewApplications();
+
+        expect(result).toEqual(expectedResults);
+        expect(usersService.viewApplications).toHaveBeenCalled();
+      });
+    });
+
+    describe('approveApplication', () => {
+      it('should approve a lead application', async () => {
+        const email = 'lead@example.com';
+        const expectedResult = 'Application approved successfully';
+
+        jest
+          .spyOn(usersService, 'approveTempApplication')
+          .mockResolvedValue(expectedResult);
+
+        const result = await adminController.approveApplication(email);
+
+        expect(result).toEqual(expectedResult);
+        expect(usersService.approveTempApplication).toHaveBeenCalledWith(email);
+      });
+    });
+
+    describe('reject', () => {
+      it('should reject a lead application with custom message', async () => {
+        const email = 'lead@example.com';
+        const rejectDto = { message: 'Custom rejection message' };
+        const expectedResult = 'Application rejected successfully';
+
+        jest
+          .spyOn(usersService, 'rejectTempApplication')
+          .mockResolvedValue(expectedResult);
+
+        const result = await adminController.reject(email, rejectDto);
+
+        expect(result).toEqual(expectedResult);
+        expect(usersService.rejectTempApplication).toHaveBeenCalledWith(
+          email,
+          rejectDto.message,
+        );
+      });
+
+      it('should reject with default message when no message provided', async () => {
+        const email = 'lead@example.com';
+        const rejectDto = {};
+        const expectedResult = 'Application rejected successfully';
+
+        jest
+          .spyOn(usersService, 'rejectTempApplication')
+          .mockResolvedValue(expectedResult);
+
+        const result = await adminController.reject(email, rejectDto);
+
+        expect(result).toEqual(expectedResult);
+        expect(usersService.rejectTempApplication).toHaveBeenCalledWith(
+          email,
+          'Your application was rejected',
+        );
+      });
+    });
+
+    describe('generateLink', () => {
+      it('should generate registration link for lead', async () => {
+        const email = 'lead@example.com';
+        const expectedLink = 'http://example.com/register/token123';
+
+        jest.spyOn(usersService, 'inviteLead').mockResolvedValue(expectedLink);
+
+        const result = await adminController.generateLink(email);
+
+        expect(result).toEqual({ link: expectedLink });
+        expect(usersService.inviteLead).toHaveBeenCalledWith(email);
+      });
+    });
+
+    describe('getUsersWithLeadRole', () => {
+      it('should return all users with lead role', async () => {
+        const expectedResults = [
+          createUserMock({ role: [UserRole.LEAD] }),
+          createUserMock({ role: [UserRole.LEAD] }),
+        ];
+
+        jest
+          .spyOn(usersService, 'getUsersWithLeadRole')
+          .mockResolvedValue(expectedResults);
+
+        const result = await adminController.getUsersWithLeadRole();
+
+        expect(result).toEqual(expectedResults);
+        expect(usersService.getUsersWithLeadRole).toHaveBeenCalled();
+      });
+    });
+  });
 });
