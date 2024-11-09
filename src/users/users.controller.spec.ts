@@ -14,6 +14,11 @@ import {
 // imported to handle the paginated response from findAll
 import { Model, Document, Types } from 'mongoose';
 import { IPageable } from 'src/shared/utils';
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 type UserDocument = Document<unknown, {}, User> &
   User & { _id: Types.ObjectId };
 
@@ -314,6 +319,124 @@ describe('UsersAdminController', () => {
         mockUser._id.toString(),
         UserChangePasswordDto,
         true,
+      );
+    });
+  });
+  describe('userInvite', () => {
+    const inviteDto = {
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'test@example.com',
+      roles: [UserRole.USER],
+      joinMethod: RegistrationMethod.SIGN_UP,
+    };
+    it('should successfully invite a user', async () => {
+      const expectedResult = createUserMock(inviteDto);
+      jest.spyOn(usersService, 'userInvite').mockResolvedValue(expectedResult);
+      const result = await adminController.userInvite(inviteDto);
+      expect(result).toEqual(expectedResult);
+      expect(usersService.userInvite).toHaveBeenCalledWith(inviteDto);
+    });
+    it('should throw error when inviting existing user', async () => {
+      jest
+        .spyOn(usersService, 'userInvite')
+        .mockRejectedValue(new BadRequestException('User already exists'));
+
+      await expect(adminController.userInvite(inviteDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw error when email is invalid', async () => {
+      const invalidDto = { ...inviteDto, email: 'invalid-email' };
+
+      jest
+        .spyOn(usersService, 'userInvite')
+        .mockRejectedValue(new BadRequestException('Invalid email format'));
+
+      await expect(adminController.userInvite(invalidDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+  describe('getUserProfile', () => {
+    it('should return the user profile', async () => {
+      const mockUser = createUserMock();
+      const mockReq = { user: mockUser };
+
+      jest.spyOn(usersService, 'findMe').mockResolvedValue(mockUser);
+
+      const result = await adminController.getUserProfile(mockReq);
+
+      expect(result).toEqual(mockUser);
+      expect(usersService.findMe).toHaveBeenCalledWith(mockReq);
+    });
+
+    it('should throw unauthorized when user not in request', async () => {
+      const mockReq = {};
+
+      jest
+        .spyOn(usersService, 'findMe')
+        .mockRejectedValue(new UnauthorizedException());
+
+      await expect(adminController.getUserProfile(mockReq)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw not found when user profile does not exist', async () => {
+      const mockReq = { user: { id: 'non-existent' } };
+
+      jest
+        .spyOn(usersService, 'findMe')
+        .mockRejectedValue(new NotFoundException('User profile not found'));
+
+      await expect(adminController.getUserProfile(mockReq)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('remove', () => {
+    const userId = new Types.ObjectId().toString();
+    const userMock = createUserMock({
+      _id: new Types.ObjectId(),
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'test@example.com',
+      role: [UserRole.USER],
+    });
+
+    it('should remove a user and return the user object', async () => {
+      // Mock the return value to be the user object
+      jest.spyOn(usersService, 'remove').mockResolvedValue(userMock);
+
+      const result = await adminController.remove(userId);
+
+      expect(result).toEqual(userMock);
+      expect(usersService.remove).toHaveBeenCalledWith(userId);
+    });
+
+    it('should throw error when user not found', async () => {
+      jest
+        .spyOn(usersService, 'remove')
+        .mockRejectedValue(
+          new NotFoundException(`User  with ID ${userId} not found`),
+        );
+
+      await expect(adminController.remove(userId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw error when trying to remove admin user', async () => {
+      // Assuming you have logic in your service to prevent admin user deletion
+      jest
+        .spyOn(usersService, 'remove')
+        .mockRejectedValue(new BadRequestException('Cannot remove admin user'));
+
+      await expect(adminController.remove(userId)).rejects.toThrow(
+        BadRequestException,
       );
     });
   });
