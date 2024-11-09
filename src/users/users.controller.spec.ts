@@ -534,4 +534,76 @@ describe('UsersAdminController', () => {
       ).rejects.toThrow(BadRequestException);
     });
   });
+
+  describe('RequestVerificationToken', () => {
+    const userId = new Types.ObjectId().toString();
+
+    it('should request new verification token', async () => {
+      const mockReq = { user: createUserMock() };
+
+      // Mocking the requestVerification method to resolve successfully
+      jest
+        .spyOn(usersService, 'requestVerification')
+        .mockResolvedValue(undefined); // or just don't mock return value
+
+      await adminController.RequestVerificationToken(mockReq, userId);
+
+      expect(usersService.requestVerification).toHaveBeenCalledWith(
+        mockReq,
+        userId,
+      );
+    });
+
+    it('should throw error when user not found', async () => {
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'requestVerification')
+        .mockRejectedValue(new Error('User  not found'));
+
+      await expect(
+        adminController.RequestVerificationToken(mockReq, userId),
+      ).rejects.toThrow('User  not found');
+    });
+
+    it('should throw error when verification request not allowed', async () => {
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'requestVerification')
+        .mockRejectedValue(
+          new Error('Verification request not allowed at this time'),
+        );
+
+      await expect(
+        adminController.RequestVerificationToken(mockReq, userId),
+      ).rejects.toThrow('Verification request not allowed at this time');
+    });
+
+    it('should throw error when user already verified', async () => {
+      const mockReq = {
+        user: createUserMock({ applicationStatus: ApplicationStatus.APPROVED }),
+      };
+
+      jest
+        .spyOn(usersService, 'requestVerification')
+        .mockRejectedValue(new Error('User  is already verified'));
+
+      await expect(
+        adminController.RequestVerificationToken(mockReq, userId),
+      ).rejects.toThrow('User  is already verified');
+    });
+
+    it('should throw error when too many requests', async () => {
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'requestVerification')
+        .mockRejectedValue(new Error('Too many verification requests'));
+
+      await expect(
+        adminController.RequestVerificationToken(mockReq, userId),
+      ).rejects.toThrow('Too many verification requests');
+    });
+  });
 });
