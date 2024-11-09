@@ -440,4 +440,98 @@ describe('UsersAdminController', () => {
       );
     });
   });
+
+  describe('update', () => {
+    const userId = new Types.ObjectId().toString();
+    const updateDto = {
+      userId: userId,
+      firstName: 'Updated',
+      lastName: 'Name',
+    };
+
+    it('should update a user', async () => {
+      const mockReq = { user: createUserMock() };
+      const expectedResult = createUserMock(updateDto);
+
+      jest.spyOn(usersService, 'update').mockResolvedValue(expectedResult);
+
+      const result = await adminController.update(mockReq, userId, updateDto);
+
+      expect(result).toEqual(expectedResult);
+      expect(usersService.update).toHaveBeenCalledWith(userId, updateDto);
+    });
+
+    it('should throw error when user not found', async () => {
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'update')
+        .mockRejectedValue(new NotFoundException('User not found'));
+
+      await expect(
+        adminController.update(mockReq, userId, updateDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw error when invalid data provided', async () => {
+      const mockReq = { user: createUserMock() };
+      const invalidDto = { userId, firstName: '' };
+
+      jest
+        .spyOn(usersService, 'update')
+        .mockRejectedValue(new BadRequestException('Invalid user data'));
+
+      await expect(
+        adminController.update(mockReq, userId, invalidDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('addPhoto', () => {
+    const userId = new Types.ObjectId().toString();
+    const photoDto = {
+      userId,
+      photo: 'new-photo-url.jpg',
+    };
+
+    it('should add a photo to user profile', async () => {
+      const mockReq = { user: createUserMock() };
+      const expectedResult = createUserMock({ photo: photoDto.photo });
+
+      jest.spyOn(usersService, 'addPhoto').mockResolvedValue(expectedResult);
+
+      const result = await adminController.addPhoto(mockReq, userId, photoDto);
+
+      expect(result).toEqual(expectedResult);
+      expect(usersService.addPhoto).toHaveBeenCalledWith(
+        photoDto.userId,
+        photoDto,
+      );
+    });
+
+    it('should throw error when invalid photo format', async () => {
+      const mockReq = { user: createUserMock() };
+      const invalidPhotoDto = { ...photoDto, photo: 'invalid-format' };
+
+      jest
+        .spyOn(usersService, 'addPhoto')
+        .mockRejectedValue(new BadRequestException('Invalid photo format'));
+
+      await expect(
+        adminController.addPhoto(mockReq, userId, invalidPhotoDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw error when photo size exceeds limit', async () => {
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'addPhoto')
+        .mockRejectedValue(new BadRequestException('Photo size exceeds limit'));
+
+      await expect(
+        adminController.addPhoto(mockReq, userId, photoDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
 });
