@@ -1,68 +1,146 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { Model, Types } from 'mongoose';
-import { DBModule, User, UserDocument } from '../schema';
-import { CreateUserDto } from '../dtos/create-user.dto';
-import { UserLoginDto } from '../dtos/user-login.dto';
-import { JwtService } from '@nestjs/jwt';
-import { getModelToken } from '@nestjs/mongoose';
+import { User, UserDocument } from '../schema';
+import { Model } from 'mongoose';
 import { BadRequestException } from '@nestjs/common';
-import { RegistrationMethod, UserRole } from '../interfaces';
+import { RegistrationMethod, UserRole, UserStatus } from '../interfaces';
+import { JwtService } from '@nestjs/jwt';
 
-// Increase Jest timeout globally for this file
-jest.setTimeout(15000);
+// extending mongoose model ot allow us to use custom mocks
+// used jest.mock becasue i'll mock them in the test
+interface UserModel extends Model<UserDocument> {
+  verifyEmail: jest.Mock;
+  signUp: jest.Mock;
+  forgetPassword: jest.Mock;
+  generateUserHandle: jest.Mock;
+  sendEmailVerificationToken: jest.Mock;
+}
 
+// requiered to tell typescript which methods we are mocking
+// if removed, things like "authserice.resendverificationlink.mockRejectedValues" will not work
+interface MockAuthService {
+  login: jest.Mock;
+  resendVerificationLink: jest.Mock;
+  sendEmailVerificationToken: jest.Mock;
+  findByUsername: jest.Mock;
+  validateUser: jest.Mock;
+}
+
+// Main test container
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: AuthService;
-  let userModel: Model<UserDocument>;
+  let userModel: UserModel;
+  let authService: MockAuthService;
+  let jwtService: JwtService;
 
+  // Mock data for typical user object
   const mockUser = {
-    _id: new Types.ObjectId().toString(),
-    email: 'test@example.com',
+    _id: '507f1f77bcf86cd799439011',
     firstName: 'John',
     lastName: 'Doe',
-    password: 'hashedPassword',
-    role: [UserRole.ADMIN],
-    userHandle: 'randomP',
+    email: 'john@example.com',
+    userHandle: 'johndoe',
     emailVerification: false,
+    joinMethod: RegistrationMethod.SIGN_UP,
+    role: [UserRole.ADMIN],
+    status: UserStatus.ACTIVE,
   };
 
-  // Mock static methods that exist in the schema
+  // mock a typical Http request object
+  const mockReq = {
+    protocol: 'http',
+    get: jest.fn().mockReturnValue('localhost'),
+    originalUrl: '/api/v1/auth',
+    query: {},
+  };
+
+  // to avoid conflict like services calling redis and db static functions, mocked
+  // services are defined here
+  const mockAuthService: MockAuthService = {
+    login: jest.fn().mockImplementation((req) => {
+      return Promise.resolve({
+        access_token: 'mock_token', // will be what is returned as the token
+        ...mockUser,
+      });
+    }),
+    resendVerificationLink: jest.fn().mockImplementation((req, email) => {
+      return Promise.resolve({
+        message: 'Verification email sent successfully',
+      });
+    }),
+    sendEmailVerificationToken: jest.fn().mockImplementation((req, userId) => {
+      return Promise.resolve({
+        emailVerificationCode: '123456',
+        emailVerificationUrl: 'http://localhost/verify/123456',
+      });
+    }),
+    findByUsername: jest.fn(),
+    validateUser: jest.fn(),
+  };
+  // mock for the static methods in the user schema
   const mockUserModel = {
-    // Static methods
-    signUp: jest.fn(),
-    verifyEmail: jest.fn(),
-    forgetPassword: jest.fn(),
+    verifyEmail: jest
+      .fn()
+      .mockImplementation((userId: string, token: string) => {
+        if (token === '123456') {
+          return Promise.resolve({
+            status: 200,
+            message: 'Email Verification Successful',
+          });
+        }
+        return Promise.reject(
+          new BadRequestException('Invalid email verification token supplied'),
+        );
+      }),
+
+    signUp: jest
+      .fn()
+      .mockImplementation((req: any, createUserDto: any, sso = false) => {
+        return Promise.resolve({
+          ...mockUser,
+          ...createUserDto,
+          emailVerificationCode: '123456',
+          emailVerificationUrl: 'http://localhost/verify/123456',
+        });
+      }),
+
+    forgetPassword: jest.fn().mockImplementation((email: string) => {
+      if (email === 'john@example.com') {
+        return Promise.resolve({
+          email: 'john@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        });
+      }
+      return Promise.reject(
+        new BadRequestException('Email supplied cannot be found'),
+      );
+    }),
+
+    sendEmailVerificationToken: jest.fn().mockImplementation((req, userId) => {
+      return Promise.resolve({
+        emailVerificationCode: '123456',
+        emailVerificationUrl: 'http://localhost/verify/123456',
+      });
+    }),
+
+    // Base mongoose model methods
     generateUserHandle: jest.fn(),
-    sendEmailVerificationToken: jest.fn(),
-
-    // Mongoose model methods
-    findById: jest.fn(),
     findOne: jest.fn(),
+    findById: jest.fn(),
     create: jest.fn(),
-    updateOne: jest.fn(),
-    findOneAndUpdate: jest.fn(),
-    find: jest.fn(),
-  };
+  } as unknown as UserModel; // bypass typescript type checking || i know... but it works
 
+  // ensure that the jwt always returns the same token
   const mockJwtService = {
     sign: jest.fn().mockReturnValue('mock_token'),
   };
 
-  const mockAuthService = {
-    login: jest.fn(),
-    resendVerificationLink: jest.fn(),
-    sendEmailVerificationToken: jest.fn(),
-    generateToken: jest.fn().mockReturnValue({ access_token: 'mock_token' }),
-  };
-
   beforeEach(async () => {
-    jest.clearAllMocks();
+    jest.clearAllMocks(); // clear all mock implementaions
 
     const module: TestingModule = await Test.createTestingModule({
-      imports: [DBModule],
       controllers: [AuthController],
       providers: [
         {
@@ -70,7 +148,7 @@ describe('AuthController', () => {
           useValue: mockAuthService,
         },
         {
-          provide: getModelToken(User.name),
+          provide: User.name,
           useValue: mockUserModel,
         },
         {
@@ -81,227 +159,232 @@ describe('AuthController', () => {
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
-    authService = module.get<AuthService>(AuthService);
-    userModel = module.get<Model<UserDocument>>(getModelToken(User.name));
-
-    // Set up specific mock implementations
-    mockUserModel.signUp.mockImplementation(
-      async (req, createUserDto, sso = false) => {
-        const userHandle = await mockUserModel.generateUserHandle(
-          createUserDto.email,
-        );
-        const user = {
-          ...mockUser,
-          ...createUserDto,
-          firstName: createUserDto.firstName.trim(),
-          lastName: createUserDto.lastName.trim(),
-          email: createUserDto.email.trim().toLowerCase(),
-          password: 'hashedPassword',
-          role: [UserRole.USER],
-          userHandle,
-        };
-
-        if (user.email === 'existing@example.com') {
-          throw new BadRequestException('User already exists.');
-        }
-
-        const verificationDetails = sso
-          ? {}
-          : {
-              emailVerificationCode: '123456',
-              emailVerificationUrl: 'http://example.com/verify',
-            };
-
-        return { ...verificationDetails, ...user };
-      },
-    );
-
-    mockUserModel.verifyEmail.mockImplementation(async (userId, token) => {
-      if (!userId || !token) {
-        throw new BadRequestException('Invalid userId or token');
-      }
-      return { status: 200, message: 'Email Verification Successful' };
-    });
-
-    mockUserModel.generateUserHandle.mockImplementation(async (email) => {
-      const username = email.substring(0, email.indexOf('@')).toLowerCase();
-      return `${username}123`;
-    });
-
-    mockUserModel.sendEmailVerificationToken.mockImplementation(
-      async (req, userId) => {
-        return {
-          emailVerificationCode: '123456',
-          emailVerificationUrl: 'http://example.com/verify',
-        };
-      },
-    );
-
-    mockUserModel.findOne.mockImplementation(async ({ email }) => {
-      if (email === 'existing@example.com') {
-        return {
-          _id: new Types.ObjectId(),
-          ...mockUser,
-        };
-      }
-      return null;
-    });
-
-    mockUserModel.findById.mockImplementation(async (id) => {
-      return {
-        _id: id,
-        ...mockUser,
-      };
-    });
+    userModel = module.get<UserModel>(User.name);
+    authService = module.get<MockAuthService>(AuthService);
+    jwtService = module.get<JwtService>(JwtService);
   });
 
-  // describe('register', () => {
-  //   it('should register a new user with valid password', async () => {
-  //     const createUserDto: CreateUserDto = {
-  //       email: 'test@example.com',
-  //       password: 'Test123!@#',
-  //       firstName: 'John',
-  //       lastName: 'Doe',
-  //       joinMethod: RegistrationMethod.SIGN_UP,
-  //     };
-  //     const req = {
-  //       headers: {},
-  //       query: {},
-  //     };
-
-  //     const expectedResponse = {
-  //       ...mockUser,
-  //       ...createUserDto,
-  //       password: 'hashedPassword',
-  //       verificationToken: 'mocked-verification-token',
-  //     };
-
-  //     const result = await controller.register(req, createUserDto);
-
-  //     expect(mockUserModel.signUp).toHaveBeenCalledWith(
-  //       req,
-  //       createUserDto,
-  //       false,
-  //     );
-  //     expect(result).toMatchObject(expectedResponse);
-  //   }, 15000);
-  // });
-
-  describe('login', () => {
-    it('should login a user and return access token', async () => {
-      const userLoginDto: UserLoginDto = {
-        email: 'test@example.com',
-        password: 'Test123!@#',
-      };
-      const req = { user: mockUser };
-      const expectedResponse = {
-        access_token: 'mock_token',
-        ...mockUser,
-      };
-
-      mockAuthService.login.mockResolvedValue(expectedResponse);
-
-      const result = await Promise.resolve(controller.login(req, userLoginDto));
-
-      expect(mockAuthService.login).toHaveBeenCalledWith(req);
-      expect(result).toEqual(expectedResponse);
-    }, 15000);
+  // check if controller is created
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
   });
 
-  describe('verifyEmail', () => {
-    // it('should verify user email', async () => {
-    //   const userId = new Types.ObjectId().toString();
-    //   const token = 'verification_token';
+  // test for registration
+  describe('register', () => {
+    // basic user registration request
+    interface CreateUserDto {
+      firstName: string;
+      lastName: string;
+      email: string;
+      password: string;
+      joinMethod: RegistrationMethod;
+    }
 
-    //   const expectedResponse = {
-    //     verified: true,
-    //     message: 'Email verified successfully',
-    //   };
+    const createUserDto: CreateUserDto = {
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john@example.com',
+      password: 'Password123!',
+      joinMethod: RegistrationMethod.SIGN_UP,
+    };
 
-    //   const result = await controller.verifyEmail(userId, token);
+    it('should register a new user', async () => {
+      const result = await controller.register(mockReq, createUserDto);
 
-    //   expect(mockUserModel.verifyEmail).toHaveBeenCalledWith(userId, token);
-    //   expect(result).toEqual(expectedResponse);
-    // }, 15000);
+      expect(result).toHaveProperty('email', createUserDto.email);
+      expect(userModel.signUp).toHaveBeenCalledWith(mockReq, createUserDto);
+    });
 
-    it('should throw BadRequestException for invalid verification attempt', async () => {
-      const userId = ''; // Invalid userId
-      const token = 'verification_token';
+    it('should throw an error if user already exists', async () => {
+      userModel.signUp.mockRejectedValueOnce(
+        new BadRequestException('User already exists'),
+      );
 
-      await expect(controller.verifyEmail(userId, token)).rejects.toThrow(
+      await expect(controller.register(mockReq, createUserDto)).rejects.toThrow(
         BadRequestException,
       );
-    }, 15000);
-  });
+    });
+    it('should throw an error if registration data is invalid', async () => {
+      const invalidUserDto = {
+        ...createUserDto,
+        email: 'invalid-email', // Invalid email format
+      };
 
-  describe('resendVerification', () => {
-    it('should resend verification email', async () => {
-      const email = 'test@example.com';
-      const req = { headers: {} };
-      const expectedResponse = { message: 'Verification email sent' };
-
-      mockAuthService.resendVerificationLink.mockResolvedValue(
-        expectedResponse,
-      );
-
-      const result = await Promise.resolve(
-        controller.resendVerification(req, email),
-      );
-
-      expect(mockAuthService.resendVerificationLink).toHaveBeenCalledWith(
-        req,
-        email,
-      );
-      expect(result).toEqual(expectedResponse);
-    }, 15000);
-  });
-
-  describe('sendEmailVerificationToken', () => {
-    it('should send email verification token with valid userId', async () => {
-      const userId = new Types.ObjectId().toString();
-      const req = { headers: {} };
-      const expectedResponse = { message: 'Verification token sent' };
-
-      mockAuthService.sendEmailVerificationToken.mockResolvedValue(
-        expectedResponse,
-      );
-
-      const result = await Promise.resolve(
-        controller.sendEmailVerificationToken(req, userId),
-      );
-
-      expect(mockAuthService.sendEmailVerificationToken).toHaveBeenCalledWith(
-        req,
-        userId,
-      );
-      expect(result).toEqual(expectedResponse);
-    }, 15000);
-
-    it('should throw error for invalid userId format', async () => {
-      const userId = 'invalid-id';
-      const req = { headers: {} };
-
-      mockAuthService.sendEmailVerificationToken.mockRejectedValue(
-        new Error('Invalid ObjectId'),
+      userModel.signUp.mockRejectedValueOnce(
+        new BadRequestException('Invalid email format'),
       );
 
       await expect(
-        controller.sendEmailVerificationToken(req, userId),
-      ).rejects.toThrow();
-    }, 15000);
+        controller.register(mockReq, invalidUserDto),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
-  // describe('forgetPassword', () => {
-  //   it('should handle forget password request', async () => {
-  //     const email = 'test@example.com';
-  //     const expectedResponse = { message: 'Reset password email sent' };
+  // test for login
+  describe('login', () => {
+    const loginDto = {
+      email: 'john@example.com',
+      password: 'Password123!',
+    };
 
-  //     mockUserModel.forgetPassword.mockResolvedValue(expectedResponse);
+    it('should login successfully', async () => {
+      const mockReqWithUser = {
+        ...mockReq,
+        user: mockUser,
+      };
 
-  //     const result = await Promise.resolve(controller.forgetPassword(email));
+      const result = await controller.login(mockReqWithUser, loginDto);
 
-  //     expect(mockUserModel.forgetPassword).toHaveBeenCalledWith(email);
-  //     expect(result).toEqual(expectedResponse);
-  //   }, 15000);
-  // });
+      expect(result).toHaveProperty('access_token');
+      expect(result).toHaveProperty('email', mockUser.email);
+      expect(authService.login).toHaveBeenCalledWith(mockReqWithUser);
+    });
+
+    it('should include user details in response', async () => {
+      const mockReqWithUser = {
+        ...mockReq,
+        user: mockUser,
+      };
+
+      const result = await controller.login(mockReqWithUser, loginDto);
+
+      expect(result).toMatchObject({
+        access_token: expect.any(String),
+        email: mockUser.email,
+        firstName: mockUser.firstName,
+        lastName: mockUser.lastName,
+      });
+    });
+  });
+
+  describe('verifyEmail', () => {
+    const userId = '507f1f77bcf86cd799439011';
+    const validToken = '123456';
+    const invalidToken = 'invalid-token';
+
+    it('should verify email with valid token', async () => {
+      const result = await controller.verifyEmail(userId, validToken);
+
+      expect(result).toEqual({
+        status: 200,
+        message: 'Email Verification Successful',
+      });
+      expect(userModel.verifyEmail).toHaveBeenCalledWith(userId, validToken);
+    });
+
+    it('should throw BadRequestException for invalid token', async () => {
+      await expect(
+        controller.verifyEmail(userId, invalidToken),
+      ).rejects.toThrow(BadRequestException);
+      expect(userModel.verifyEmail).toHaveBeenCalledWith(userId, invalidToken);
+    });
+
+    it('should handle non-existent user ID', async () => {
+      const nonExistentUserId = 'non-existent-id';
+      userModel.verifyEmail.mockRejectedValueOnce(
+        new BadRequestException('User not found'),
+      );
+
+      await expect(
+        controller.verifyEmail(nonExistentUserId, validToken),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('resendVerification', () => {
+    const validEmail = 'john@example.com';
+    const invalidEmail = 'nonexistent@example.com';
+
+    it('should resend verification email successfully', async () => {
+      const expectedResponse = {
+        message: 'Verification email sent successfully',
+      };
+
+      const result = await controller.resendVerification(mockReq, validEmail);
+
+      expect(result).toEqual(expectedResponse);
+      expect(authService.resendVerificationLink).toHaveBeenCalledWith(
+        mockReq,
+        validEmail,
+      );
+    });
+
+    it('should handle non-existent email', async () => {
+      authService.resendVerificationLink.mockRejectedValueOnce(
+        new BadRequestException(
+          `Account with email ${invalidEmail} does not exist`,
+        ),
+      );
+
+      await expect(
+        controller.resendVerification(mockReq, invalidEmail),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('sendEmailVerificationToken', () => {
+    const userId = '507f1f77bcf86cd799439011';
+
+    it('should send email verification token successfully', async () => {
+      const expectedResponse = {
+        emailVerificationCode: '123456',
+        emailVerificationUrl: 'http://localhost/verify/123456',
+      };
+
+      const result = await controller.sendEmailVerificationToken(
+        mockReq,
+        userId,
+      );
+
+      expect(result).toEqual(expectedResponse);
+      expect(authService.sendEmailVerificationToken).toHaveBeenCalledWith(
+        mockReq,
+        userId,
+      );
+    });
+
+    it('should handle invalid user ID', async () => {
+      const invalidUserId = 'invalid-user-id';
+      authService.sendEmailVerificationToken.mockRejectedValueOnce(
+        new BadRequestException('User not found'),
+      );
+
+      await expect(
+        controller.sendEmailVerificationToken(mockReq, invalidUserId),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('forgetPassword', () => {
+    const validEmail = 'john@example.com';
+    const invalidEmail = 'nonexistent@example.com';
+
+    it('should process forget password request for valid email', async () => {
+      const result = await controller.forgetPassword(validEmail);
+
+      expect(result).toMatchObject({
+        email: validEmail,
+        firstName: 'John',
+        lastName: 'Doe',
+      });
+      expect(userModel.forgetPassword).toHaveBeenCalledWith(validEmail);
+    });
+
+    it('should throw BadRequestException for non-existent email', async () => {
+      await expect(controller.forgetPassword(invalidEmail)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(userModel.forgetPassword).toHaveBeenCalledWith(invalidEmail);
+    });
+
+    it('should handle error during password reset process', async () => {
+      userModel.forgetPassword.mockRejectedValueOnce(
+        new Error('Failed to process password reset'),
+      );
+
+      await expect(controller.forgetPassword(validEmail)).rejects.toThrow(
+        Error,
+      );
+    });
+  });
 });
