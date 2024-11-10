@@ -31,6 +31,8 @@ import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { DeactivateAccountDto } from './dto/deactivate-account.dto';
 import { RequestReactivationDto } from './dto/request-reactivation.dto';import { TempLeadDto } from './dto/temp-lead.dto';
+import { ForbiddenException } from '@nestjs/common';
+
 
 @ApiTags('users')
 @Controller('users')
@@ -131,6 +133,12 @@ export class UsersController {
   @UseGuards(JwtUsersGuard)
   @Put('/profile-photo')
   async addPhoto(@Request() req: ApiReq, @Body() payload: UserAddPhotoDto) {
+    // added a check  to confirm if the userId in the request matches the userId in the payload
+    if (req.user._id.toString() !== payload.userId) {
+      throw new ForbiddenException('User ID does not match the authenticated user.');
+    }
+    
+    // if it matches then proceed with adding the photo if the IDs match
     return this.usersService.addPhoto(req.user._id.toString(), payload);
   }
 
@@ -204,7 +212,7 @@ export class UsersController {
     @Param('userId') userId: string,
     @Body() payload: DeactivateAccountDto,
   ) {
-    // Optional: Use payload.reason if needed
+    
     return this.usersService.deactivateAccount(userId);
   }
 
