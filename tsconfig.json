@@ -10,6 +10,10 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "src/*": ["src/*"],
+      "src/shared/*": ["src/shared/*"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
@@ -17,8 +21,7 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "esModuleInterop": true,
-    "noFallthroughCasesInSwitch": false,
+    "noFallthroughCasesInSwitch": false
   },
-  "include": ["src/**/*.ts",
-    "src/shared/mail-templates/**/*"]
+  "include": ["src/**/*.ts", "src/shared/mail-templates/**/*"]
 }

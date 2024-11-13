@@ -1,30 +1,94 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
-import { TestModule } from '../testkits';
 import { DataLogsController } from './data.logs.controller';
 import { DataLogsService } from './data.logs.service';
+import { JwtAdminsGuard } from '../auth/guards/jwt.admins.guard';
+import { JwtUsersGuard } from '../auth/guards/jwt.users.guard';
+import { NotFoundException } from '@nestjs/common';
 
 describe('DataLogsController', () => {
-  let dataLogsController: DataLogsController;
+  let controller: DataLogsController;
+  let logsService: DataLogsService;
+
+  const mockLogsService = {
+    findAll: jest.fn(),
+    publicLog: jest.fn(),
+    remove: jest.fn(),
+  };
 
   beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
-      imports: [TestModule],
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [DataLogsController],
-      providers: [DataLogsService],
+      providers: [
+        {
+          provide: DataLogsService,
+          useValue: mockLogsService,
+        },
+      ],
     }).compile();
 
-    dataLogsController = app.get<DataLogsController>(
-      DataLogsController,
-    ) as DataLogsController;
-
-    global.dataLogsService = app.get<DataLogsService>(DataLogsService);
-    global.jwtService = app.get<JwtService>(JwtService);
+    controller = module.get<DataLogsController>(DataLogsController);
+    logsService = module.get<DataLogsService>(DataLogsService);
   });
 
-  describe('dataLogsController', () => {
-    it('should return true for dataLogsController"', () => {
-      expect(!!dataLogsController).toBe(true);
+  describe('findAll', () => {
+    it('should return all logs for admins', async () => {
+      const mockResponse = [{ id: '1', message: 'Log entry' }];
+      mockLogsService.findAll.mockResolvedValue(mockResponse);
+
+      const result = await controller.findAll({ query: {} } as any);
+      expect(result).toEqual(mockResponse);
+      expect(logsService.findAll).toHaveBeenCalledWith({ query: {} });
+    });
+  });
+
+  describe('logUser', () => {
+    it('should log a user activity', async () => {
+      const mockRequest = { body: { message: 'User action' } };
+      const mockSource = 'user-app';
+      mockLogsService.publicLog.mockResolvedValue({ success: true });
+
+      const result = await controller.logUser(mockRequest as any, mockSource);
+      expect(result).toEqual({ success: true });
+      expect(logsService.publicLog).toHaveBeenCalledWith(
+        mockRequest,
+        mockSource,
+      );
+    });
+  });
+
+  describe('logAdmin', () => {
+    it('should log an admin activity', async () => {
+      const mockRequest = { body: { message: 'Admin action' } };
+      const mockSource = 'admin-dashboard';
+      mockLogsService.publicLog.mockResolvedValue({ success: true });
+
+      const result = await controller.logAdmin(mockRequest as any, mockSource);
+      expect(result).toEqual({ success: true });
+      expect(logsService.publicLog).toHaveBeenCalledWith(
+        mockRequest,
+        mockSource,
+      );
+    });
+  });
+
+  describe('remove', () => {
+    it('should remove a data log by ID', async () => {
+      const mockLogId = 'log123';
+      mockLogsService.remove.mockResolvedValue({ success: true });
+
+      const result = await controller.remove(mockLogId);
+      expect(result).toEqual({ success: true });
+      expect(logsService.remove).toHaveBeenCalledWith(mockLogId);
+    });
+
+    it('should throw NotFoundException if log is not found', async () => {
+      mockLogsService.remove.mockImplementationOnce(() => {
+        throw new NotFoundException('Log not found');
+      });
+
+      await expect(controller.remove('invalid-log-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

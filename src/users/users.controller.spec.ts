@@ -16,7 +16,7 @@ describe('UsersController', () => {
   let controller: UsersController;
   let service: UsersService;
 
-  const mockUser = { _id: '123', email: 'user@example.com' };
+  const mockUser = { _id: '123', email: 'tdennis.developer@gmail.com' };
 
   const mockUsersService = {
     findMe: jest.fn().mockResolvedValue(mockUser),
@@ -32,8 +32,8 @@ describe('UsersController', () => {
     deactivateAccount: jest.fn(),
     requestReactivation: jest.fn(),
     paraseEncryptedParams: jest.fn().mockReturnValue({
-      userId: '123',
-      email: 'user@example.com',
+      userId: '6706619dbee933e796f61484',
+      email: 'tdennis.developer@gmail.com',
     }),
   };
 
@@ -83,13 +83,14 @@ describe('UsersController', () => {
 
   describe('findOne', () => {
     it('should return a user by ID', async () => {
-      const result = await controller.findOne('123');
+      const result = await controller.findOne('6706619dbee933e796f61484');
       expect(result).toEqual(mockUser);
-      expect(service.findById).toHaveBeenCalledWith('123');
+      expect(service.findById).toHaveBeenCalledWith('6706619dbee933e796f61484');
     });
 
     it('should throw NotFoundException if user is not found', async () => {
       jest.spyOn(service, 'findById').mockResolvedValueOnce(null);
+
       await expect(controller.findOne('invalid-id')).rejects.toThrow(
         NotFoundException,
       );
@@ -98,9 +99,13 @@ describe('UsersController', () => {
 
   describe('findByUsername', () => {
     it('should return true if user exists', async () => {
-      const result = await controller.findByUsername('user@example.com');
+      const result = await controller.findByUsername(
+        'tdennis.developer@gmail.com',
+      );
       expect(result).toBe(true);
-      expect(service.findByEmail).toHaveBeenCalledWith('user@example.com');
+      expect(service.findByEmail).toHaveBeenCalledWith(
+        'tdennis.developer@gmail.com',
+      );
     });
 
     it('should return false if user does not exist', async () => {
@@ -112,7 +117,7 @@ describe('UsersController', () => {
 
   describe('changePassword', () => {
     it('should call changePassword with correct arguments', async () => {
-      const req = { user: { _id: '123' } };
+      const req = { user: { _id: '6706619dbee933e796f61484' } };
       const payload: UserChangePasswordDto = {
         oldPassword: 'old',
         newPassword: 'new',
@@ -120,7 +125,11 @@ describe('UsersController', () => {
       };
 
       await controller.changePassword(req, payload);
-      expect(service.changePassword).toHaveBeenCalledWith(req, '123', payload);
+      expect(service.changePassword).toHaveBeenCalledWith(
+        req,
+        '6706619dbee933e796f61484',
+        payload,
+      );
     });
   });
 
@@ -141,11 +150,11 @@ describe('UsersController', () => {
   describe('register', () => {
     it('should redirect to new user form if userId is not found', async () => {
       mockUsersService.paraseEncryptedParams.mockReturnValueOnce({
-        email: 'lead@example.com',
+        email: 'tdennis.developer@gmail.com',
       });
       const result = await controller.register('encrypted-data');
       expect(result).toEqual({
-        url: '/leads/new-user-form?email=lead@example.com',
+        url: `/leads/new-user-form?email=tdennis.developer%40gmail.com`,
       });
     });
 
@@ -162,7 +171,7 @@ describe('UsersController', () => {
   describe('newUserForm', () => {
     it('should create a new user and return redirect URL', async () => {
       const payload: CreateUserDto = {
-        email: 'new@example.com',
+        email: 'tdennis.developer@gmail.com',
         password: 'password',
         joinMethod: RegistrationMethod.SIGN_UP,
         firstName: 'Dennis',
@@ -170,7 +179,7 @@ describe('UsersController', () => {
       };
       const result = await controller.newUserForm(payload);
       expect(result).toEqual({
-        url: '/leads/create?email=new@example.com',
+        url: `/leads/create?email=${payload.email}`,
       });
     });
 

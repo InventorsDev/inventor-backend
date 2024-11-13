@@ -19,7 +19,7 @@ export class DataLogsController {
   constructor(private readonly logsService: DataLogsService) {}
 
   @ApiBearerAuth()
-  // @UseGuards(JwtAdminsGuard)
+  @UseGuards(JwtAdminsGuard)
   @ApiQuery({ name: 'limit', required: false, type: String } as any)
   @ApiQuery({ name: 'page', required: false, type: String } as any)
   @ApiQuery({
