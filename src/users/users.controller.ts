@@ -30,7 +30,8 @@ import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { DeactivateAccountDto } from './dto/deactivate-account.dto';
-import { RequestReactivationDto } from './dto/request-reactivation.dto';import { TempLeadDto } from './dto/temp-lead.dto';
+import { RequestReactivationDto } from './dto/request-reactivation.dto';
+import { TempLeadDto } from './dto/temp-lead.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -104,8 +105,12 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findById(id);
+  async findOne(@Param('id') id: string) {
+    const user = await this.usersService.findById(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return user;
   }
 
   @ApiBearerAuth()
