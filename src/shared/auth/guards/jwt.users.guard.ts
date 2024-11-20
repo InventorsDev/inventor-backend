@@ -9,7 +9,6 @@ import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '../../interfaces';
 import { hasRequiredRoles } from 'src/shared/utils';
 
-
 @Injectable()
 export class JwtUsersGuard
   extends AuthGuard('jwt-user')
@@ -35,9 +34,7 @@ export class JwtUsersGuard
 
       const userRoles: UserRole[] = payload.role;
 
-      if (
-        !hasRequiredRoles(userRoles, [UserRole.USER])
-      ) {
+      if (!hasRequiredRoles(userRoles, [UserRole.USER])) {
         throw new UnauthorizedException(
           'Invalid user roles, user must have event role',
         );
@@ -55,7 +52,6 @@ export class JwtUsersGuard
     const [type, token] = request.headers['authorization']?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
-
 
   // async canActivate(context: ExecutionContext): Promise<boolean> {
   //   await validateAccessTokenAfterRefreshOrRevoke(context);
