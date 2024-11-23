@@ -4,7 +4,7 @@ import { UserRole } from '../../interfaces';
 import { hasRequiredRoles } from 'src/shared/utils';
 
 @Injectable()
-export class JwtEventUserGuard extends AuthGuard('jwt-user') {
+export class JwtPostUserGuard extends AuthGuard('jwt-user') {
   constructor() {
     super();
   }
@@ -26,8 +26,11 @@ export class JwtEventUserGuard extends AuthGuard('jwt-user') {
 
       const userRoles: UserRole[] = payload.role;
 
-      if (!hasRequiredRoles(userRoles, [UserRole.USER, UserRole.POST_USER])) {
-        throw new UnauthorizedException('Invalid user roles, user must have event role');
+      //logger.log("available roles:", userRole);
+      //logger
+
+       if (!hasRequiredRoles(userRoles, [UserRole.USER, UserRole.POST_USER])) {
+        throw new UnauthorizedException('Invalid user roles, user must have post role');
       }
 
       request.user = payload;

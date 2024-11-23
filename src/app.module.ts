@@ -7,6 +7,7 @@ import { AllExceptionsFilter } from './shared/exceptions';
 import { AuthModule } from './shared/auth/auth.module';
 import { DataLogsModule } from './shared/datalogs';
 import { UsersModule } from './users/users.module';
+import { PostModule } from './blog/post.module';
 import { EventModule } from './events/events.users.module';
 
 @Module({
@@ -20,6 +21,7 @@ import { EventModule } from './events/events.users.module';
     ]),
     DataLogsModule,
     UsersModule,
+    PostModule,
     EventModule,
   ],
   controllers: [AppController],
