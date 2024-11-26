@@ -7,8 +7,9 @@ import { AllExceptionsFilter } from './shared/exceptions';
 import { AuthModule } from './shared/auth/auth.module';
 import { DataLogsModule } from './shared/datalogs';
 import { UsersModule } from './users/users.module';
-import { PostModule } from './blog/post.module';
+import { PostCommentModule } from './blog/postcomment/postcomment.module';
 import { EventModule } from './events/events.users.module';
+import { PostModule } from './blog/post/post.module';
 
 @Module({
   imports: [
@@ -21,8 +22,9 @@ import { EventModule } from './events/events.users.module';
     ]),
     DataLogsModule,
     UsersModule,
-    PostModule,
+    PostCommentModule,
     EventModule,
+    PostModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,12 +1,12 @@
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { Status, } from '../interfaces/post.type';
+import { Status, } from '../interfaces/postcomment.type';
 import { IsArray, IsString } from 'class-validator';
 
-export type PostDocument = HydratedDocument<Post>;
+export type PostCommentDocument = HydratedDocument<PostComment>;
 
 @Schema({ timestamps: true })
-export class Post {
+export class PostComment {
   @Prop({ required: true, index: true })
   title: string; 
 
@@ -20,10 +20,10 @@ export class Post {
   photo: string;
 
   @Prop({ type: Date, index: true })
-  postDate: Date;
+  commentDate: Date;
 
   @Prop({ enum: Status, default: Status.PENDING, index: true })
   status: Status;
 }
 
-export const PostSchema = SchemaFactory.createForClass(Post);
+export const PostCommentSchema = SchemaFactory.createForClass(PostComment);

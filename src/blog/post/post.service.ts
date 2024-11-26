@@ -21,7 +21,7 @@ export class PostService {
          shortDesc: payload.shortDesc,
          description: payload.description,
          photo: payload.photo,
-         blogDate: payload.postDate,
+         postDate: payload.postDate,
        });
   }
 
