@@ -7,11 +7,12 @@ import { ApiReq } from 'src/shared/interfaces/req.type';
 import { getPagingParams, getPaginated } from 'src/shared/utils';
 import { UpdateEventDto } from './dto/updateEvent.dto';
 import { Status } from 'src/shared/interfaces/event.type';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class EventService {
   constructor(
-    @Inject(Event.name)
+    @InjectModel(Event.name)
     private readonly eventModel: Model<EventDocument>,
   ) {}
 
