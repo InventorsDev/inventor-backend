@@ -6,7 +6,7 @@ import { Types } from 'mongoose';
 import { EventDto } from './dto/event.dto';
 import { UpdateEventDto } from './dto/updateEvent.dto';
 import { JoinMethod, Location, Status } from 'src/shared/interfaces/event.type';
-import { DBModule } from 'src/shared/schema';
+import { TestModule } from 'src/shared/testkits';
 
 describe('EventService', () => {
   let service: EventService;
@@ -30,8 +30,6 @@ describe('EventService', () => {
     eventDate: new Date()
   };
 
-  // let eventModelMock: jest.Mocked<Model<EventDocument>>;
-
   let eventModelMock = {
     create: jest.fn().mockResolvedValue(mockEvent),
     findById: jest.fn().mockImplementationOnce(() => ({
@@ -52,7 +50,7 @@ describe('EventService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [DBModule],
+      imports: [TestModule],
       providers: [
         EventService,
         {
