@@ -29,7 +29,7 @@ interface MockAuthService {
 
 // Main test container
 describe('AuthController', () => {
-  let controller: AuthController;
+  let authController: AuthController;
   let userModel: UserModel;
   let authService: MockAuthService;
   let jwtService: JwtService;
@@ -158,7 +158,7 @@ describe('AuthController', () => {
       ],
     }).compile();
 
-    controller = module.get<AuthController>(AuthController);
+    authController = module.get<AuthController>(AuthController);
     userModel = module.get<UserModel>(User.name);
     authService = module.get<MockAuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
@@ -166,7 +166,7 @@ describe('AuthController', () => {
 
   // check if controller is created
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(authController).toBeDefined();
   });
 
   // test for registration
@@ -189,7 +189,7 @@ describe('AuthController', () => {
     };
 
     it('should register a new user', async () => {
-      const result = await controller.register(mockReq, createUserDto);
+      const result = await authController.register(mockReq, createUserDto);
 
       expect(result).toHaveProperty('email', createUserDto.email);
       expect(userModel.signUp).toHaveBeenCalledWith(mockReq, createUserDto);
@@ -200,9 +200,9 @@ describe('AuthController', () => {
         new BadRequestException('User already exists'),
       );
 
-      await expect(controller.register(mockReq, createUserDto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        authController.register(mockReq, createUserDto),
+      ).rejects.toThrow(BadRequestException);
     });
     it('should throw an error if registration data is invalid', async () => {
       const invalidUserDto = {
@@ -215,7 +215,7 @@ describe('AuthController', () => {
       );
 
       await expect(
-        controller.register(mockReq, invalidUserDto),
+        authController.register(mockReq, invalidUserDto),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -233,7 +233,7 @@ describe('AuthController', () => {
         user: mockUser,
       };
 
-      const result = await controller.login(mockReqWithUser, loginDto);
+      const result = await authController.login(mockReqWithUser, loginDto);
 
       expect(result).toHaveProperty('access_token');
       expect(result).toHaveProperty('email', mockUser.email);
@@ -246,7 +246,7 @@ describe('AuthController', () => {
         user: mockUser,
       };
 
-      const result = await controller.login(mockReqWithUser, loginDto);
+      const result = await authController.login(mockReqWithUser, loginDto);
 
       expect(result).toMatchObject({
         access_token: expect.any(String),
@@ -263,7 +263,7 @@ describe('AuthController', () => {
     const invalidToken = 'invalid-token';
 
     it('should verify email with valid token', async () => {
-      const result = await controller.verifyEmail(userId, validToken);
+      const result = await authController.verifyEmail(userId, validToken);
 
       expect(result).toEqual({
         status: 200,
@@ -274,7 +274,7 @@ describe('AuthController', () => {
 
     it('should throw BadRequestException for invalid token', async () => {
       await expect(
-        controller.verifyEmail(userId, invalidToken),
+        authController.verifyEmail(userId, invalidToken),
       ).rejects.toThrow(BadRequestException);
       expect(userModel.verifyEmail).toHaveBeenCalledWith(userId, invalidToken);
     });
@@ -286,7 +286,7 @@ describe('AuthController', () => {
       );
 
       await expect(
-        controller.verifyEmail(nonExistentUserId, validToken),
+        authController.verifyEmail(nonExistentUserId, validToken),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -300,7 +300,10 @@ describe('AuthController', () => {
         message: 'Verification email sent successfully',
       };
 
-      const result = await controller.resendVerification(mockReq, validEmail);
+      const result = await authController.resendVerification(
+        mockReq,
+        validEmail,
+      );
 
       expect(result).toEqual(expectedResponse);
       expect(authService.resendVerificationLink).toHaveBeenCalledWith(
@@ -317,7 +320,7 @@ describe('AuthController', () => {
       );
 
       await expect(
-        controller.resendVerification(mockReq, invalidEmail),
+        authController.resendVerification(mockReq, invalidEmail),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -331,7 +334,7 @@ describe('AuthController', () => {
         emailVerificationUrl: 'http://localhost/verify/123456',
       };
 
-      const result = await controller.sendEmailVerificationToken(
+      const result = await authController.sendEmailVerificationToken(
         mockReq,
         userId,
       );
@@ -350,7 +353,7 @@ describe('AuthController', () => {
       );
 
       await expect(
-        controller.sendEmailVerificationToken(mockReq, invalidUserId),
+        authController.sendEmailVerificationToken(mockReq, invalidUserId),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -360,7 +363,7 @@ describe('AuthController', () => {
     const invalidEmail = 'nonexistent@example.com';
 
     it('should process forget password request for valid email', async () => {
-      const result = await controller.forgetPassword(validEmail);
+      const result = await authController.forgetPassword(validEmail);
 
       expect(result).toMatchObject({
         email: validEmail,
@@ -371,7 +374,7 @@ describe('AuthController', () => {
     });
 
     it('should throw BadRequestException for non-existent email', async () => {
-      await expect(controller.forgetPassword(invalidEmail)).rejects.toThrow(
+      await expect(authController.forgetPassword(invalidEmail)).rejects.toThrow(
         BadRequestException,
       );
       expect(userModel.forgetPassword).toHaveBeenCalledWith(invalidEmail);
@@ -382,7 +385,7 @@ describe('AuthController', () => {
         new Error('Failed to process password reset'),
       );
 
-      await expect(controller.forgetPassword(validEmail)).rejects.toThrow(
+      await expect(authController.forgetPassword(validEmail)).rejects.toThrow(
         Error,
       );
     });
