@@ -42,11 +42,11 @@ export class PostCommentService {
   }
 
   async findById(id: string): Promise<PostCommentDocument> {
-    const postcomment = await this.PostCommentModel.findById(id).lean().exec();
-    if (!postcomment) {
+    const PostComment = await this.PostCommentModel.findById(id).lean().exec();
+    if (!PostComment) {
       throw new NotFoundException(`comment with ID ${id} not found`);
     }
-    return postcomment;
+    return PostComment;
   }
 
   async updatePostComment(
@@ -63,28 +63,28 @@ export class PostCommentService {
     return updatedPostComment;
   }
 
-  async softDeletePostComment(id: string): Promise<PostComment> {
-    let deletePostComment = this.PostCommentModel.findByIdAndUpdate(
+  async softDeletePostcomment(id: string): Promise<PostComment> {
+    let deletePostcomment = this.PostCommentModel.findByIdAndUpdate(
       id,
       { status: Status.DELETED },
       { new: true },
     );
-    if (!deletePostComment) {
-      throw new NotFoundException(`PostComment with ID ${id} not found`);
+    if (!deletePostcomment) {
+      throw new NotFoundException(`Post with ID ${id} not found`);
     }
-    return deletePostComment;
+    return deletePostcomment;
   }
 
-  async approvePostComment(id: string): Promise<PostComment> {
-    let approvePostComment = this.PostCommentModel.findByIdAndUpdate(
+  async approvePostcomment(id: string): Promise<PostComment> {
+    let approvePostcomment = this.PostCommentModel.findByIdAndUpdate(
       id,
       { status: Status.APPROVED },
       { new: true },
     );
-    if (!approvePostComment) {
-      throw new NotFoundException(`PostComment with ID ${id} not found`);
+    if (!approvePostcomment) {
+      throw new NotFoundException(`Postcomment with ID ${id} not found`);
     }
 
-    return approvePostComment;
+    return approvePostcomment;
   }
 }

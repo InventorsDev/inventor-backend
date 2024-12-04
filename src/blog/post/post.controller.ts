@@ -48,6 +48,7 @@ export class PostController {
   @UseGuards(JwtPostUserGuard)
   @Patch(':id')
   @ApiParam({ name: 'id', type: 'string' })
+  
   async updatePost(
     @Param('id') id: string,
     @Body() updatePostDto: UpdatePostDto,

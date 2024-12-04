@@ -47,7 +47,8 @@ export class PostCommentController {
   @UseGuards(JwtPostCommentUserGuard)
   @Patch(':id')
   @ApiParam({ name: 'id', type: 'string' })
-  async updateComment(
+
+  async updatePostComment(
     @Param('id') id: string,
     @Body() updatePostCommentDto: UpdatePostCommentDto,
   ) {
@@ -58,7 +59,7 @@ export class PostCommentController {
   @UseGuards(JwtPostCommentUserGuard)
   @Delete(':id')
   @ApiParam({ name: 'id', type: 'string' })
-  async deletePostComment(@Param('id') id: string) {
-    return this.PostCommentService.softDeletePostComment(id);
+  async deletePostcomment(@Param('id') id: string) {
+    return this.PostCommentService.softDeletePostcomment(id);
   }
 }
