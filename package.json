@@ -11,7 +11,7 @@
     "build-dev": "concurrently 'nest build'  'npm run docs:struct'",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "concurrently 'nest start' 'npm run docs:struct'",
-    "start:dev": "concurrently \"nest start --watch\" \"npm run docs:struct\"",
+    "start:dev": "concurrently \"nest start --watch -r tsconfig-paths/register\" \"npm run docs:struct\"",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "docs:struct": "compodoc -p tsconfig.json --disableSourceCode",
