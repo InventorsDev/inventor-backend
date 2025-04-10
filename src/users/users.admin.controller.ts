@@ -117,12 +117,9 @@ export class UsersAdminsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Patch('users/:userId')
-  update(
-    @Request() req: ApiReq,
-    @Param('userId') userId: string,
-    @Body() payload: UpdateUserDto,
-  ) {
+  @Patch('users')
+  update(@Request() req: ApiReq, @Body() payload: UpdateUserDto) {
+    const userId = req.user._id.toString();
     return this.usersService.update(userId, payload);
   }
 
