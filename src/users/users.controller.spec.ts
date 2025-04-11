@@ -14,6 +14,11 @@ import {
 // imported to handle the paginated response from findAll
 import { Model, Document, Types } from 'mongoose';
 import { IPageable } from 'src/shared/utils';
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 type UserDocument = Document<unknown, {}, User> &
   User & { _id: Types.ObjectId };
 
@@ -315,6 +320,465 @@ describe('UsersAdminController', () => {
         UserChangePasswordDto,
         true,
       );
+    });
+  });
+  describe('userInvite', () => {
+    const inviteDto = {
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'test@example.com',
+      roles: [UserRole.USER],
+      joinMethod: RegistrationMethod.SIGN_UP,
+    };
+    it('should successfully invite a user', async () => {
+      const expectedResult = createUserMock(inviteDto);
+      jest.spyOn(usersService, 'userInvite').mockResolvedValue(expectedResult);
+      const result = await adminController.userInvite(inviteDto);
+      expect(result).toEqual(expectedResult);
+      expect(usersService.userInvite).toHaveBeenCalledWith(inviteDto);
+    });
+    it('should throw error when inviting existing user', async () => {
+      jest
+        .spyOn(usersService, 'userInvite')
+        .mockRejectedValue(new BadRequestException('User already exists'));
+
+      await expect(adminController.userInvite(inviteDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw error when email is invalid', async () => {
+      const invalidDto = { ...inviteDto, email: 'invalid-email' };
+
+      jest
+        .spyOn(usersService, 'userInvite')
+        .mockRejectedValue(new BadRequestException('Invalid email format'));
+
+      await expect(adminController.userInvite(invalidDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+  describe('getUserProfile', () => {
+    it('should return the user profile', async () => {
+      const mockUser = createUserMock();
+      const mockReq = { user: mockUser };
+
+      jest.spyOn(usersService, 'findMe').mockResolvedValue(mockUser);
+
+      const result = await adminController.getUserProfile(mockReq);
+
+      expect(result).toEqual(mockUser);
+      expect(usersService.findMe).toHaveBeenCalledWith(mockReq);
+    });
+
+    it('should throw unauthorized when user not in request', async () => {
+      const mockReq = {};
+
+      jest
+        .spyOn(usersService, 'findMe')
+        .mockRejectedValue(new UnauthorizedException());
+
+      await expect(adminController.getUserProfile(mockReq)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw not found when user profile does not exist', async () => {
+      const mockReq = { user: { id: 'non-existent' } };
+
+      jest
+        .spyOn(usersService, 'findMe')
+        .mockRejectedValue(new NotFoundException('User profile not found'));
+
+      await expect(adminController.getUserProfile(mockReq)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('remove', () => {
+    const userId = new Types.ObjectId().toString();
+    const userMock = createUserMock({
+      _id: new Types.ObjectId(),
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'test@example.com',
+      role: [UserRole.USER],
+    });
+
+    it('should remove a user and return the user object', async () => {
+      // Mock the return value to be the user object
+      jest.spyOn(usersService, 'remove').mockResolvedValue(userMock);
+
+      const result = await adminController.remove(userId);
+
+      expect(result).toEqual(userMock);
+      expect(usersService.remove).toHaveBeenCalledWith(userId);
+    });
+
+    it('should throw error when user not found', async () => {
+      jest
+        .spyOn(usersService, 'remove')
+        .mockRejectedValue(
+          new NotFoundException(`User  with ID ${userId} not found`),
+        );
+
+      await expect(adminController.remove(userId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw error when trying to remove admin user', async () => {
+      // Assuming you have logic in your service to prevent admin user deletion
+      jest
+        .spyOn(usersService, 'remove')
+        .mockRejectedValue(new BadRequestException('Cannot remove admin user'));
+
+      await expect(adminController.remove(userId)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('update', () => {
+    const userId = new Types.ObjectId().toString();
+    const updateDto = {
+      userId: userId,
+      firstName: 'Updated',
+      lastName: 'Name',
+    };
+
+    it('should update a user', async () => {
+      const mockReq = { user: createUserMock() };
+      const expectedResult = createUserMock(updateDto);
+
+      jest.spyOn(usersService, 'update').mockResolvedValue(expectedResult);
+
+      const result = await adminController.update(mockReq, userId, updateDto);
+
+      expect(result).toEqual(expectedResult);
+      expect(usersService.update).toHaveBeenCalledWith(userId, updateDto);
+    });
+
+    it('should throw error when user not found', async () => {
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'update')
+        .mockRejectedValue(new NotFoundException('User not found'));
+
+      await expect(
+        adminController.update(mockReq, userId, updateDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw error when invalid data provided', async () => {
+      const mockReq = { user: createUserMock() };
+      const invalidDto = { userId, firstName: '' };
+
+      jest
+        .spyOn(usersService, 'update')
+        .mockRejectedValue(new BadRequestException('Invalid user data'));
+
+      await expect(
+        adminController.update(mockReq, userId, invalidDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('addPhoto', () => {
+    const userId = new Types.ObjectId().toString();
+    const photoDto = {
+      userId,
+      photo: 'new-photo-url.jpg',
+    };
+
+    it('should add a photo to user profile', async () => {
+      const mockReq = { user: createUserMock() };
+      const expectedResult = createUserMock({ photo: photoDto.photo });
+
+      jest.spyOn(usersService, 'addPhoto').mockResolvedValue(expectedResult);
+
+      const result = await adminController.addPhoto(mockReq, userId, photoDto);
+
+      expect(result).toEqual(expectedResult);
+      expect(usersService.addPhoto).toHaveBeenCalledWith(
+        photoDto.userId,
+        photoDto,
+      );
+    });
+
+    it('should throw error when invalid photo format', async () => {
+      const mockReq = { user: createUserMock() };
+      const invalidPhotoDto = { ...photoDto, photo: 'invalid-format' };
+
+      jest
+        .spyOn(usersService, 'addPhoto')
+        .mockRejectedValue(new BadRequestException('Invalid photo format'));
+
+      await expect(
+        adminController.addPhoto(mockReq, userId, invalidPhotoDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw error when photo size exceeds limit', async () => {
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'addPhoto')
+        .mockRejectedValue(new BadRequestException('Photo size exceeds limit'));
+
+      await expect(
+        adminController.addPhoto(mockReq, userId, photoDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('RequestVerificationToken', () => {
+    const userId = new Types.ObjectId().toString();
+
+    it('should request new verification token', async () => {
+      const mockReq = { user: createUserMock() };
+
+      // Mocking the requestVerification method to resolve successfully
+      jest
+        .spyOn(usersService, 'requestVerification')
+        .mockResolvedValue(undefined); // or just don't mock return value
+
+      await adminController.RequestVerificationToken(mockReq, userId);
+
+      expect(usersService.requestVerification).toHaveBeenCalledWith(
+        mockReq,
+        userId,
+      );
+    });
+
+    it('should throw error when user not found', async () => {
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'requestVerification')
+        .mockRejectedValue(new Error('User  not found'));
+
+      await expect(
+        adminController.RequestVerificationToken(mockReq, userId),
+      ).rejects.toThrow('User  not found');
+    });
+
+    it('should throw error when verification request not allowed', async () => {
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'requestVerification')
+        .mockRejectedValue(
+          new Error('Verification request not allowed at this time'),
+        );
+
+      await expect(
+        adminController.RequestVerificationToken(mockReq, userId),
+      ).rejects.toThrow('Verification request not allowed at this time');
+    });
+
+    it('should throw error when user already verified', async () => {
+      const mockReq = {
+        user: createUserMock({ applicationStatus: ApplicationStatus.APPROVED }),
+      };
+
+      jest
+        .spyOn(usersService, 'requestVerification')
+        .mockRejectedValue(new Error('User  is already verified'));
+
+      await expect(
+        adminController.RequestVerificationToken(mockReq, userId),
+      ).rejects.toThrow('User  is already verified');
+    });
+
+    it('should throw error when too many requests', async () => {
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'requestVerification')
+        .mockRejectedValue(new Error('Too many verification requests'));
+
+      await expect(
+        adminController.RequestVerificationToken(mockReq, userId),
+      ).rejects.toThrow('Too many verification requests');
+    });
+  });
+
+  describe('updateUser Status', () => {
+    const userId = new Types.ObjectId().toString();
+
+    it('should update user status to active', async () => {
+      const statusDto = { status: UserStatus.ACTIVE };
+      const mockReq = { user: createUserMock() };
+      const expectedResult = createUserMock({ status: UserStatus.ACTIVE });
+
+      jest
+        .spyOn(usersService, 'updateStatus')
+        .mockResolvedValue(expectedResult);
+
+      const result = await adminController.updateUserStatus(
+        mockReq,
+        userId,
+        statusDto,
+      );
+
+      expect(result).toEqual(expectedResult);
+      expect(usersService.updateStatus).toHaveBeenCalledWith(
+        userId,
+        statusDto.status,
+      );
+    });
+
+    it('should throw error when updating to invalid status', async () => {
+      const invalidStatusDto = { status: 'INVALID_STATUS' as UserStatus };
+      const mockReq = { user: createUserMock() };
+
+      jest
+        .spyOn(usersService, 'updateStatus')
+        .mockRejectedValue(new BadRequestException('Invalid user status'));
+
+      await expect(
+        adminController.updateUserStatus(mockReq, userId, invalidStatusDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw error when updating non-existent user', async () => {
+      const statusDto = { status: UserStatus.ACTIVE };
+      const mockReq = { user: createUserMock() };
+
+      // Mocking the service to throw an error when the user is not found
+      jest
+        .spyOn(usersService, 'updateStatus')
+        .mockRejectedValue(new NotFoundException('User  not found'));
+
+      await expect(
+        adminController.updateUserStatus(mockReq, userId, statusDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('Lead application endpoints', () => {
+    describe('getApplicationByEmail', () => {
+      it('should find an application by email', async () => {
+        const email = 'lead@example.com';
+        const expectedResult = createUserMock({ email });
+
+        jest
+          .spyOn(usersService, 'viewOneApplication')
+          .mockResolvedValue(expectedResult);
+
+        const result = await adminController.getApplicationByEmail(email);
+
+        expect(result).toEqual(expectedResult);
+        expect(usersService.viewOneApplication).toHaveBeenCalledWith(email);
+      });
+    });
+
+    describe('viewApplications', () => {
+      it('should return all lead applications', async () => {
+        const expectedResults = [
+          createUserMock({ email: 'lead1@example.com' }),
+          createUserMock({ email: 'lead2@example.com' }),
+        ];
+
+        jest
+          .spyOn(usersService, 'viewApplications')
+          .mockResolvedValue(expectedResults);
+
+        const result = await adminController.viewApplications();
+
+        expect(result).toEqual(expectedResults);
+        expect(usersService.viewApplications).toHaveBeenCalled();
+      });
+    });
+
+    describe('approveApplication', () => {
+      it('should approve a lead application', async () => {
+        const email = 'lead@example.com';
+        const expectedResult = 'Application approved successfully';
+
+        jest
+          .spyOn(usersService, 'approveTempApplication')
+          .mockResolvedValue(expectedResult);
+
+        const result = await adminController.approveApplication(email);
+
+        expect(result).toEqual(expectedResult);
+        expect(usersService.approveTempApplication).toHaveBeenCalledWith(email);
+      });
+    });
+
+    describe('reject', () => {
+      it('should reject a lead application with custom message', async () => {
+        const email = 'lead@example.com';
+        const rejectDto = { message: 'Custom rejection message' };
+        const expectedResult = 'Application rejected successfully';
+
+        jest
+          .spyOn(usersService, 'rejectTempApplication')
+          .mockResolvedValue(expectedResult);
+
+        const result = await adminController.reject(email, rejectDto);
+
+        expect(result).toEqual(expectedResult);
+        expect(usersService.rejectTempApplication).toHaveBeenCalledWith(
+          email,
+          rejectDto.message,
+        );
+      });
+
+      it('should reject with default message when no message provided', async () => {
+        const email = 'lead@example.com';
+        const rejectDto = {};
+        const expectedResult = 'Application rejected successfully';
+
+        jest
+          .spyOn(usersService, 'rejectTempApplication')
+          .mockResolvedValue(expectedResult);
+
+        const result = await adminController.reject(email, rejectDto);
+
+        expect(result).toEqual(expectedResult);
+        expect(usersService.rejectTempApplication).toHaveBeenCalledWith(
+          email,
+          'Your application was rejected',
+        );
+      });
+    });
+
+    describe('generateLink', () => {
+      it('should generate registration link for lead', async () => {
+        const email = 'lead@example.com';
+        const expectedLink = 'http://example.com/register/token123';
+
+        jest.spyOn(usersService, 'inviteLead').mockResolvedValue(expectedLink);
+
+        const result = await adminController.generateLink(email);
+
+        expect(result).toEqual({ link: expectedLink });
+        expect(usersService.inviteLead).toHaveBeenCalledWith(email);
+      });
+    });
+
+    describe('getUsersWithLeadRole', () => {
+      it('should return all users with lead role', async () => {
+        const expectedResults = [
+          createUserMock({ role: [UserRole.LEAD] }),
+          createUserMock({ role: [UserRole.LEAD] }),
+        ];
+
+        jest
+          .spyOn(usersService, 'getUsersWithLeadRole')
+          .mockResolvedValue(expectedResults);
+
+        const result = await adminController.getUsersWithLeadRole();
+
+        expect(result).toEqual(expectedResults);
+        expect(usersService.getUsersWithLeadRole).toHaveBeenCalled();
+      });
     });
   });
 });
