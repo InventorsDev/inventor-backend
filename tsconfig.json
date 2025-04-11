@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
     "module": "commonjs",
+    "paths": {
+      "src/*": ["src/*"]
+    },
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -17,8 +20,7 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "esModuleInterop": true,
-    "noFallthroughCasesInSwitch": false,
+    "noFallthroughCasesInSwitch": false
   },
-  "include": ["src/**/*.ts",
-    "src/shared/mail-templates/**/*"]
+  "include": ["src/**/*.ts", "src/shared/mail-templates/**/*"]
 }
