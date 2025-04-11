@@ -5,7 +5,9 @@ import { EventAdminsController } from './events.admin.controller';
 import { DBModule } from 'src/shared/schema';
 
 @Module({
-  imports: [DBModule],
+  imports: [
+    DBModule
+  ],
   controllers: [EventUserController, EventAdminsController],
   providers: [EventService],
   exports: [EventService],
