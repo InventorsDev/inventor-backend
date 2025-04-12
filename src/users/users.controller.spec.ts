@@ -1,24 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
-import { TestModule } from 'src/shared/testkits';
-import { UsersAdminsController } from './users.admin.controller';
-import { DBModule, User } from 'src/shared/schema';
 import {
+  ApiReq,
   ApplicationStatus,
   RegistrationMethod,
   UserRole,
   UserStatus,
-  ApiReq,
 } from 'src/shared/interfaces';
+import { DBModule, User } from 'src/shared/schema';
+import { TestModule } from 'src/shared/testkits';
+import { UsersAdminsController } from './users.admin.controller';
+import { UsersController } from './users.controller';
+import { UsersService } from './users.service';
 // imported to handle the paginated response from findAll
-import { Model, Document, Types } from 'mongoose';
-import { IPageable } from 'src/shared/utils';
 import {
   BadRequestException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Document, Model, Types } from 'mongoose';
+import { IPageable } from 'src/shared/utils';
 type UserDocument = Document<unknown, {}, User> &
   User & { _id: Types.ObjectId };
 
@@ -442,48 +442,52 @@ describe('UsersAdminController', () => {
   });
 
   describe('update', () => {
-    const userId = new Types.ObjectId().toString();
+    const userId = new Types.ObjectId();
     const updateDto = {
-      userId: userId,
+      userId: userId.toString(),
       firstName: 'Updated',
       lastName: 'Name',
     };
 
     it('should update a user', async () => {
-      const mockReq = { user: createUserMock() };
-      const expectedResult = createUserMock(updateDto);
+      const mockReq = { user: createUserMock({ _id: userId }) };
+      const expectedResult = createUserMock({ ...updateDto });
 
       jest.spyOn(usersService, 'update').mockResolvedValue(expectedResult);
 
-      const result = await adminController.update(mockReq, userId, updateDto);
+      const result = await adminController.update(mockReq, updateDto);
 
       expect(result).toEqual(expectedResult);
-      expect(usersService.update).toHaveBeenCalledWith(userId, updateDto);
+
+      expect(usersService.update).toHaveBeenCalledWith(
+        userId.toString(),
+        updateDto,
+      );
     });
 
     it('should throw error when user not found', async () => {
-      const mockReq = { user: createUserMock() };
+      const mockReq = { user: createUserMock({ _id: userId }) };
 
       jest
         .spyOn(usersService, 'update')
         .mockRejectedValue(new NotFoundException('User not found'));
 
-      await expect(
-        adminController.update(mockReq, userId, updateDto),
-      ).rejects.toThrow(NotFoundException);
+      await expect(adminController.update(mockReq, updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw error when invalid data provided', async () => {
-      const mockReq = { user: createUserMock() };
-      const invalidDto = { userId, firstName: '' };
+      const mockReq = { user: createUserMock({ _id: userId }) };
+      const invalidDto = { userId: userId.toString(), firstName: '' };
 
       jest
         .spyOn(usersService, 'update')
         .mockRejectedValue(new BadRequestException('Invalid user data'));
 
-      await expect(
-        adminController.update(mockReq, userId, invalidDto),
-      ).rejects.toThrow(BadRequestException);
+      await expect(adminController.update(mockReq, invalidDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
