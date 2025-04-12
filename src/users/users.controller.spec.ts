@@ -1,31 +1,81 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  BadRequestException,
+  ForbiddenException,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+
+import { Types, Model, Document } from 'mongoose';
+
 import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
-import { TestModule } from 'src/shared/testkits';
 import { UsersAdminsController } from './users.admin.controller';
-import { DBModule, User } from 'src/shared/schema';
+import { UsersService } from './users.service';
+
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { TempLeadDto } from './dto/temp-lead.dto';
-import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { RequestReactivationDto } from './dto/request-reactivation.dto';
 import { DeactivateAccountDto } from './dto/deactivate-account.dto';
-import {
-  ForbiddenException,
-  BadRequestException,
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
-import { Types } from 'mongoose';
-import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
-import { UserDocument } from 'src/shared/schema';
 
+import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
+import { TestModule } from 'src/shared/testkits';
+import { DBModule, User } from 'src/shared/schema';
 import {
+  ApiReq,
   ApplicationStatus,
   RegistrationMethod,
   UserRole,
   UserStatus,
 } from 'src/shared/interfaces';
+type UserDocument = Document<unknown, {}, User> &
+  User & { _id: Types.ObjectId };
+
+/*
+'*generates a mock user object that can be used across multiple tests
+ *choose which part you want to override using createMock({parameter:new_value})
+*/
+
+const createUserMock = (
+  overrides: Partial<UserDocument> = {},
+): UserDocument => {
+  return {
+    _id: new Types.ObjectId(),
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'john.doe@example.com',
+    password: 'hashedpassword123',
+    profileSummary: 'Experienced software engineer',
+    jobTitle: 'Senior Developer',
+    currentCompany: 'TechCorp',
+    photo: 'profilephoto.jpg',
+    age: 30,
+    phone: '123-456-7890',
+    userHandle: 'johnDoe123',
+    gender: 'male',
+    location: {
+      type: 'Point',
+      coordinates: [40.7128, -74.006],
+    },
+    deviceId: 'device12345',
+    deviceToken: 'deviceToken12345',
+    role: [UserRole.USER],
+    leadPosition: 'Tech Lead',
+    applicationStatus: ApplicationStatus.PENDING,
+    nextApplicationTime: new Date(),
+    joinMethod: RegistrationMethod.SIGN_UP,
+    status: UserStatus.ACTIVE,
+    emailVerification: true,
+    pendingInvitation: false,
+    socials: {
+      phoneNumber: '24242424',
+      email: 'balbal',
+    },
+    nextVerificationRequestDate: new Date(),
+    ...overrides, // Overrides allow customization of the mock
+  } as UserDocument;
+};
 
 describe('UsersAdminController', () => {
   let controller: UsersController;
@@ -54,6 +104,8 @@ describe('UsersAdminController', () => {
       const userMock = createUserMock({
         email: 'test@example.com',
       });
+      
+      // redirecting the dbquery to use the userMock
       jest.spyOn(usersService, 'findByEmail').mockResolvedValue(userMock);
       const result = await adminController.findByUsername(requestMock.email);
 
@@ -829,39 +881,5 @@ const createUserDocumentMock = (
     populate: jest.fn(),
   } as unknown as UserDocument; // Cast to UserDocument type
 };
-const createUserMock = (overrides: Partial<User> = {}): User => {
-  return {
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    password: 'hashedpassword123',
-    profileSummary: 'Experienced software engineer',
-    jobTitle: 'Senior Developer',
-    currentCompany: 'TechCorp',
-    photo: 'profilephoto.jpg',
-    age: 30,
-    phone: '123-456-7890',
-    userHandle: 'johnDoe123',
-    gender: 'male',
-    location: {
-      type: 'Point',
-      coordinates: [40.7128, -74.006],
-    },
-    deviceId: 'device12345',
-    deviceToken: 'deviceToken12345',
-    role: [UserRole.USER],
-    leadPosition: 'Tech Lead',
-    applicationStatus: ApplicationStatus.PENDING,
-    nextApplicationTime: new Date(),
-    joinMethod: RegistrationMethod.SIGN_UP,
-    status: UserStatus.ACTIVE,
-    emailVerification: true,
-    pendingInvitation: false,
-    socials: {
-      phoneNumber: '24242424',
-      email: 'balbal',
-    },
-    nextVerificationRequestDate: new Date(),
-    ...overrides, // Overrides will allow you to customize the mock as needed
-  };
-};
+
+
