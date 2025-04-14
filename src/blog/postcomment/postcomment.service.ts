@@ -85,6 +85,6 @@ export class PostCommentService {
       throw new NotFoundException(`Postcomment with ID ${id} not found`);
     }
 
-    return approvePostcomment;
+    return approvePostcomment; 
   }
 }

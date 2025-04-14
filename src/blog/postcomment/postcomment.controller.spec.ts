@@ -66,7 +66,6 @@ describe('PostCommentController', () => {
       expect(result).toEqual(mockPostComment);
     });
   });
-
   describe('updatePostComment', () => {
     it('should update a postcomment', async () => {
       const dto: UpdatePostCommentDto = { title: 'Updated Title' };
