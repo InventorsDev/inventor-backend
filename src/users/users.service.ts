@@ -469,35 +469,50 @@ export class UsersService {
   }
 
   async requestVerification(req: ApiReq, userId: string) {
-    // 1. Retrieve user information and check that user exists
     const user = await this.userModel.findById(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
-
-    // 2. Check that current date > nextRequestVerificationDate
-    const currentDate = new Date();
+  
+    const now = new Date();
+  
     if (
       user.nextVerificationRequestDate &&
-      currentDate < user.nextVerificationRequestDate
+      now < user.nextVerificationRequestDate
     ) {
-      throw new Error('Verification request not allowed at this time');
+      const retryDate = format(user.nextVerificationRequestDate, 'PPPP');
+      throw new BadRequestException(
+        `You already submitted a request. Try again after ${retryDate}`,
+      );
     }
-
-    // 3. Check that the user verification status is not verified
+  
     if (user.applicationStatus === ApplicationStatus.APPROVED) {
-      throw new Error('User is already verified');
+      throw new BadRequestException('You are already verified.');
     }
-
-    // 4. Update user verification status and next verification date to 3 months from now
+  
+    // Update user state
     user.applicationStatus = ApplicationStatus.PENDING;
-    const nextVerificationDate = new Date();
-    nextVerificationDate.setMonth(nextVerificationDate.getMonth() + 3);
-    user.nextVerificationRequestDate = nextVerificationDate;
-
-    // 5. Save the updated user
+    user.nextVerificationRequestDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days later (this was initially 3 months)
     await user.save();
+  
+    // Send confirmation to user
+    await sendMail({
+      to: user.email,
+      from: EmailFromType.HELLO,
+      subject: 'Your Verification Request Has Been Received',
+      template: getMailTemplate().userVerificationAcknowledgement,
+      templateVariables: {
+        firstName: user.firstName,
+        nextTryDate: format(user.nextVerificationRequestDate, 'PPPP'),
+      },
+    });
+
+    return {
+      message: 'Verification request sent.',
+      nextAllowedRequest: user.nextVerificationRequestDate,
+    };
   }
+  
 
   // service for testing mail
   pingMail() {
