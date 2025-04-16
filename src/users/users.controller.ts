@@ -123,13 +123,10 @@ export class UsersController {
 
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
-  @Patch(':userId')
-  update(
-    @Request() req: ApiReq,
-    @Param('userId') userId: string,
-    @Body() payload: UpdateUserDto,
-  ) {
-    return this.usersService.update(req.user._id.toString(), payload);
+  @Patch()
+  update(@Request() req: ApiReq, @Body() payload: UpdateUserDto) {
+    const userId = req.user._id.toString();
+    return this.usersService.update(userId, payload);
   }
 
   @ApiBearerAuth()

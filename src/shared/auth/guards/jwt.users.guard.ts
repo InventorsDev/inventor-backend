@@ -1,13 +1,15 @@
 import {
-  Injectable,
-  ExecutionContext,
   CanActivate,
+  ExecutionContext,
+  Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '../../interfaces';
+import { AuthGuard } from '@nestjs/passport';
 import { hasRequiredRoles } from 'src/shared/utils';
+
+import { UserRole } from '../../interfaces';
+
 
 @Injectable()
 export class JwtUsersGuard
