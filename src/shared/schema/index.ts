@@ -3,6 +3,8 @@ import { Connection, ConnectOptions, createConnection } from 'mongoose';
 import { DataLog, DataLogSchema } from './data.log.schema';
 import { EventSchema } from './events.schema';
 import { User, UserSchema } from './user.schema';
+import { Post, PostSchema } from './post.schema'
+import { PostComment, PostCommentSchema } from './postcomment.schema'
 
 // All Schema Models
 export * from './data.log.schema';
@@ -11,7 +13,9 @@ export * from './user.schema';
 
 const SCHEMA_LIST = [
   { name: User.name, schema: UserSchema, dbPrefix: 'APP' },
+  { name: PostComment.name, schema: PostCommentSchema, dbPrefix: 'APP' },
   { name: Event.name, schema: EventSchema, dbPrefix: 'APP' },
+  { name: Post.name, schema: PostSchema, dbPrefix: 'APP' },
   { name: DataLog.name, schema: DataLogSchema, dbPrefix: 'LOG' },
 ];
 
