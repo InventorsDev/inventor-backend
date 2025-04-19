@@ -1,19 +1,15 @@
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { DataLog, DataLogSchema } from './data.log.schema';
-import { configs } from '../configs';
+import { ConfigService } from '@nestjs/config';
 import { Connection, ConnectOptions, createConnection } from 'mongoose';
-import { Module } from '@nestjs/common';
-import { User, UserSchema } from './user.schema';
-import { PostCommentSchema, PostComment } from './postcomment.schema';
+import { DataLog, DataLogSchema } from './data.log.schema';
 import { EventSchema } from './events.schema';
-import { PostSchema, Post } from './post.schema';
+import { User, UserSchema } from './user.schema';
+import { Post, PostSchema } from './post.schema'
+import { PostComment, PostCommentSchema } from './postcomment.schema'
 
 // All Schema Models
 export * from './data.log.schema';
-export * from './user.schema';
-export * from './postcomment.schema';
 export * from './events.schema';
-export * from './post.schema';
+export * from './user.schema';
 
 const SCHEMA_LIST = [
   { name: User.name, schema: UserSchema, dbPrefix: 'APP' },
@@ -48,14 +44,4 @@ export const SchemaProviders = SCHEMA_LIST.map((model) => ({
   inject: [`${model.name}Connection`],
 }));
 
-@Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      load: [configs],
-    }),
-  ],
-  providers: [...ConnectionProviders, ...SchemaProviders],
-  exports: [...ConnectionProviders, ...SchemaProviders, ConfigModule],
-} as any)
-export class DBModule {}
+export { DBModule } from './db.module';
