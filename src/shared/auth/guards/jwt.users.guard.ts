@@ -1,14 +1,13 @@
 import {
-  Injectable,
-  ExecutionContext,
   CanActivate,
+  ExecutionContext,
+  Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '../../interfaces';
+import { AuthGuard } from '@nestjs/passport';
 import { hasRequiredRoles } from 'src/shared/utils';
-
+import { UserRole } from '../../interfaces';
 
 @Injectable()
 export class JwtUsersGuard
@@ -35,9 +34,7 @@ export class JwtUsersGuard
 
       const userRoles: UserRole[] = payload.role;
 
-      if (
-        !hasRequiredRoles(userRoles, [UserRole.USER])
-      ) {
+      if (!hasRequiredRoles(userRoles, [UserRole.USER])) {
         throw new UnauthorizedException(
           'Invalid user roles, user must have event role',
         );
@@ -55,7 +52,6 @@ export class JwtUsersGuard
     const [type, token] = request.headers['authorization']?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
-
 
   // async canActivate(context: ExecutionContext): Promise<boolean> {
   //   await validateAccessTokenAfterRefreshOrRevoke(context);
