@@ -1,14 +1,25 @@
+import { faker } from '@faker-js/faker';
 import {
   BadRequestException,
   Inject,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { format } from 'date-fns';
+import { Exception } from 'handlebars';
 import { Model, Types } from 'mongoose';
-import { faker } from '@faker-js/faker';
-import { UserChangePasswordDto } from './dto/user-change-password.dto';
-import { UserAddPhotoDto } from './dto/user-add-photo.dto';
+import {} from 'src/shared/configs';
+import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
+import {
+  ApiReq,
+  ApplicationStatus,
+  EmailFromType,
+  RegistrationMethod,
+  UserRole,
+  UserStatus,
+  userStatuses,
+} from 'src/shared/interfaces';
 import { User, UserDocument } from 'src/shared/schema';
 import {
   BcryptUtil,
@@ -24,17 +35,10 @@ import {
   uploadToCloudinary,
   verifyHandle,
 } from 'src/shared/utils';
-import {
-  ApiReq,
-  ApplicationStatus,
-  EmailFromType,
-  UserRole,
-  UserStatus,
-} from 'src/shared/interfaces';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserAddPhotoDto } from './dto/user-add-photo.dto';
+import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserInviteDto } from './dto/user-invite.dto';
-import { format } from 'date-fns';
-import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
-import {} from 'src/shared/configs';
 @Injectable()
 export class UsersService {
   private readonly baseUrl = 'http://localhost:3888/docs/api/v1/leads';
@@ -115,6 +119,18 @@ export class UsersService {
       throw new NotFoundException(`User with email ${email} not found`);
     }
     return user;
+  }
+
+  async checkUserExists(email: string) {
+    try {
+      await this.findByEmail(email);
+      return true;
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        return false;
+      }
+      throw err;
+    }
   }
 
   async update(userId: string, payload: UpdateUserDto) {
@@ -418,30 +434,68 @@ export class UsersService {
   }
 
   // generate encrypted links
-  async inviteLead(email: string): Promise<string> {
-    const user = await this.userModel.findOne({ email: email });
-    const preFilledParams = {
-      userId: user ? user._id : '',
-      email: email,
-      firstName: user ? user.firstName : '',
-      lastName: user ? user.lastName : '',
-    };
+  // async inviteLead(email: string): Promise<string> {
+  //   const user = await this.userModel.findOne({ email: email });
+  //   const preFilledParams = {
+  //     userId: user ? user._id : '',
+  //     email: email,
+  //     firstName: user ? user.firstName : '',
+  //     lastName: user ? user.lastName : '',
+  //   };
 
-    const queryString = new URLSearchParams(preFilledParams as any).toString();
-    const encryptedParams = encrypt(queryString);
-    const fullLink = `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
-    sendMail({
-      to: email,
-      from: EmailFromType.HELLO,
-      subject: 'INVENTORS LEADS INVITE',
-      template: getMailTemplate().generalLeadRegistration,
-      templateVariables: {
-        email: email,
-        firstName: user.firstName,
-        link: fullLink,
-      },
-    });
-    return `Invite link[ ${fullLink} ] sent to ${email}`;
+  //   const queryString = new URLSearchParams(preFilledParams as any).toString();
+  //   const encryptedParams = encrypt(queryString);
+  //   const fullLink = `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
+  //   sendMail({
+  //     to: email,
+  //     from: EmailFromType.HELLO,
+  //     subject: 'INVENTORS LEADS INVITE',
+  //     template: getMailTemplate().generalLeadRegistration,
+  //     templateVariables: {
+  //       email: email,
+  //       firstName: user.firstName,
+  //       link: fullLink,
+  //     },
+  //   });
+  //   return `Invite link[ ${fullLink} ] sent to ${email}`;
+  // }
+
+  async inviteLead(email: string): Promise<{
+    message: string;
+    sent_status: boolean;
+  }> {
+    if (!email || email === '') {
+      throw new BadRequestException('lead email not provided');
+    }
+
+    const existing = await this.checkUserExists(email);
+    if (existing) {
+      throw new BadRequestException('user already exists');
+    }
+    // create a user (limited information)
+    const dummyPassword = await BcryptUtil.generateHash('inventors1234');
+    const userHandle = await (this.userModel as any).generateUserHandle(email);
+
+    try {
+      const newUser = this.userModel.create({
+        email,
+        password: dummyPassword,
+        firstName: 'placeholder',
+        lastName: 'User',
+        roles: [UserRole.LEAD],
+        joinMethod: RegistrationMethod.INVITATION,
+        status: UserStatus.PENDING,
+        userHandle,
+      });
+      console.log('new user: ', newUser);
+    } catch (err) {
+      throw new UnprocessableEntityException('failed to register user');
+    }
+
+    return {
+      message: 'User created',
+      sent_status: true,
+    };
   }
 
   // decode invite link

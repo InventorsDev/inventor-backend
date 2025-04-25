@@ -25,6 +25,7 @@ import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
 import { User, UserDocument } from 'src/shared/schema';
+import { createLeadDto } from './dto/lead-invite-dto';
 import { RejectApplicationDto } from './dto/reject-lead-application.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -263,18 +264,31 @@ export class UsersAdminsController {
     );
   }
 
-  // generate registration link
+  // // generate registration link
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAdminsGuard)
+  // @ApiOperation({
+  //   summary: 'send invite to user',
+  //   description: 'send an invitation email to new leads to register',
+  // })
+  // @Get('inviteLead/:email') // receive the email param
+  // async generateLink(@Param('email') email: string): Promise<{ link: string }> {
+  //   // generate and return the link
+  //   const link = await this.usersService.inviteLead(email);
+  //   return { link };
+  // }
+
+  // invite a lead
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
   @ApiOperation({
-    summary: 'send invite to user',
-    description: 'send an invitation email to new leads to register',
+    summary: 'send a lead invite to an email',
+    description:
+      'create a temp account with default/no password and send an invitation link to the email provided in the request',
   })
-  @Get('inviteLead/:email') // receive the email param
-  async generateLink(@Param('email') email: string): Promise<{ link: string }> {
-    // generate and return the link
-    const link = await this.usersService.inviteLead(email);
-    return { link };
+  @Post('lead/invite')
+  async inviteLead(@Body() body: createLeadDto) {
+    return this.usersService.inviteLead(body.email);
   }
 
   // view all leads
