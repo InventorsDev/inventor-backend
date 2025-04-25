@@ -1,36 +1,37 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  UseGuards,
-  Request,
-  Param,
+  Controller,
   Delete,
-  Put,
-  Patch,
+  Get,
   Inject,
+  Param,
+  Patch,
+  Post,
+  Put,
   Query,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { UsersService } from './users.service';
-import { User, UserDocument } from 'src/shared/schema';
 import { Model } from 'mongoose';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
-import { UserInviteDto } from './dto/user-invite.dto';
-import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
+import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
+import { User, UserDocument } from 'src/shared/schema';
+import { RejectApplicationDto } from './dto/reject-lead-application.dto';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
-import { RejectApplicationDto } from './dto/reject-lead-application.dto';
-import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { UserInviteDto } from './dto/user-invite.dto';
+import { UsersService } from './users.service';
 
 @ApiTags('admins')
 @Controller('admins')
@@ -51,12 +52,21 @@ export class UsersAdminsController {
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
   @Get('me')
+  @ApiOperation({
+    summary: 'get my info',
+    description: 'returns all the information about the user in json',
+  })
   getUserProfile(@Request() req: ApiReq) {
     return this.usersService.findMe(req);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
+  @ApiOperation({
+    summary: 'check exisiting email',
+    description:
+      'check if the email is a valid user email that exists on our database',
+  })
   @Get('users/lookup/:email')
   async findByUsername(@Param('email') email: string) {
     const user = await this.usersService.findByEmail(email);
@@ -66,6 +76,11 @@ export class UsersAdminsController {
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
   @Delete('users/:id')
+  @ApiOperation({
+    summary: 'delete a user',
+    description:
+      'Delete a user from the application and all their data. Note. As of now, data cannot be reocvered',
+  })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
@@ -170,8 +185,15 @@ export class UsersAdminsController {
     return this.usersService.requestVerification(req, userId);
   }
 
+  // TODO: since we're using JwT to pass and handle data on each request, why are we passing userId?
+  // also we seem to be reqiring that they pass in the user json data?
+  // @oyedeletemitope;
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
+  @ApiOperation({
+    summary: 'update user status',
+    description: 'changees the current status of the selected uerId',
+  })
   @Patch('users/:userId/status')
   async updateUserStatus(
     @Request() req: any,
@@ -184,6 +206,10 @@ export class UsersAdminsController {
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
   @ApiQuery({ name: 'email', description: 'user email' })
+  @ApiOperation({
+    summary: 'get a lead applicaiton',
+    description: 'finds a lead application using email.',
+  })
   @Get('lead/application/:email')
   async getApplicationByEmail(
     @Query('email') email: string,
@@ -193,6 +219,10 @@ export class UsersAdminsController {
 
   // list all lead applications
   @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'list all pending lead applications',
+    description: 'Get reqest searches for all active/pending lead applications',
+  })
   @UseGuards(JwtAdminsGuard)
   @Get('lead/applications')
   async viewApplications(): Promise<UserDocument[]> {
@@ -205,6 +235,11 @@ export class UsersAdminsController {
   @ApiParam({
     name: 'email',
     description: 'Email of the user application',
+  })
+  @ApiOperation({
+    summary: 'approve a lead application',
+    description:
+      'finds a pending lead application using the email query param and apporve that pending applicaton on that account',
   })
   @Patch('lead/:email/approve')
   async approveApplication(@Param('email') email: string): Promise<string> {
@@ -231,6 +266,10 @@ export class UsersAdminsController {
   // generate registration link
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
+  @ApiOperation({
+    summary: 'send invite to user',
+    description: 'send an invitation email to new leads to register',
+  })
   @Get('inviteLead/:email') // receive the email param
   async generateLink(@Param('email') email: string): Promise<{ link: string }> {
     // generate and return the link
