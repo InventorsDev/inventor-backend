@@ -2,17 +2,20 @@ import { ConfigService } from '@nestjs/config';
 import { Connection, ConnectOptions, createConnection } from 'mongoose';
 import { DataLog, DataLogSchema } from './data.log.schema';
 import { EventSchema } from './events.schema';
+import { InviteToken, InviteTokenSchema } from './invite-tokens.schema';
 import { User, UserSchema } from './user.schema';
 
 // All Schema Models
 export * from './data.log.schema';
 export * from './events.schema';
+export * from './invite-tokens.schema';
 export * from './user.schema';
 
 const SCHEMA_LIST = [
   { name: User.name, schema: UserSchema, dbPrefix: 'APP' },
   { name: Event.name, schema: EventSchema, dbPrefix: 'APP' },
   { name: DataLog.name, schema: DataLogSchema, dbPrefix: 'LOG' },
+  { name: InviteToken.name, schema: InviteTokenSchema, dbPrefix: 'APP' },
 ];
 
 export const CONNECTION = SCHEMA_LIST.reduce((result, data) => {

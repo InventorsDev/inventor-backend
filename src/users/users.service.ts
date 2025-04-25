@@ -6,6 +6,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
 import { Exception } from 'handlebars';
 import { Model, Types } from 'mongoose';
@@ -22,6 +23,10 @@ import {
 } from 'src/shared/interfaces';
 import { User, UserDocument } from 'src/shared/schema';
 import {
+  InviteToken,
+  TokenDocument,
+} from 'src/shared/schema/invite-tokens.schema';
+import {
   BcryptUtil,
   CloudinaryFolders,
   decrypt,
@@ -35,6 +40,7 @@ import {
   uploadToCloudinary,
   verifyHandle,
 } from 'src/shared/utils';
+import { buffer } from 'stream/consumers';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
@@ -45,6 +51,8 @@ export class UsersService {
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
+    @Inject(InviteToken.name)
+    private readonly inviteTokenModel: Model<TokenDocument>,
   ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
@@ -491,11 +499,25 @@ export class UsersService {
     } catch (err) {
       throw new UnprocessableEntityException('failed to register user');
     }
-
+    // generate token
+    const token = await this.generateRandomToken(email);
+    console.log('token ', token);
+    // save the new token in a new collection
     return {
       message: 'User created',
       sent_status: true,
     };
+  }
+
+  async generateRandomToken(email, length = 32) {
+    const token = Buffer.from(randomBytes(length).toString('hex'));
+    const inviteToken = new this.inviteTokenModel({
+      email,
+      token,
+      used: false,
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+    });
+    return inviteToken.save();
   }
 
   // decode invite link
