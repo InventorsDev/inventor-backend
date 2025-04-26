@@ -288,7 +288,13 @@ export class UsersAdminsController {
   })
   @Post('lead/invite')
   async inviteLead(@Body() body: createLeadDto) {
-    return this.usersService.inviteLead(body.email);
+    return await this.usersService.inviteLead(body.email);
+  }
+
+  // validate the invite lead token
+  @Get('lead/invite/accept')
+  async validateToken(@Query('token') token: string) {
+    return await this.usersService.validateToken(token);
   }
 
   // view all leads

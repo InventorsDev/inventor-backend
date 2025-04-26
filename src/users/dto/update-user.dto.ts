@@ -88,4 +88,9 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   userId: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  status?: string;
 }

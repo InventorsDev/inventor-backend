@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
+import { link } from 'fs';
 import { Exception } from 'handlebars';
 import { Model, Types } from 'mongoose';
 import {} from 'src/shared/configs';
@@ -47,7 +48,7 @@ import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserInviteDto } from './dto/user-invite.dto';
 @Injectable()
 export class UsersService {
-  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/leads';
+  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/lead';
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
@@ -154,6 +155,8 @@ export class UsersService {
       payload.userHandle = userHandle.toLowerCase().trim().replace(/@/g, '');
       await this.verifyUserHandle(updateData.userHandle, userId);
     }
+    // since invited leads join with the pending status, why not auto set status to active once they update
+    updateData.status = UserStatus.ACTIVE;
 
     if (photo) {
       updateData.photo = await uploadToCloudinary(
@@ -350,6 +353,7 @@ export class UsersService {
   }
 
   // create lead application for existing user
+  // TODO: I think this is unused now
   async createTempRegistration(
     email: string,
     leadPosition: string,
@@ -468,10 +472,7 @@ export class UsersService {
   //   return `Invite link[ ${fullLink} ] sent to ${email}`;
   // }
 
-  async inviteLead(email: string): Promise<{
-    message: string;
-    sent_status: boolean;
-  }> {
+  async inviteLead(email: string): Promise<string> {
     if (!email || email === '') {
       throw new BadRequestException('lead email not provided');
     }
@@ -483,10 +484,11 @@ export class UsersService {
     // create a user (limited information)
     const dummyPassword = await BcryptUtil.generateHash('inventors1234');
     const userHandle = await (this.userModel as any).generateUserHandle(email);
+    let token;
 
     try {
       const newUser = this.userModel.create({
-        email,
+        email: email.toLowerCase(),
         password: dummyPassword,
         firstName: 'placeholder',
         lastName: 'User',
@@ -496,17 +498,28 @@ export class UsersService {
         userHandle,
       });
       console.log('new user: ', newUser);
+
+      // generate token
+      token = await this.generateRandomToken(email);
+      console.log('token ', token);
     } catch (err) {
       throw new UnprocessableEntityException('failed to register user');
     }
-    // generate token
-    const token = await this.generateRandomToken(email);
-    console.log('token ', token);
-    // save the new token in a new collection
-    return {
-      message: 'User created',
-      sent_status: true,
-    };
+
+    // add the token as a link
+    const invite_link = `${this.baseUrl}/invite/accept?token=${token}`;
+    // send mail to user
+    await sendMail({
+      to: email,
+      from: EmailFromType.HELLO,
+      subject: 'INVENTORS COMMUNITY: Lead Invitation',
+      template: getMailTemplate().generalLeadRegistration,
+      templateVariables: {
+        link: invite_link,
+      },
+    });
+
+    return 'invite sent to user';
   }
 
   async generateRandomToken(email, length = 32) {
@@ -518,6 +531,35 @@ export class UsersService {
       expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
     });
     return inviteToken.save();
+  }
+
+  async validateToken(token: string): Promise<{
+    message: string;
+    email: string;
+  }> {
+    const foundToken = await this.inviteTokenModel.findOne({ token });
+    // return (
+    //   !!foundToken && !foundToken.used && foundToken.expiresAt > new Date()
+    // );
+    if (!foundToken) {
+      throw new BadRequestException('Invalid token expired');
+    }
+    if (foundToken.used) {
+      throw new BadRequestException('Token has already been used');
+    }
+    if (foundToken.expiresAt < new Date(Date.now())) {
+      console.log(`coparing ${foundToken.expiresAt} and ${new Date()}`);
+      throw new BadRequestException('Token is expired');
+    }
+
+    // mark the token as used
+    foundToken.used = true;
+    await foundToken.save();
+
+    return {
+      message: 'Token valid',
+      email: foundToken.email,
+    };
   }
 
   // decode invite link
