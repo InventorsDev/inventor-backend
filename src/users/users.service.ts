@@ -1,15 +1,32 @@
+import { faker } from '@faker-js/faker';
 import {
   BadRequestException,
   Inject,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { randomBytes } from 'crypto';
+import { format } from 'date-fns';
+import { link } from 'fs';
+import { Exception } from 'handlebars';
 import { Model, Types } from 'mongoose';
-import { faker } from '@faker-js/faker';
-import { UserChangePasswordDto } from './dto/user-change-password.dto';
-import { UserAddPhotoDto } from './dto/user-add-photo.dto';
+import {} from 'src/shared/configs';
+import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
+import {
+  ApiReq,
+  ApplicationStatus,
+  EmailFromType,
+  RegistrationMethod,
+  UserRole,
+  UserStatus,
+  userStatuses,
+} from 'src/shared/interfaces';
 import { User, UserDocument } from 'src/shared/schema';
+import {
+  InviteToken,
+  TokenDocument,
+} from 'src/shared/schema/invite-tokens.schema';
 import {
   BcryptUtil,
   CloudinaryFolders,
@@ -24,23 +41,19 @@ import {
   uploadToCloudinary,
   verifyHandle,
 } from 'src/shared/utils';
-import {
-  ApiReq,
-  ApplicationStatus,
-  EmailFromType,
-  UserRole,
-  UserStatus,
-} from 'src/shared/interfaces';
+import { buffer } from 'stream/consumers';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserAddPhotoDto } from './dto/user-add-photo.dto';
+import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserInviteDto } from './dto/user-invite.dto';
-import { format } from 'date-fns';
-import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
-import {} from 'src/shared/configs';
 @Injectable()
 export class UsersService {
-  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/leads';
+  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/lead';
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
+    @Inject(InviteToken.name)
+    private readonly inviteTokenModel: Model<TokenDocument>,
   ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
@@ -117,6 +130,18 @@ export class UsersService {
     return user;
   }
 
+  async checkUserExists(email: string) {
+    try {
+      await this.findByEmail(email);
+      return true;
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        return false;
+      }
+      throw err;
+    }
+  }
+
   async update(userId: string, payload: UpdateUserDto) {
     const { firstName, lastName, photo, userHandle } = payload;
     if (photo && !photo.includes('data:image')) {
@@ -130,6 +155,8 @@ export class UsersService {
       payload.userHandle = userHandle.toLowerCase().trim().replace(/@/g, '');
       await this.verifyUserHandle(updateData.userHandle, userId);
     }
+    // since invited leads join with the pending status, why not auto set status to active once they update
+    updateData.status = UserStatus.ACTIVE;
 
     if (photo) {
       updateData.photo = await uploadToCloudinary(
@@ -326,6 +353,7 @@ export class UsersService {
   }
 
   // create lead application for existing user
+  // TODO: I think this is unused now
   async createTempRegistration(
     email: string,
     leadPosition: string,
@@ -418,30 +446,120 @@ export class UsersService {
   }
 
   // generate encrypted links
-  async inviteLead(email: string): Promise<string> {
-    const user = await this.userModel.findOne({ email: email });
-    const preFilledParams = {
-      userId: user ? user._id : '',
-      email: email,
-      firstName: user ? user.firstName : '',
-      lastName: user ? user.lastName : '',
-    };
+  // async inviteLead(email: string): Promise<string> {
+  //   const user = await this.userModel.findOne({ email: email });
+  //   const preFilledParams = {
+  //     userId: user ? user._id : '',
+  //     email: email,
+  //     firstName: user ? user.firstName : '',
+  //     lastName: user ? user.lastName : '',
+  //   };
 
-    const queryString = new URLSearchParams(preFilledParams as any).toString();
-    const encryptedParams = encrypt(queryString);
-    const fullLink = `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
-    sendMail({
+  //   const queryString = new URLSearchParams(preFilledParams as any).toString();
+  //   const encryptedParams = encrypt(queryString);
+  //   const fullLink = `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
+  //   sendMail({
+  //     to: email,
+  //     from: EmailFromType.HELLO,
+  //     subject: 'INVENTORS LEADS INVITE',
+  //     template: getMailTemplate().generalLeadRegistration,
+  //     templateVariables: {
+  //       email: email,
+  //       firstName: user.firstName,
+  //       link: fullLink,
+  //     },
+  //   });
+  //   return `Invite link[ ${fullLink} ] sent to ${email}`;
+  // }
+
+  async inviteLead(email: string): Promise<string> {
+    if (!email || email === '') {
+      throw new BadRequestException('lead email not provided');
+    }
+
+    const existing = await this.checkUserExists(email);
+    if (existing) {
+      throw new BadRequestException('user already exists');
+    }
+    // create a user (limited information)
+    const dummyPassword = await BcryptUtil.generateHash('inventors1234');
+    const userHandle = await (this.userModel as any).generateUserHandle(email);
+    let token;
+
+    try {
+      const newUser = this.userModel.create({
+        email: email.toLowerCase(),
+        password: dummyPassword,
+        firstName: 'placeholder',
+        lastName: 'User',
+        roles: [UserRole.LEAD],
+        joinMethod: RegistrationMethod.INVITATION,
+        status: UserStatus.PENDING,
+        userHandle,
+      });
+      console.log('new user: ', newUser);
+
+      // generate token
+      token = await this.generateRandomToken(email);
+      console.log('token ', token);
+    } catch (err) {
+      throw new UnprocessableEntityException('failed to register user');
+    }
+
+    // add the token as a link
+    const invite_link = `${this.baseUrl}/invite/accept?token=${token}`;
+    // send mail to user
+    await sendMail({
       to: email,
       from: EmailFromType.HELLO,
-      subject: 'INVENTORS LEADS INVITE',
+      subject: 'INVENTORS COMMUNITY: Lead Invitation',
       template: getMailTemplate().generalLeadRegistration,
       templateVariables: {
-        email: email,
-        firstName: user.firstName,
-        link: fullLink,
+        link: invite_link,
       },
     });
-    return `Invite link[ ${fullLink} ] sent to ${email}`;
+
+    return 'invite sent to user';
+  }
+
+  async generateRandomToken(email, length = 32) {
+    const token = Buffer.from(randomBytes(length).toString('hex'));
+    const inviteToken = new this.inviteTokenModel({
+      email,
+      token,
+      used: false,
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+    });
+    return inviteToken.save();
+  }
+
+  async validateToken(token: string): Promise<{
+    message: string;
+    email: string;
+  }> {
+    const foundToken = await this.inviteTokenModel.findOne({ token });
+    // return (
+    //   !!foundToken && !foundToken.used && foundToken.expiresAt > new Date()
+    // );
+    if (!foundToken) {
+      throw new BadRequestException('Invalid token expired');
+    }
+    if (foundToken.used) {
+      throw new BadRequestException('Token has already been used');
+    }
+    if (foundToken.expiresAt < new Date(Date.now())) {
+      console.log(`coparing ${foundToken.expiresAt} and ${new Date()}`);
+      throw new BadRequestException('Token is expired');
+    }
+
+    // mark the token as used
+    foundToken.used = true;
+    await foundToken.save();
+
+    return {
+      message: 'Token valid',
+      email: foundToken.email,
+    };
   }
 
   // decode invite link
