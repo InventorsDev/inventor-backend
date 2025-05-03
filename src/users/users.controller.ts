@@ -1,22 +1,20 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
-  Patch,
+  InternalServerErrorException,
+  NotFoundException,
   Param,
-  UseGuards,
-  Request,
+  Patch,
+  Post,
   Put,
+  Query,
+  Redirect,
+  Request,
+  UseGuards,
   UsePipes,
   ValidationPipe,
-  Redirect,
-  Query,
-  NotFoundException,
-  InternalServerErrorException,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { UpdateUserDto } from './dto/update-user.dto';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -25,24 +23,26 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtUsersGuard } from 'src/shared/auth/guards/jwt.users.guard';
-import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
-import { UserChangePasswordDto } from './dto/user-change-password.dto';
-import { UserAddPhotoDto } from './dto/user-add-photo.dto';
+import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
 import { DeactivateAccountDto } from './dto/deactivate-account.dto';
 import { RequestReactivationDto } from './dto/request-reactivation.dto';
 import { TempLeadDto } from './dto/temp-lead.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserAddPhotoDto } from './dto/user-add-photo.dto';
+import { UserChangePasswordDto } from './dto/user-change-password.dto';
+import { UsersService } from './users.service';
 
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // i think this api call is elsewhere
-  @Post()
-  create(@Request() req: ApiReq, @Body() createUserDto: CreateUserDto) {
-    // return this.usersService.create(req, createUserDto);
-  }
+  // // i think this api call is elsewhere
+  // @Post()
+  // create(@Request() req: ApiReq, @Body() createUserDto: CreateUserDto) {
+  //   // return this.usersService.create(req, createUserDto);
+  // }
 
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)

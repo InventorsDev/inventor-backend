@@ -22,7 +22,13 @@ import {
   UserStatus,
   userStatuses,
 } from 'src/shared/interfaces';
-import { User, UserDocument } from 'src/shared/schema';
+import {
+  BasicInfo,
+  ContactInfo,
+  ProfessionalInfo,
+  User,
+  UserDocument,
+} from 'src/shared/schema';
 import {
   InviteToken,
   TokenDocument,
@@ -54,6 +60,12 @@ export class UsersService {
     private readonly userModel: Model<UserDocument>,
     @Inject(InviteToken.name)
     private readonly inviteTokenModel: Model<TokenDocument>,
+    @Inject(BasicInfo.name)
+    private readonly basicInfoModel: Model<BasicInfo>,
+    @Inject(ProfessionalInfo.name)
+    private readonly professionalInfoModel: Model<ProfessionalInfo>,
+    @Inject(ContactInfo.name)
+    private readonly contactInfoModel: Model<ContactInfo>,
   ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
@@ -81,12 +93,14 @@ export class UsersService {
     );
     const email = payload.email.trim().toLowerCase();
     return this.userModel.create({
-      firstName: firstCapitalize(payload.firstName.trim()),
-      lastName: firstCapitalize(payload.lastName.trim()),
-      password,
-      email,
-      emailVerification: true,
-      roles: [...new Set([...payload.roles, UserRole.USER])],
+      basic_info: {
+        firstName: firstCapitalize(payload.firstName.trim()),
+        lastName: firstCapitalize(payload.lastName.trim()),
+        password,
+        email,
+        emailVerification: true,
+        roles: [...new Set([...payload.roles, UserRole.USER])],
+      },
     });
   }
 
@@ -116,7 +130,12 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    return user;
+    const full_user = await this.userModel
+      .findById(id)
+      .populate('basicInfo')
+      .populate('professionalInfo')
+      .populate('contactInfo');
+    return full_user;
   }
 
   async findByEmail(email: string, project: any = {}): Promise<User> {
@@ -384,13 +403,18 @@ export class UsersService {
     } catch {
       return 'Error updating user';
     }
+    let user_details;
+    if (user.basicInfo) {
+      user_details = await this.basicInfoModel.findById(user.basicInfo).exec();
+    }
+
     await sendMail({
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Application Received',
       template: getMailTemplate().generalLeadRegistration,
       templateVariables: {
-        firstName: user.firstName,
+        firstName: user_details.firstName || '',
         position: leadPosition,
       },
     });
@@ -408,6 +432,15 @@ export class UsersService {
     if (!userApplication) {
       throw new NotFoundException(`Application for ${email} not found`);
     }
+    let user_details;
+    try {
+      user_details = await this.basicInfoModel.findById(
+        userApplication.basicInfo,
+      );
+    } catch (err) {
+      throw new BadRequestException(err, 'The user is not fully registered');
+    }
+
     userApplication.role = [UserRole.LEAD];
     userApplication.applicationStatus = ApplicationStatus.APPROVED;
     userApplication.save();
@@ -417,12 +450,12 @@ export class UsersService {
       subject: 'Lead Application Status',
       template: getMailTemplate().leadApplicationStauts,
       templateVariables: {
-        firstName: userApplication.firstName,
+        firstName: user_details.firstName || '',
         status: true,
         email: userApplication.email,
       },
     });
-    return `${userApplication.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
+    return `${user_details.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
   }
 
   // reject a lead application
@@ -444,33 +477,6 @@ export class UsersService {
     });
     return `${email} application has been rejected`;
   }
-
-  // generate encrypted links
-  // async inviteLead(email: string): Promise<string> {
-  //   const user = await this.userModel.findOne({ email: email });
-  //   const preFilledParams = {
-  //     userId: user ? user._id : '',
-  //     email: email,
-  //     firstName: user ? user.firstName : '',
-  //     lastName: user ? user.lastName : '',
-  //   };
-
-  //   const queryString = new URLSearchParams(preFilledParams as any).toString();
-  //   const encryptedParams = encrypt(queryString);
-  //   const fullLink = `${this.baseUrl}/invite-link?data=${encodeURIComponent(encryptedParams)}`;
-  //   sendMail({
-  //     to: email,
-  //     from: EmailFromType.HELLO,
-  //     subject: 'INVENTORS LEADS INVITE',
-  //     template: getMailTemplate().generalLeadRegistration,
-  //     templateVariables: {
-  //       email: email,
-  //       firstName: user.firstName,
-  //       link: fullLink,
-  //     },
-  //   });
-  //   return `Invite link[ ${fullLink} ] sent to ${email}`;
-  // }
 
   async inviteLead(email: string): Promise<string> {
     if (!email || email === '') {
@@ -522,7 +528,7 @@ export class UsersService {
     return 'invite sent to user';
   }
 
-  async generateRandomToken(email, length = 32) {
+  async generateRandomToken(email: string, length: number = 32) {
     const token = Buffer.from(randomBytes(length).toString('hex'));
     const inviteToken = new this.inviteTokenModel({
       email,
@@ -591,9 +597,9 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-  
+
     const now = new Date();
-  
+
     if (
       user.nextVerificationRequestDate &&
       now < user.nextVerificationRequestDate
@@ -603,16 +609,18 @@ export class UsersService {
         `You already submitted a request. Try again after ${retryDate}`,
       );
     }
-  
+
     if (user.applicationStatus === ApplicationStatus.APPROVED) {
       throw new BadRequestException('You are already verified.');
     }
-  
+
     // Update user state
     user.applicationStatus = ApplicationStatus.PENDING;
-    user.nextVerificationRequestDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days later (this was initially 3 months)
+    user.nextVerificationRequestDate = new Date(
+      Date.now() + 30 * 24 * 60 * 60 * 1000,
+    ); // 30 days later (this was initially 3 months)
     await user.save();
-  
+
     // Send confirmation to user
     await sendMail({
       to: user.email,
@@ -620,7 +628,8 @@ export class UsersService {
       subject: 'Your Verification Request Has Been Received',
       template: getMailTemplate().userVerificationAcknowledgement,
       templateVariables: {
-        firstName: user.firstName,
+        firstName: (await this.basicInfoModel.findById(user.basicInfo))
+          .firstName,
         nextTryDate: format(user.nextVerificationRequestDate, 'PPPP'),
       },
     });
@@ -630,7 +639,6 @@ export class UsersService {
       nextAllowedRequest: user.nextVerificationRequestDate,
     };
   }
-  
 
   // service for testing mail
   pingMail() {

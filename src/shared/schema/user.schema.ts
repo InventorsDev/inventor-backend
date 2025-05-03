@@ -1,17 +1,21 @@
-import { Prop, Schema, raw, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { faker } from '@faker-js/faker';
+import { BadRequestException } from '@nestjs/common';
+import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
+import mongoose, { HydratedDocument, Mongoose, Types } from 'mongoose';
+import { UserInviteDto } from 'src/users/dto/user-invite.dto';
+import { CreateUserDto } from '../dtos/create-user.dto';
+import { ApiReq, EmailFromType } from '../interfaces';
+import { JoinMethod } from '../interfaces/event.type';
 import {
+  ApplicationStatus,
   Contact,
   ContactRawSchema,
+  RegistrationMethod,
   Socials,
   SocialsRawSchema,
-  UserStatus,
   UserRole,
-  RegistrationMethod,
-  ApplicationStatus,
+  UserStatus,
 } from '../interfaces/user.type';
-import { ApiReq, EmailFromType } from '../interfaces';
-import { faker } from '@faker-js/faker';
 import {
   BcryptUtil,
   firstCapitalize,
@@ -22,50 +26,58 @@ import {
   redisSet,
   sendMail,
 } from '../utils';
-import { BadRequestException } from '@nestjs/common';
-import { CreateUserDto } from '../dtos/create-user.dto';
-import { UserInviteDto } from 'src/users/dto/user-invite.dto';
 
 export type UserDocument = HydratedDocument<User>;
 
+// example structure (request from frontend)
+// {
+//   _id: ObjectId,
+//   'email': string,
+//   'pssword': string,
+//   'role': string[],
+//   'basic_info':{
+//     'firstName': string,
+//     'lastName': string,
+//     'profileSummary': string,
+//     'phoneNumber': number,
+//     'country': {
+//       'location': 'info',
+//     },
+//     'city': "string"
+//   },
+//   'professional_info': {
+//     'jobTitle': string,
+//     'company': string,
+//     'yearsOfExperience': number,
+//     'school': string,
+//     'primarySkill': string,
+//     'secondarySkill': string,
+//     'technologies': string[],
+//     'interestAreas': string[],
+//   },
+//   'contact_info': {
+//     'linkedInUrl': string,
+//     'websiteUrl': string,
+//     'facebookUrl': string,
+//     'other': [], // [{github: xxxxx}, {skrill: xxxxx}, ...]
+//   },
+// }
+
 @Schema({ timestamps: true })
 export class User {
-  @Prop({ index: true })
-  firstName: string;
+  @Prop({ required: true, index: true, unique: true }) email: string;
 
-  @Prop({ index: true })
-  lastName: string;
+  @Prop({ required: true }) password: string;
 
-  @Prop({ required: true, index: true, unique: true })
-  email: string;
+  @Prop({ index: true, unique: true, required: true }) userHandle: string;
 
-  @Prop({ required: true })
-  password: string;
+  @Prop({
+    index: true,
+    default: [UserRole.USER],
+  })
+  role: UserRole[];
 
-  @Prop({ index: true })
-  profileSummary: string;
-
-  @Prop({ index: true })
-  jobTitle: string;
-
-  @Prop({ index: true })
-  currentCompany: string;
-
-  @Prop()
-  photo: string;
-
-  @Prop()
-  age: number;
-
-  @Prop({ index: true })
-  phone: string;
-
-  @Prop({ index: true, unique: true, required: true })
-  userHandle: string;
-
-  @Prop({ index: true })
-  gender: string;
-
+  // TODO: Asky why we still use coordinates for location data
   @Prop({
     type: {
       type: String,
@@ -82,21 +94,24 @@ export class User {
     coordinates: number[];
   };
 
+  // put this into a diff collectiona nd grab data from that
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'BasicInfo' })
+  basicInfo: mongoose.Types.ObjectId;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ProfessionalInfo' })
+  professoinalInfo: mongoose.Types.ObjectId;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ContactInfo' })
+  contactInfo: mongoose.Types.ObjectId;
+
   @Prop({ index: true })
   deviceId: string;
 
   @Prop({ index: true })
   deviceToken: string;
 
-  @Prop({
-    index: true,
-    default: [UserRole.USER],
-  })
-  role: UserRole[];
-
-  // added for lead application purposes
   @Prop({ required: false })
-  leadPosition: string;
+  leadPosition: string; // sole purpose of identifying leads || maybe change this into types
 
   @Prop({ index: true, required: false })
   applicationStatus: ApplicationStatus;
@@ -124,13 +139,6 @@ export class User {
 
   @Prop(raw(SocialsRawSchema))
   socials: Socials;
-
-  // TODO:: comment this guy out @stephano need to close this out
-  // @Prop({
-  //   index: true,
-  //   default: VerificationStatus.NOT_VERIFIED,
-  // })
-  // verificationStatus: VerificationStatus;
 
   @Prop({ type: Date })
   nextVerificationRequestDate: Date;
@@ -259,9 +267,15 @@ UserSchema.statics.generateUserHandle = async function generateUserHandle(
 
 UserSchema.statics.signUp = async function signUp(
   req: ApiReq,
-  createUserDto: CreateUserDto | UserInviteDto,
+  createUserDto: CreateUserDto,
   sso: boolean = false,
 ) {
+  // shifted user checke to happen before password is hasehd
+  const email = createUserDto.email.trim().toLowerCase();
+  const existingUser = await this.findOne({ email }, { _id: 1 });
+  if (existingUser) throw new BadRequestException('User already exists.');
+
+  // generate password
   let generatePassword: string;
   if ('password' in createUserDto) {
     const createUserDtoWithType = createUserDto as CreateUserDto;
@@ -269,48 +283,68 @@ UserSchema.statics.signUp = async function signUp(
   } else {
     generatePassword = faker.internet.password({ length: 5 }) + '$?wE';
   }
-  passwordMatch(generatePassword);
-
+  passwordMatch(generatePassword); // password validation || throws an error if incorrect
   const password = await BcryptUtil.generateHash(generatePassword);
-  const email = createUserDto.email.trim().toLowerCase();
 
-  const existingUser = await this.findOne({ email }, { _id: 1 });
-  if (existingUser) throw new BadRequestException('User already exists.');
+  const { email: m_email, ...rest } = createUserDto;
+  if ('password' in rest) {
+    delete rest.password;
+  }
 
-  const data: any = {
-    ...createUserDto,
+  // createnig subdocs
+  const basicInfoModel = mongoose.model('basicInfo');
+  const basic_info = await basicInfoModel.create({
     firstName: firstCapitalize(createUserDto.firstName.trim()),
     lastName: firstCapitalize(createUserDto.lastName.trim()),
+  });
+  // create placeholders
+  const professionalInfoModel = mongoose.model('professionalInfo');
+  const professional_info = await professionalInfoModel.create({});
+  const contactInfoModel = mongoose.model('contactInfo');
+  const contact_info = await contactInfoModel.create({});
+
+  // create user
+  const data: any = {
     email,
     password,
     role: [UserRole.USER],
+    JoinMethod: JoinMethod || RegistrationMethod.SIGN_UP,
+    basicInfo: basic_info._id,
+    professoinalInfo: professional_info._id,
+    contactInfo: contact_info._id,
   };
+
+  console.log('data to be saved: ', data);
 
   if (req.query.invitation === RegistrationMethod.INVITATION) {
     data.pendingInvitation = true;
   }
-
   data.userHandle = await (this as any).generateUserHandle(email);
+
+  // create the new data on the db
   const record = await this.create(data);
+
+  // coonfirm that the data was created and fetch that data (along with verify token response)
   const [details, user] = await Promise.all([
     sso
       ? []
       : (this as any).sendEmailVerificationToken(req, record._id.toString()),
-    this.findById(record._id.toString()),
+    this.findById(record._id.toString()).lean(), // using lean for plain js object
   ] as any);
 
-  sendMail({
-    to: data.email,
-    from: EmailFromType.HELLO,
-    subject: 'Welcome to Our Developer Community at Inventors!',
-    template: getMailTemplate().generalSignUp,
-    templateVariables: {
-      firstName: data.firstName,
-      lastName: user.lastName,
-      phoneNumber: user.phone,
-      email: data.email,
-    },
-  });
+  // TODO: commented out while testing
+  // sendMail({
+  //   to: data.email,
+  //   from: EmailFromType.HELLO,
+  //   subject: 'Welcome to Our Developer Community at Inventors!',
+  //   template: getMailTemplate().generalSignUp,
+  //   templateVariables: {
+  //     firstName: data.basic_info.firstName,
+  //     lastName: data.basic_info.lastName,
+  //     phoneNumber: data.basic_info.phone || undefined,
+  //     email: data.email,
+  //   },
+  // });
 
   return { ...details, ...user };
 };
