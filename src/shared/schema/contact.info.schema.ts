@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
+export type ContactInfoDocs = Document & ContactInfo;
+
 @Schema()
 export class ContactInfo extends Document {
   @Prop() linkedInUrl: string;

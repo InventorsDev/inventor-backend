@@ -39,25 +39,44 @@ export const CONNECTION = SCHEMA_LIST.reduce((result, data) => {
   return result;
 }, {} as any);
 
-export const ConnectionProviders = SCHEMA_LIST.map((model) => ({
-  provide: `${model.name}Connection`,
-  inject: [ConfigService],
-  useFactory: (config: ConfigService) => {
-    console.log('db prefix: ', model.dbPrefix);
-    const dbUriKey = process.env.Test
-      ? 'TEST_DATABASE_URL'
-      : `${model.dbPrefix.toUpperCase()}_DATABASE_URL`;
-    const deConfigOps = { autoIndex: false };
-    const configOps: ConnectOptions = config.get('dbConfig') || deConfigOps;
-    return createConnection(config.get(dbUriKey), configOps);
+// changed this to one becase it was causing load conflicts with the other dbs
+export const ConnectionProviders = [
+  {
+    provide: 'APP_CONNECTION',
+    inject: [ConfigService],
+    useFactory: (config: ConfigService) => {
+      const uriKey = process.env.Test
+        ? 'TEST_DATABASE_URL'
+        : 'APP_DATABASE_URL';
+      const configOps: ConnectOptions = config.get('dbConfig') || {
+        autoIndex: false,
+      };
+      return createConnection(config.get(uriKey), configOps);
+    },
   },
-}));
+  {
+    provide: 'LOG_CONNECTION',
+    inject: [ConfigService],
+    useFactory: (config: ConfigService) => {
+      const uriKey = process.env.Test
+        ? 'TEST_DATABASE_URL'
+        : 'LOG_DATABASE_URL';
+      const configOps: ConnectOptions = config.get('dbConfig') || {
+        autoIndex: false,
+      };
+      return createConnection(config.get(uriKey), configOps);
+    },
+  },
+];
 
-export const SchemaProviders = SCHEMA_LIST.map((model) => ({
-  provide: model.name,
-  useFactory: (connection: Connection & any) =>
-    connection.model(model.name, model.schema),
-  inject: [`${model.name}Connection`],
-}));
+export const SchemaProviders = SCHEMA_LIST.map((model) => {
+  const isLog = model.dbPrefix === 'LOG';
+  return {
+    provide: model.name,
+    useFactory: (connection: Connection) =>
+      connection.model(model.name, model.schema),
+    inject: [isLog ? 'LOG_CONNECTION' : 'APP_CONNECTION'],
+  };
+});
 
 export { DBModule } from './db.module';

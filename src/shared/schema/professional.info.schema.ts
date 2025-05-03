@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
+export type ProfessionalInfoDocs = Document & ProfessionalInfo;
+
 @Schema()
 export class ProfessionalInfo extends Document {
   @Prop() jobTitle: string;

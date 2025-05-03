@@ -99,7 +99,7 @@ export class User {
   basicInfo: mongoose.Types.ObjectId;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ProfessionalInfo' })
-  professoinalInfo: mongoose.Types.ObjectId;
+  professionalInfo: mongoose.Types.ObjectId;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ContactInfo' })
   contactInfo: mongoose.Types.ObjectId;
@@ -269,7 +269,17 @@ UserSchema.statics.signUp = async function signUp(
   req: ApiReq,
   createUserDto: CreateUserDto,
   sso: boolean = false,
+  injectedModels: {
+    BasicInfoModel: typeof mongoose.Model<any>;
+    ProfessionalInfoModel: typeof mongoose.Model<any>;
+    ContactInfoModel: typeof mongoose.Model<any>;
+  },
 ) {
+  if (!injectedModels) throw new BadRequestException('Models not provided');
+
+  const { BasicInfoModel, ProfessionalInfoModel, ContactInfoModel } =
+    injectedModels;
+
   // shifted user checke to happen before password is hasehd
   const email = createUserDto.email.trim().toLowerCase();
   const existingUser = await this.findOne({ email }, { _id: 1 });
@@ -292,25 +302,28 @@ UserSchema.statics.signUp = async function signUp(
   }
 
   // createnig subdocs
-  const basicInfoModel = mongoose.model('basicInfo');
-  const basic_info = await basicInfoModel.create({
+  // const basicInfoModel = mongoose.model('basicInfo');
+
+  const basic_info = await BasicInfoModel.create({
     firstName: firstCapitalize(createUserDto.firstName.trim()),
     lastName: firstCapitalize(createUserDto.lastName.trim()),
   });
   // create placeholders
-  const professionalInfoModel = mongoose.model('professionalInfo');
-  const professional_info = await professionalInfoModel.create({});
-  const contactInfoModel = mongoose.model('contactInfo');
-  const contact_info = await contactInfoModel.create({});
+  const professional_info = await ProfessionalInfoModel.create({
+    jobTitle: '',
+    company: '',
+    yearsOfExperience: 0,
+  });
+  const contact_info = await ContactInfoModel.create({});
 
   // create user
   const data: any = {
     email,
     password,
     role: [UserRole.USER],
-    JoinMethod: JoinMethod || RegistrationMethod.SIGN_UP,
+    joinMethod: createUserDto.joinMethod || RegistrationMethod.SIGN_UP,
     basicInfo: basic_info._id,
-    professoinalInfo: professional_info._id,
+    professionalInfo: professional_info._id,
     contactInfo: contact_info._id,
   };
 
@@ -325,12 +338,22 @@ UserSchema.statics.signUp = async function signUp(
   const record = await this.create(data);
 
   // coonfirm that the data was created and fetch that data (along with verify token response)
-  const [details, user] = await Promise.all([
-    sso
-      ? []
-      : (this as any).sendEmailVerificationToken(req, record._id.toString()),
-    this.findById(record._id.toString()).lean(), // using lean for plain js object
-  ] as any);
+  console.log('Created user ID:', record._id.toString());
+
+  const populatedUser = await this.findById(record._id.toString()).populate(
+    'basicInfo professionalInfo contactInfo',
+  );
+
+  console.log('Populated user:', populatedUser);
+
+  // const [details, user] = await Promise.all([
+  //   sso
+  //     ? []
+  //     : (this as any).sendEmailVerificationToken(req, record._id.toString()),
+  //   this.findById(record._id.toString())
+  //     .populate('basicInfo professionalInfo contactInfo')
+  //     .lean(), // using lean for plain js object
+  // ] as any);
 
   // TODO: commented out while testing
   // sendMail({
@@ -346,5 +369,6 @@ UserSchema.statics.signUp = async function signUp(
   //   },
   // });
 
-  return { ...details, ...user };
+  // return { ...details, ...user };
+  return populatedUser;
 };

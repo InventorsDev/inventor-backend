@@ -1,22 +1,31 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
+  Inject,
   Param,
+  Post,
   Request,
   UseGuards,
-  Inject,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { ApiReq } from '../interfaces/req.type';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Model } from 'mongoose';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { UserLoginDto } from '../dtos/user-login.dto';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { LocalUsersGuard } from './guards/local.users.guard';
+import { ApiReq } from '../interfaces/req.type';
+import {
+  BasicInfo,
+  BasicInfoDoc,
+  ContactInfo,
+  ContactInfoDocs,
+  ProfessionalInfo,
+  ProfessionalInfoDocs,
+  User,
+  UserDocument,
+} from '../schema';
+import { AuthService } from './auth.service';
 import { JwtUsersGuard } from './guards/jwt.users.guard';
-import { User, UserDocument } from '../schema';
-import { Model } from 'mongoose';
+import { LocalUsersGuard } from './guards/local.users.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -24,12 +33,22 @@ export class AuthController {
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
+    @Inject(BasicInfo.name)
+    private readonly basicInfoModel: Model<BasicInfoDoc>,
+    @Inject(ProfessionalInfo.name)
+    private readonly professionalInfoModel: Model<ProfessionalInfoDocs>,
+    @Inject(ContactInfo.name)
+    private readonly contactInfoModel: Model<ContactInfoDocs>,
     private readonly authService: AuthService,
   ) {}
 
   @Post('register')
   register(@Request() req: ApiReq, @Body() createAuthDto: CreateUserDto) {
-    return (this.userModel as any).signUp(req, createAuthDto);
+    return (this.userModel as any).signUp(req, createAuthDto, false, {
+      BasicInfoModel: this.basicInfoModel,
+      ProfessionalInfoModel: this.professionalInfoModel,
+      ContactInfoModel: this.contactInfoModel,
+    });
   }
 
   @UseGuards(LocalUsersGuard)
