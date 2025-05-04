@@ -302,8 +302,6 @@ UserSchema.statics.signUp = async function signUp(
   }
 
   // createnig subdocs
-  // const basicInfoModel = mongoose.model('basicInfo');
-
   const basic_info = await BasicInfoModel.create({
     firstName: firstCapitalize(createUserDto.firstName.trim()),
     lastName: firstCapitalize(createUserDto.lastName.trim()),
@@ -321,6 +319,7 @@ UserSchema.statics.signUp = async function signUp(
     email,
     password,
     role: [UserRole.USER],
+    location: createUserDto.location,
     joinMethod: createUserDto.joinMethod || RegistrationMethod.SIGN_UP,
     basicInfo: basic_info._id,
     professionalInfo: professional_info._id,
@@ -338,22 +337,14 @@ UserSchema.statics.signUp = async function signUp(
   const record = await this.create(data);
 
   // coonfirm that the data was created and fetch that data (along with verify token response)
-  console.log('Created user ID:', record._id.toString());
-
-  const populatedUser = await this.findById(record._id.toString()).populate(
-    'basicInfo professionalInfo contactInfo',
-  );
-
-  console.log('Populated user:', populatedUser);
-
-  // const [details, user] = await Promise.all([
-  //   sso
-  //     ? []
-  //     : (this as any).sendEmailVerificationToken(req, record._id.toString()),
-  //   this.findById(record._id.toString())
-  //     .populate('basicInfo professionalInfo contactInfo')
-  //     .lean(), // using lean for plain js object
-  // ] as any);
+  const [details, user] = await Promise.all([
+    sso
+      ? []
+      : (this as any).sendEmailVerificationToken(req, record._id.toString()),
+    this.findById(record._id.toString())
+      .populate('basicInfo professionalInfo contactInfo')
+      .lean(), // using lean for plain js object
+  ] as any);
 
   // TODO: commented out while testing
   // sendMail({
@@ -369,6 +360,5 @@ UserSchema.statics.signUp = async function signUp(
   //   },
   // });
 
-  // return { ...details, ...user };
-  return populatedUser;
+  return { ...details, ...user };
 };
