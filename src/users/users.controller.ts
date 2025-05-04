@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   InternalServerErrorException,
   NotFoundException,
   Param,
@@ -22,27 +23,24 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { Model } from 'mongoose';
 import { JwtUsersGuard } from 'src/shared/auth/guards/jwt.users.guard';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
+import { User, UserDocument } from 'src/shared/schema';
 import { DeactivateAccountDto } from './dto/deactivate-account.dto';
 import { RequestReactivationDto } from './dto/request-reactivation.dto';
 import { TempLeadDto } from './dto/temp-lead.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
+import { UserInviteDto } from './dto/user-invite.dto';
 import { UsersService } from './users.service';
 
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
-
-  // // i think this api call is elsewhere
-  // @Post()
-  // create(@Request() req: ApiReq, @Body() createUserDto: CreateUserDto) {
-  //   // return this.usersService.create(req, createUserDto);
-  // }
 
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
@@ -172,19 +170,14 @@ export class UsersController {
     }
   }
 
-  // handle unregistered user lead appplication
-  @Post('new-user-form')
-  @ApiOperation({ summary: 'Create a new user and makes them a lead' })
-  async newUserForm(@Body() userData: CreateUserDto): Promise<{ url: string }> {
-    try {
-      const user = await this.usersService.createUser(userData);
-      return {
-        url: `/leads/create?email=${user.email}`,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to create user');
-    }
+  @Post('invite/complete-invite/')
+  async completeProfile(
+    @Body() body: UserInviteDto,
+    @Query('token') token: string,
+  ) {
+    return this.usersService.completeProfile(body, token);
   }
+
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
   @Patch(':userId/request-verification')

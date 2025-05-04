@@ -5,6 +5,7 @@ export type ContactInfoDocs = Document & ContactInfo;
 
 @Schema()
 export class ContactInfo extends Document {
+  @Prop() phone: string;
   @Prop() linkedInUrl: string;
   @Prop() websiteUrl: string;
   @Prop() facebookUrl: string;

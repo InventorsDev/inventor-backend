@@ -54,7 +54,7 @@ import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserInviteDto } from './dto/user-invite.dto';
 @Injectable()
 export class UsersService {
-  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/lead';
+  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/';
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
@@ -87,22 +87,22 @@ export class UsersService {
     }
   }
 
-  async userInvite(payload: UserInviteDto): Promise<User> {
-    const password = await BcryptUtil.generateHash(
-      faker.internet.password(5) + '$?wE',
-    );
-    const email = payload.email.trim().toLowerCase();
-    return this.userModel.create({
-      basic_info: {
-        firstName: firstCapitalize(payload.firstName.trim()),
-        lastName: firstCapitalize(payload.lastName.trim()),
-        password,
-        email,
-        emailVerification: true,
-        roles: [...new Set([...payload.roles, UserRole.USER])],
-      },
-    });
-  }
+  // async userInvite(payload: UserInviteDto): Promise<User> {
+  //   const password = await BcryptUtil.generateHash(
+  //     faker.internet.password(5) + '$?wE',
+  //   );
+  //   const email = payload.email.trim().toLowerCase();
+  //   return this.userModel.create({
+  //     basic_info: {
+  //       firstName: firstCapitalize(payload.firstName.trim()),
+  //       lastName: firstCapitalize(payload.lastName.trim()),
+  //       password,
+  //       email,
+  //       emailVerification: true,
+  //       roles: [...new Set([...payload.roles, UserRole.USER])],
+  //     },
+  //   });
+  // }
 
   async findAll(req: ApiReq) {
     const { page, currentLimit, skip, order, dbQuery } = getPagingParams(req);
@@ -286,7 +286,6 @@ export class UsersService {
       { email: decodeURIComponent(email.trim()).toLowerCase() },
       {
         _id: 1,
-        firstName: 1,
         password: 1,
         email: 1,
       },
@@ -320,7 +319,7 @@ export class UsersService {
           lean: true,
         },
       )
-      .select('email firstName lastName');
+      .select('email');
   }
 
   async updateStatus(userId: string, status: UserStatus): Promise<User> {
@@ -372,7 +371,6 @@ export class UsersService {
   }
 
   // create lead application for existing user
-  // TODO: I think this is unused now
   async createTempRegistration(
     email: string,
     leadPosition: string,
@@ -478,6 +476,7 @@ export class UsersService {
     return `${email} application has been rejected`;
   }
 
+  // invite a new user (lead)
   async inviteLead(email: string): Promise<string> {
     if (!email || email === '') {
       throw new BadRequestException('lead email not provided');
@@ -493,11 +492,30 @@ export class UsersService {
     let token;
 
     try {
+      // create basic Info
+      const basicInfo = await this.basicInfoModel.create({
+        firstName: '',
+        lastName: '',
+      });
+
+      // create professional info
+      const professionalInfo = await this.professionalInfoModel.create({
+        jobTitle: '',
+        company: '',
+        yearsOfExperience: 0,
+      });
+
+      // create contact info
+      const contactInfo = await this.contactInfoModel.create({
+        other: [],
+      });
+
       const newUser = this.userModel.create({
         email: email.toLowerCase(),
         password: dummyPassword,
-        firstName: 'placeholder',
-        lastName: 'User',
+        basicInfo: basicInfo._id,
+        professionalInfo: professionalInfo._id,
+        contactInfo: contactInfo._id,
         roles: [UserRole.LEAD],
         joinMethod: RegistrationMethod.INVITATION,
         status: UserStatus.PENDING,
@@ -513,7 +531,8 @@ export class UsersService {
     }
 
     // add the token as a link
-    const invite_link = `${this.baseUrl}/invite/accept?token=${token}`;
+    const invite_link = `${this.baseUrl}usersinvite/complete-invite?token=${token}`; // TODO: make this mimic the main url
+
     // send mail to user
     await sendMail({
       to: email,
@@ -539,33 +558,53 @@ export class UsersService {
     return inviteToken.save();
   }
 
-  async validateToken(token: string): Promise<{
-    message: string;
-    email: string;
-  }> {
-    const foundToken = await this.inviteTokenModel.findOne({ token });
-    // return (
-    //   !!foundToken && !foundToken.used && foundToken.expiresAt > new Date()
-    // );
-    if (!foundToken) {
-      throw new BadRequestException('Invalid token expired');
+  // complete profile link
+  async completeProfile(data: UserInviteDto, token: string): Promise<string> {
+    const tokenDoc = await this.inviteTokenModel.findOne({ token: token });
+    if (!tokenDoc || tokenDoc.used || tokenDoc.expiresAt < new Date()) {
+      throw new BadRequestException('Token is invalid or expired');
     }
-    if (foundToken.used) {
-      throw new BadRequestException('Token has already been used');
+
+    const user = await this.userModel.findOne({ email: tokenDoc.email });
+    if (!user || user.status !== UserStatus.PENDING) {
+      throw new BadRequestException('No pending user found');
     }
-    if (foundToken.expiresAt < new Date(Date.now())) {
-      console.log(`coparing ${foundToken.expiresAt} and ${new Date()}`);
-      throw new BadRequestException('Token is expired');
-    }
+
+    const hashedPassword = await BcryptUtil.generateHash(data.password);
+
+    await this.basicInfoModel.findByIdAndUpdate(user.basicInfo, {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      gender: data.gender,
+      age: data.age,
+    });
+
+    await this.professionalInfoModel.findByIdAndUpdate(user.professionalInfo, {
+      jobTitle: data.jobTitle,
+      company: data.company,
+      yearsOfExperience: data.yearsOfExperience,
+      technologies: data.technologies,
+    });
+
+    await this.contactInfoModel.findByIdAndUpdate(user.contactInfo, {
+      linkedInUrl: data.linkedinUrl,
+      github: data.githubUrl,
+      phone: data.phone,
+    });
+
+    user.password = hashedPassword;
+    user.role = [UserRole.LEAD];
+    user.status = UserStatus.ACTIVE;
+    user.emailVerification = true;
+    user.joinMethod = RegistrationMethod.INVITATION;
+    user.deviceId = data.deviceId;
+    user.deviceToken = data.deviceToken;
+
+    await user.save();
 
     // mark the token as used
-    foundToken.used = true;
-    await foundToken.save();
 
-    return {
-      message: 'Token valid',
-      email: foundToken.email,
-    };
+    return 'profile completed successfully';
   }
 
   // decode invite link

@@ -10,6 +10,8 @@ export class BasicInfo extends Document {
   @Prop() lastName: string;
   @Prop() profileSummary: string;
   @Prop() phoneNumber: number;
+  @Prop() gender: string;
+  @Prop() age: number;
   @Prop({ type: Object }) country: { location: string };
   @Prop() city: string;
 }

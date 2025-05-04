@@ -43,12 +43,12 @@ export class UsersAdminsController {
     private readonly usersService: UsersService,
   ) {}
 
-  @ApiBearerAuth()
-  @UseGuards(JwtAdminsGuard)
-  @Post('/')
-  async userInvite(@Body() payload: UserInviteDto) {
-    return this.usersService.userInvite(payload);
-  }
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAdminsGuard)
+  // @Post('/')
+  // async userInvite(@Body() payload: UserInviteDto) {
+  //   return this.usersService.userInvite(payload);
+  // }
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
@@ -264,20 +264,6 @@ export class UsersAdminsController {
     );
   }
 
-  // // generate registration link
-  // @ApiBearerAuth()
-  // @UseGuards(JwtAdminsGuard)
-  // @ApiOperation({
-  //   summary: 'send invite to user',
-  //   description: 'send an invitation email to new leads to register',
-  // })
-  // @Get('inviteLead/:email') // receive the email param
-  // async generateLink(@Param('email') email: string): Promise<{ link: string }> {
-  //   // generate and return the link
-  //   const link = await this.usersService.inviteLead(email);
-  //   return { link };
-  // }
-
   // invite a lead
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
@@ -291,11 +277,11 @@ export class UsersAdminsController {
     return await this.usersService.inviteLead(body.email);
   }
 
-  // validate the invite lead token
-  @Get('lead/invite/accept')
-  async validateToken(@Query('token') token: string) {
-    return await this.usersService.validateToken(token);
-  }
+  // // validate the invite lead token
+  // @Get('lead/invite/accept')
+  // async validateToken(@Query('token') token: string) {
+  //   return await this.usersService.validateToken(token);
+  // }
 
   // view all leads
   @Get()
