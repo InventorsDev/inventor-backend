@@ -148,10 +148,15 @@ export const UserSchema = SchemaFactory.createForClass(User);
 
 UserSchema.statics.sendEmailVerificationToken =
   async function sendEmailVerificationToken(req: ApiReq, userId: string) {
-    const user = await this.findById(new Types.ObjectId(userId), {
-      email: 1,
-      firstName: 1,
-    });
+    const user = await this.findById(new Types.ObjectId(userId))
+      .select('email basicInfo')
+      .populate({
+        path: 'basicInfo',
+        select: 'firstname',
+      });
+
+    if (!user) throw new BadRequestException('User not found');
+    const firstName = user.basicInfo?.firstName || '[name]';
     const emailVerificationKey = `inventors:users:email:verification:${userId}`;
     const token = faker.datatype.number({ min: 100_000, max: 999_999 });
     await redisSet(
@@ -171,7 +176,7 @@ UserSchema.statics.sendEmailVerificationToken =
       template: getMailTemplate().generalEmailVerification,
       templateVariables: {
         userId: user?._id?.toString(),
-        firstName: user.firstName,
+        firstName: firstName,
         email: user.email,
         emailVerificationUrl,
         emailVerificationCode: token,
@@ -203,26 +208,35 @@ UserSchema.statics.verifyEmail = async function verifyEmail(userId, token) {
 UserSchema.statics.forgetPassword = async function forgetPassword(
   email: string,
 ) {
-  const user = await this.findOne(
-    { email: decodeURIComponent(email.trim()).toLowerCase() },
-    {
-      _id: 1,
-      firstName: 1,
-      password: 1,
-      email: 1,
-    },
-  );
+  const sanitizedEmail = decodeURIComponent(email.trim()).toLowerCase();
 
-  if (!user)
-    throw new BadRequestException(
-      'Email supplied cannot be found to effect password change.',
-    );
+  const user = await this.findOne({ email: sanitizedEmail })
+    .select('_id email password basicInfo')
+    .populate({
+      path: 'basicInfo',
+      select: 'firstName',
+    });
 
-  const newPassword = faker.internet.password(5) + '$?wE';
+  if (!user) throw new BadRequestException('Email Not Registered to Any User');
+
+  const newPassword =
+    faker.internet.password({
+      length: 8,
+      memorable: false,
+      pattern: /[A-Za-z0-9]/,
+    }) + '$?wE';
   const password = await BcryptUtil.generateHash(newPassword);
 
-  console.log('Password', newPassword, password);
+  const firstName = user.basicInfo?.firstName || '[name]';
 
+  console.log('Password', newPassword, password);
+  console.log('firstName: ', firstName);
+
+  // save the password
+  user.password = password;
+  await user.save();
+
+  // sennd reset mail
   sendMail({
     to: user.email,
     from: EmailFromType.HELLO,
@@ -230,19 +244,16 @@ UserSchema.statics.forgetPassword = async function forgetPassword(
     template: getMailTemplate().generalPasswordChange,
     templateVariables: {
       password: newPassword,
-      firstName: user.firstName,
+      firstName: firstName,
       email: user.email,
     },
   });
 
-  return this.findOneAndUpdate(
-    { _id: user._id },
-    { $set: { password } },
-    {
-      new: true,
-      lean: true,
-    },
-  ).select('email firstName lastName');
+  return {
+    email: user.email,
+    firstName,
+    message: 'password successfully changed',
+  };
 };
 
 UserSchema.statics.generateUserHandle = async function generateUserHandle(
