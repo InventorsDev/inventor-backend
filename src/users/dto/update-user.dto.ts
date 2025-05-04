@@ -1,96 +1,126 @@
-import { BadRequestException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsArray,
-  IsDefined,
-  IsEmail,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  ValidateIf,
-} from 'class-validator';
-import { UserRole, userRoles } from 'src/shared/interfaces';
-import { validateNumber } from 'src/shared/utils';
+import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
 
-export class UpdateUserDto {
+class CountryDto {
   @ApiProperty()
   @IsString()
   @IsOptional()
-  @IsNotEmpty()
+  location: string;
+}
+class BasicInfoDto {
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
   firstName?: string;
 
   @ApiProperty()
-  @IsString()
   @IsOptional()
-  @IsNotEmpty()
+  @IsString()
   lastName?: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  @IsOptional()
-  userHandle?: string;
-
-  @ApiProperty({ enumName: 'RoleInviteType', enum: UserRole })
-  @IsOptional()
-  @IsDefined()
-  @IsArray()
-  @IsNotEmpty()
-  @ValidateIf((data) => {
-    const isValidRole = data.roles.every((role) => userRoles.includes(role));
-    if (!isValidRole) {
-      throw new BadRequestException('Please supply valid role types');
-    }
-    return true;
-  })
-  roles?: UserRole[];
+  profileSummary?: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   @IsOptional()
-  photo?: string;
+  @IsNumber()
+  phoneNumber?: number;
+
+  @ApiProperty({ type: () => CountryDto })
+  @IsOptional()
+  country?: CountryDto;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
+  @IsString()
+  city?: string;
+}
+
+class ProfessionalInfoDto {
+  @ApiProperty()
+  @IsString()
+  @IsOptional()
+  jobTitle?: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsOptional()
+  company?: string;
+
+  @ApiProperty()
   @IsNumber()
   @IsOptional()
-  age?: number;
+  yearsOfExperience?: number;
 
   @ApiProperty()
-  @IsNotEmpty()
   @IsString()
   @IsOptional()
-  @ValidateIf((data) => validateNumber(data.phone))
-  phone?: string;
+  school?: string;
 
   @ApiProperty()
-  @IsNotEmpty()
   @IsString()
   @IsOptional()
-  gender?: string;
+  primarySkill?: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsOptional()
   @IsString()
-  deviceId?: string;
+  @IsOptional()
+  secondarySkill?: string;
 
   @ApiProperty()
-  @IsNotEmpty()
   @IsOptional()
-  @IsString()
-  deviceToken?: string;
+  technologies?: string[];
 
   @ApiProperty()
-  @IsNotEmpty()
   @IsOptional()
-  @IsString()
-  userId: string;
+  interestAreas?: string[];
+}
+class ContactInfoDto {
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  phone?: number;
 
   @ApiProperty()
   @IsOptional()
   @IsString()
-  status?: string;
+  linkedInUrl?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  websiteUrl?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  facebookUrl?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsArray()
+  other?: any[];
+}
+export class UpdateUserDto {
+  @IsOptional()
+  @ApiProperty()
+  email?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  password?: string;
+
+  @ApiProperty({ type: () => BasicInfoDto })
+  @IsOptional()
+  basic_info?: BasicInfoDto;
+
+  @ApiProperty({ type: () => ProfessionalInfoDto })
+  @IsOptional()
+  professional_info?: ProfessionalInfoDto;
+
+  @ApiProperty({ type: () => ContactInfoDto })
+  @IsOptional()
+  contact_info?: ContactInfoDto;
 }

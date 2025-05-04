@@ -3,6 +3,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -87,23 +88,6 @@ export class UsersService {
     }
   }
 
-  // async userInvite(payload: UserInviteDto): Promise<User> {
-  //   const password = await BcryptUtil.generateHash(
-  //     faker.internet.password(5) + '$?wE',
-  //   );
-  //   const email = payload.email.trim().toLowerCase();
-  //   return this.userModel.create({
-  //     basic_info: {
-  //       firstName: firstCapitalize(payload.firstName.trim()),
-  //       lastName: firstCapitalize(payload.lastName.trim()),
-  //       password,
-  //       email,
-  //       emailVerification: true,
-  //       roles: [...new Set([...payload.roles, UserRole.USER])],
-  //     },
-  //   });
-  // }
-
   async findAll(req: ApiReq) {
     const { page, currentLimit, skip, order, dbQuery } = getPagingParams(req);
     const [records, count] = await Promise.all([
@@ -162,38 +146,74 @@ export class UsersService {
   }
 
   async update(userId: string, payload: UpdateUserDto) {
-    const { firstName, lastName, photo, userHandle } = payload;
-    if (photo && !photo.includes('data:image')) {
-      throw new BadRequestException('Photo must include a data image');
+    const user = await this.userModel
+      .findById(userId)
+      .select('basicInfo professionalInfo contactInfo');
+    if (!user) throw new NotFoundException('User not Found');
+
+    const session = await this.userModel.startSession();
+    session.startTransaction();
+    try {
+      const updateTasks: Promise<any>[] = [];
+
+      // top level fields
+      if (payload.email) {
+        updateTasks.push(
+          this.userModel.findByIdAndUpdate(userId, { email: payload.email }),
+        );
+      }
+      if (payload.password) {
+        const hashed = BcryptUtil.generateHash(payload.password);
+        updateTasks.push(
+          this.userModel.findByIdAndUpdate(userId, { password: hashed }),
+        );
+      }
+
+      // submodels
+      if (payload.basic_info) {
+        updateTasks.push(
+          this.basicInfoModel.findByIdAndUpdate(
+            user.basicInfo,
+            payload.basic_info,
+          ),
+        );
+      }
+      if (payload.professional_info) {
+        updateTasks.push(
+          this.professionalInfoModel.findByIdAndUpdate(
+            user.professionalInfo,
+            payload.professional_info,
+          ),
+        );
+      }
+      if (payload.contact_info) {
+        updateTasks.push(
+          this.contactInfoModel.findByIdAndUpdate(
+            user.contactInfo,
+            payload.contact_info,
+          ),
+        );
+      }
+      await Promise.all(updateTasks);
+    } catch (err) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException('failed to update user');
+    } finally {
+      session.endSession();
     }
 
-    const updateData = payload;
-    if (firstName) payload.firstName = firstCapitalize(firstName.trim());
-    if (lastName) payload.lastName = firstCapitalize(lastName.trim());
-    if (userHandle) {
-      payload.userHandle = userHandle.toLowerCase().trim().replace(/@/g, '');
-      await this.verifyUserHandle(updateData.userHandle, userId);
-    }
-    // since invited leads join with the pending status, why not auto set status to active once they update
-    updateData.status = UserStatus.ACTIVE;
-
-    if (photo) {
-      updateData.photo = await uploadToCloudinary(
-        photo,
-        CloudinaryFolders.PHOTOS,
-      );
-    }
-
-    return this.userModel
-      .findOneAndUpdate(
-        { _id: new Types.ObjectId(userId) },
-        { $set: updateData },
-        {
-          new: true,
-          lean: true,
-        },
-      )
-      .select('-password');
+    // get new user info
+    const updatedUser = await this.userModel
+      .findById(userId)
+      .populate('basicInfo')
+      .populate('professionalInfo')
+      .populate('contactInfo')
+      .lean();
+    if (updatedUser) delete updatedUser.password;
+    return {
+      message: 'User updated successfully',
+      data: updatedUser,
+    };
   }
 
   async addPhoto(userId: string, payload: UserAddPhotoDto): Promise<User> {
@@ -218,14 +238,20 @@ export class UsersService {
   }
 
   async findMe(req: ApiReq): Promise<User> {
-    return await this.userModel
-      .findOne(
-        { _id: new Types.ObjectId(req.user._id.toString()) },
-        {},
-        { lean: true },
-      )
+    const user = await this.userModel
+      .findOne({ _id: new Types.ObjectId(req.user._id.toString()) })
       .select('-password')
+      .populate('basicInfo')
+      .populate('professionalInfo')
+      .populate('contactInfo')
+      .lean()
       .exec();
+
+    if (!user) {
+      throw new NotFoundException('User information not found');
+    }
+
+    return user;
   }
 
   async changePassword(

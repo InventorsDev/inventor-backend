@@ -56,6 +56,7 @@ export type UserDocument = HydratedDocument<User>;
 //     'interestAreas': string[],
 //   },
 //   'contact_info': {
+//     'phone': number,
 //     'linkedInUrl': string,
 //     'websiteUrl': string,
 //     'facebookUrl': string,
