@@ -7,7 +7,9 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
 import { hasRequiredRoles } from 'src/shared/utils';
+
 import { UserRole } from '../../interfaces';
+
 
 @Injectable()
 export class JwtUsersGuard
