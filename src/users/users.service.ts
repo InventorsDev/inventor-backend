@@ -591,7 +591,11 @@ export class UsersService {
       throw new BadRequestException('Token is invalid or expired');
     }
 
-    const user = await this.userModel.findOne({ email: tokenDoc.email });
+    console.log(tokenDoc);
+
+    const user = await this.userModel.findOne({
+      email: tokenDoc.email.toLowerCase(),
+    });
     if (!user || user.status !== UserStatus.PENDING) {
       throw new BadRequestException('No pending user found');
     }
@@ -629,6 +633,8 @@ export class UsersService {
     await user.save();
 
     // mark the token as used
+    tokenDoc.used = true;
+    tokenDoc.save();
 
     return 'profile completed successfully';
   }
