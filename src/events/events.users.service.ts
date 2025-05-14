@@ -12,7 +12,7 @@ import { InjectModel } from '@nestjs/mongoose';
 @Injectable()
 export class EventService {
   constructor(
-    @InjectModel(Event.name)
+    @Inject(Event.name)
     private readonly eventModel: Model<EventDocument>,
   ) {}
 

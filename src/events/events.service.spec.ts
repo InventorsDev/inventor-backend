@@ -54,7 +54,7 @@ describe('EventService', () => {
       providers: [
         EventService,
         {
-          provide: getModelToken(Event.name), 
+          provide: 'Event',
           useValue: eventModelMock,
         },
       ],
