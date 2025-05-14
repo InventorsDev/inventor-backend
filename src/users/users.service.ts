@@ -467,7 +467,6 @@ export class UsersService {
   async createUser(userData: CreateUserDto) {
     return (this.userModel as any).signUp(userData);
   }
-
   async requestVerification(req: ApiReq, userId: string) {
     const user = await this.userModel.findById(userId);
     if (!user) {
@@ -490,12 +489,10 @@ export class UsersService {
       throw new BadRequestException('You are already verified.');
     }
   
-    // Update user state
     user.applicationStatus = ApplicationStatus.PENDING;
-    user.nextVerificationRequestDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days later (this was initially 3 months)
+    user.nextVerificationRequestDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days later
     await user.save();
   
-    // Send confirmation to user
     await sendMail({
       to: user.email,
       from: EmailFromType.HELLO,
@@ -506,7 +503,7 @@ export class UsersService {
         nextTryDate: format(user.nextVerificationRequestDate, 'PPPP'),
       },
     });
-
+  
     return {
       message: 'Verification request sent.',
       nextAllowedRequest: user.nextVerificationRequestDate,
