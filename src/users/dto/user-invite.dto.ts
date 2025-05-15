@@ -1,21 +1,13 @@
-import { BadRequestException } from '@nestjs/common';
-import { ApiProperty, ApiResponseProperty } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsDefined,
-  IsEmail,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   ValidateIf,
 } from 'class-validator';
-import {
-  RegistrationMethod,
-  UserRole,
-  registrationMethods,
-  userRoles,
-} from 'src/shared/interfaces';
 import { validateNumber } from 'src/shared/utils';
 
 export class UserInviteDto {

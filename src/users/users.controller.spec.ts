@@ -17,7 +17,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Document, Model, Types } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { IPageable } from 'src/shared/utils';
 type UserDocument = Document<unknown, {}, User> &
   User & { _id: Types.ObjectId };
@@ -473,21 +473,6 @@ describe('UsersAdminController', () => {
       photo: 'new-photo-url.jpg',
     };
 
-    // it('should add a photo to user profile', async () => {
-    //   const mockReq = { user: createUserMock() };
-    //   const expectedResult = createUserMock({ photo: photoDto.photo });
-
-    //   jest.spyOn(usersService, 'addPhoto').mockResolvedValue(expectedResult);
-
-    //   const result = await adminController.addPhoto(mockReq, userId, photoDto);
-
-    //   expect(result).toEqual(expectedResult);
-    //   expect(usersService.addPhoto).toHaveBeenCalledWith(
-    //     photoDto.userId,
-    //     photoDto,
-    //   );
-    // });
-
     it('should throw error when invalid photo format', async () => {
       const mockReq = { user: createUserMock() };
       const invalidPhotoDto = { ...photoDto, photo: 'invalid-format' };
@@ -727,21 +712,6 @@ describe('UsersAdminController', () => {
         );
       });
     });
-
-    // describe('generateLink', () => {
-    //   it('should generate registration link for lead', async () => {
-    //     const email = 'lead@example.com';
-    //     const expectedLink = 'http://example.com/register/token123';
-
-    //     jest.spyOn(usersService, 'inviteLead').mockResolvedValue(expectedLink);
-
-    //     const result = await adminController.generateLink(email);
-
-    //     expect(result).toEqual({ link: expectedLink });
-    //     expect(usersService.inviteLead).toHaveBeenCalledWith(email);
-    //   });
-    // });
-    // TODO: add test for the update endpoint
 
     describe('getUsersWithLeadRole', () => {
       it('should return all users with lead role', async () => {

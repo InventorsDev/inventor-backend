@@ -130,7 +130,7 @@ export class UsersController {
     return this.usersService.addPhoto(req.user._id.toString(), payload);
   }
 
-  // user regestring to be a lead
+  // exising user requesting to be a lead
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
   @Post('/lead-registration')
@@ -142,32 +142,6 @@ export class UsersController {
       tempLeadDto.leadPosition,
     );
     return tempRegistration;
-  }
-
-  // handle generated links
-  @Get('invite-link')
-  @ApiOperation({ summary: 'Handle generated link routing' })
-  @Redirect()
-  async register(
-    @Query('data') encryptedData: string,
-  ): Promise<{ url: string }> {
-    try {
-      const { userId, email } =
-        this.usersService.paraseEncryptedParams(encryptedData);
-      if (!userId)
-        return {
-          url: `/leads/new-user-form?${new URLSearchParams({ email }).toString()}`,
-        };
-
-      const userExists = await this.usersService.findById(userId);
-      if (!userExists) throw new NotFoundException('User Not found');
-
-      return {
-        url: `/leads/createLead?email=${userExists.email}`,
-      };
-    } catch (error) {
-      throw new NotFoundException('Invalid link');
-    }
   }
 
   @Post('invite/complete-invite/')

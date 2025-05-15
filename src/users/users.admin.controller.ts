@@ -43,13 +43,6 @@ export class UsersAdminsController {
     private readonly usersService: UsersService,
   ) {}
 
-  // @ApiBearerAuth()
-  // @UseGuards(JwtAdminsGuard)
-  // @Post('/')
-  // async userInvite(@Body() payload: UserInviteDto) {
-  //   return this.usersService.userInvite(payload);
-  // }
-
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
   @Get('me')
@@ -276,12 +269,6 @@ export class UsersAdminsController {
   async inviteLead(@Body() body: createLeadDto) {
     return await this.usersService.inviteLead(body.email);
   }
-
-  // // validate the invite lead token
-  // @Get('lead/invite/accept')
-  // async validateToken(@Query('token') token: string) {
-  //   return await this.usersService.validateToken(token);
-  // }
 
   // view all leads
   @Get()

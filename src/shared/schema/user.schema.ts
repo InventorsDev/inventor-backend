@@ -2,14 +2,10 @@ import { faker } from '@faker-js/faker';
 import { BadRequestException } from '@nestjs/common';
 import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument, Mongoose, Types } from 'mongoose';
-import { UserInviteDto } from 'src/users/dto/user-invite.dto';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { ApiReq, EmailFromType } from '../interfaces';
-import { JoinMethod } from '../interfaces/event.type';
 import {
   ApplicationStatus,
-  Contact,
-  ContactRawSchema,
   RegistrationMethod,
   Socials,
   SocialsRawSchema,
@@ -28,42 +24,6 @@ import {
 } from '../utils';
 
 export type UserDocument = HydratedDocument<User>;
-
-// example structure (request from frontend)
-// {
-//   _id: ObjectId,
-//   'email': string,
-//   'pssword': string,
-//   'role': string[],
-//   'basic_info':{
-//     'firstName': string,
-//     'lastName': string,
-//     'profileSummary': string,
-//     'phoneNumber': number,
-//     'country': {
-//       'location': 'info',
-//     },
-//     'city': "string"
-//   },
-//   'professional_info': {
-//     'jobTitle': string,
-//     'company': string,
-//     'yearsOfExperience': number,
-//     'school': string,
-//     'primarySkill': string,
-//     'secondarySkill': string,
-//     'technologies': string[],
-//     'interestAreas': string[],
-//   },
-//   'contact_info': {
-//     'phone': number,
-//     'linkedInUrl': string,
-//     'websiteUrl': string,
-//     'facebookUrl': string,
-//     'other': [], // [{github: xxxxx}, {skrill: xxxxx}, ...]
-//   },
-// }
-
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true, index: true, unique: true }) email: string;
@@ -78,7 +38,6 @@ export class User {
   })
   role: UserRole[];
 
-  // TODO: Asky why we still use coordinates for location data
   @Prop({
     type: {
       type: String,
@@ -292,12 +251,10 @@ UserSchema.statics.signUp = async function signUp(
   const { BasicInfoModel, ProfessionalInfoModel, ContactInfoModel } =
     injectedModels;
 
-  // shifted user checke to happen before password is hasehd
   const email = createUserDto.email.trim().toLowerCase();
   const existingUser = await this.findOne({ email }, { _id: 1 });
   if (existingUser) throw new BadRequestException('User already exists.');
 
-  // generate password
   let generatePassword: string;
   if ('password' in createUserDto) {
     const createUserDtoWithType = createUserDto as CreateUserDto;
@@ -305,7 +262,7 @@ UserSchema.statics.signUp = async function signUp(
   } else {
     generatePassword = faker.internet.password({ length: 5 }) + '$?wE';
   }
-  passwordMatch(generatePassword); // password validation || throws an error if incorrect
+  passwordMatch(generatePassword);
   const password = await BcryptUtil.generateHash(generatePassword);
 
   const { email: m_email, ...rest } = createUserDto;
@@ -318,12 +275,7 @@ UserSchema.statics.signUp = async function signUp(
     firstName: firstCapitalize(createUserDto.firstName.trim()),
     lastName: firstCapitalize(createUserDto.lastName.trim()),
   });
-  // create placeholders
-  const professional_info = await ProfessionalInfoModel.create({
-    jobTitle: '',
-    company: '',
-    yearsOfExperience: 0,
-  });
+  const professional_info = await ProfessionalInfoModel.create({});
   const contact_info = await ContactInfoModel.create({});
 
   // create user
@@ -337,8 +289,6 @@ UserSchema.statics.signUp = async function signUp(
     professionalInfo: professional_info._id,
     contactInfo: contact_info._id,
   };
-
-  console.log('data to be saved: ', data);
 
   if (req.query.invitation === RegistrationMethod.INVITATION) {
     data.pendingInvitation = true;
@@ -358,19 +308,18 @@ UserSchema.statics.signUp = async function signUp(
       .lean(), // using lean for plain js object
   ] as any);
 
-  // TODO: commented out while testing
-  // sendMail({
-  //   to: data.email,
-  //   from: EmailFromType.HELLO,
-  //   subject: 'Welcome to Our Developer Community at Inventors!',
-  //   template: getMailTemplate().generalSignUp,
-  //   templateVariables: {
-  //     firstName: data.basic_info.firstName,
-  //     lastName: data.basic_info.lastName,
-  //     phoneNumber: data.basic_info.phone || undefined,
-  //     email: data.email,
-  //   },
-  // });
+  sendMail({
+    to: data.email,
+    from: EmailFromType.HELLO,
+    subject: 'Welcome to Our Developer Community at Inventors!',
+    template: getMailTemplate().generalSignUp,
+    templateVariables: {
+      firstName: data.basic_info.firstName,
+      lastName: data.basic_info.lastName,
+      phoneNumber: data.basic_info.phone || undefined,
+      email: data.email,
+    },
+  });
 
   return { ...details, ...user };
 };

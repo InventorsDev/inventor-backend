@@ -7,10 +7,9 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
-import { link } from 'fs';
-import { Exception } from 'handlebars';
 import { Model, Types } from 'mongoose';
 import {} from 'src/shared/configs';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
@@ -21,7 +20,6 @@ import {
   RegistrationMethod,
   UserRole,
   UserStatus,
-  userStatuses,
 } from 'src/shared/interfaces';
 import {
   BasicInfo,
@@ -36,10 +34,7 @@ import {
 } from 'src/shared/schema/invite-tokens.schema';
 import {
   BcryptUtil,
-  CloudinaryFolders,
   decrypt,
-  encrypt,
-  firstCapitalize,
   getMailTemplate,
   getPaginated,
   getPagingParams,
@@ -48,14 +43,12 @@ import {
   uploadToCloudinary,
   verifyHandle,
 } from 'src/shared/utils';
-import { buffer } from 'stream/consumers';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserInviteDto } from './dto/user-invite.dto';
 @Injectable()
 export class UsersService {
-  private readonly baseUrl = 'http://localhost:3888/docs/api/v1/';
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
@@ -67,6 +60,7 @@ export class UsersService {
     private readonly professionalInfoModel: Model<ProfessionalInfo>,
     @Inject(ContactInfo.name)
     private readonly contactInfoModel: Model<ContactInfo>,
+    private readonly configService: ConfigService,
   ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
@@ -557,7 +551,7 @@ export class UsersService {
     }
 
     // add the token as a link
-    const invite_link = `${this.baseUrl}usersinvite/complete-invite?token=${token}`; // TODO: make this mimic the main url
+    const invite_link = `${this.configService.get<string>('BASE_URL')}/users/invite/complete-invite?token=${token}`; //
 
     // send mail to user
     await sendMail({

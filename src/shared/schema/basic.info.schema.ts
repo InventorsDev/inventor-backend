@@ -1,6 +1,6 @@
 // Created to store user basic info
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { Document } from 'mongoose';
+import { Document } from 'mongoose';
 
 export type BasicInfoDoc = Document & BasicInfo;
 
@@ -17,5 +17,3 @@ export class BasicInfo extends Document {
 }
 
 export const BasicInfoSchema = SchemaFactory.createForClass(BasicInfo);
-
-// export const BasicInfoModel = mongoose.model('BasicInfo', BasicInfoSchema);

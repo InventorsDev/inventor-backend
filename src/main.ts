@@ -1,18 +1,18 @@
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { AppModule } from './app.module';
-import { Logger, ValidationPipe } from '@nestjs/common';
-import * as cloudinary from 'cloudinary';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import * as bodyParser from 'body-parser';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { startRedis } from './shared/utils';
+import * as cloudinary from 'cloudinary';
+import * as express from 'express';
+import * as path from 'path';
+import { AppModule } from './app.module';
 import { configs } from './shared/configs';
 import { DataLogsService } from './shared/datalogs';
 import { AllExceptionsFilter } from './shared/exceptions';
 import { LogInterceptor } from './shared/interceptors';
-import { ThrottlerGuard } from '@nestjs/throttler';
-import * as express from 'express';
-import * as path from 'path';
+import { startRedis } from './shared/utils';
 
 function buildSwaggerDocument(app: any) {
   const config = new DocumentBuilder()
