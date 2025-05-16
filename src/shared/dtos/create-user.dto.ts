@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDefined,
@@ -7,9 +8,8 @@ import {
   IsString,
   ValidateIf,
 } from 'class-validator';
-import { LocationDto } from './location.dto';
 import { RegistrationMethod, registrationMethods } from '../interfaces';
-import { BadRequestException } from '@nestjs/common';
+import { LocationDto } from './location.dto';
 
 export class CreateUserDto {
   @ApiProperty()
