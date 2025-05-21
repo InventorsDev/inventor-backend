@@ -544,7 +544,7 @@ describe('UsersAdminController', () => {
 
     it('should request new verification token', async () => {
       const mockReq = { user: createUserMock() };
-
+      // Mocking the requestVerification method to resolve successfully
       jest
         .spyOn(usersService, 'requestVerification')
         .mockResolvedValue(undefined); // or just don't mock return value
@@ -651,7 +651,7 @@ describe('UsersAdminController', () => {
     it('should throw error when updating non-existent user', async () => {
       const statusDto = { status: UserStatus.ACTIVE };
       const mockReq = { user: createUserMock() };
-
+      // Mocking the service to throw an error when the user is not found
       jest
         .spyOn(usersService, 'updateStatus')
         .mockRejectedValue(new NotFoundException('User  not found'));
