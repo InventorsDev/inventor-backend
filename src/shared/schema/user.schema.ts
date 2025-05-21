@@ -1,17 +1,17 @@
-import { Prop, Schema, raw, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { faker } from '@faker-js/faker';
+import { BadRequestException } from '@nestjs/common';
+import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
+import mongoose, { HydratedDocument, Mongoose, Types } from 'mongoose';
+import { CreateUserDto } from '../dtos/create-user.dto';
+import { ApiReq, EmailFromType } from '../interfaces';
 import {
-  Contact,
-  ContactRawSchema,
+  ApplicationStatus,
+  RegistrationMethod,
   Socials,
   SocialsRawSchema,
-  UserStatus,
   UserRole,
-  RegistrationMethod,
-  ApplicationStatus,
+  UserStatus,
 } from '../interfaces/user.type';
-import { ApiReq, EmailFromType } from '../interfaces';
-import { faker } from '@faker-js/faker';
 import {
   BcryptUtil,
   firstCapitalize,
@@ -22,49 +22,21 @@ import {
   redisSet,
   sendMail,
 } from '../utils';
-import { BadRequestException } from '@nestjs/common';
-import { CreateUserDto } from '../dtos/create-user.dto';
-import { UserInviteDto } from 'src/users/dto/user-invite.dto';
 
 export type UserDocument = HydratedDocument<User>;
-
 @Schema({ timestamps: true })
 export class User {
-  @Prop({ index: true })
-  firstName: string;
+  @Prop({ required: true, index: true, unique: true }) email: string;
 
-  @Prop({ index: true })
-  lastName: string;
+  @Prop({ required: true }) password: string;
 
-  @Prop({ required: true, index: true, unique: true })
-  email: string;
+  @Prop({ index: true, unique: true, required: true }) userHandle: string;
 
-  @Prop({ required: true })
-  password: string;
-
-  @Prop({ index: true })
-  profileSummary: string;
-
-  @Prop({ index: true })
-  jobTitle: string;
-
-  @Prop({ index: true })
-  currentCompany: string;
-
-  @Prop()
-  photo: string;
-
-  @Prop()
-  age: number;
-
-  @Prop({ index: true })
-  phone: string;
-
-  @Prop({ index: true, unique: true, required: true })
-  userHandle: string;
-
-  @Prop({ index: true })
-  gender: string;
+  @Prop({
+    index: true,
+    default: [UserRole.USER],
+  })
+  role: UserRole[];
 
   @Prop({
     type: {
@@ -82,21 +54,24 @@ export class User {
     coordinates: number[];
   };
 
+  // put this into a diff collectiona nd grab data from that
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'BasicInfo' })
+  basicInfo: mongoose.Types.ObjectId;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ProfessionalInfo' })
+  professionalInfo: mongoose.Types.ObjectId;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ContactInfo' })
+  contactInfo: mongoose.Types.ObjectId;
+
   @Prop({ index: true })
   deviceId: string;
 
   @Prop({ index: true })
   deviceToken: string;
 
-  @Prop({
-    index: true,
-    default: [UserRole.USER],
-  })
-  role: UserRole[];
-
-  // added for lead application purposes
   @Prop({ required: false })
-  leadPosition: string;
+  leadPosition: string; // sole purpose of identifying leads || maybe change this into types
 
   @Prop({ index: true, required: false })
   applicationStatus: ApplicationStatus;
@@ -125,13 +100,6 @@ export class User {
   @Prop(raw(SocialsRawSchema))
   socials: Socials;
 
-  // TODO:: comment this guy out @stephano need to close this out
-  // @Prop({
-  //   index: true,
-  //   default: VerificationStatus.NOT_VERIFIED,
-  // })
-  // verificationStatus: VerificationStatus;
-
   @Prop({ type: Date })
   nextVerificationRequestDate: Date;
 }
@@ -140,10 +108,15 @@ export const UserSchema = SchemaFactory.createForClass(User);
 
 UserSchema.statics.sendEmailVerificationToken =
   async function sendEmailVerificationToken(req: ApiReq, userId: string) {
-    const user = await this.findById(new Types.ObjectId(userId), {
-      email: 1,
-      firstName: 1,
-    });
+    const user = await this.findById(new Types.ObjectId(userId))
+      .select('email basicInfo')
+      .populate({
+        path: 'basicInfo',
+        select: 'firstname',
+      });
+
+    if (!user) throw new BadRequestException('User not found');
+    const firstName = user.basicInfo?.firstName || '[name]';
     const emailVerificationKey = `inventors:users:email:verification:${userId}`;
     const token = faker.datatype.number({ min: 100_000, max: 999_999 });
     await redisSet(
@@ -163,7 +136,7 @@ UserSchema.statics.sendEmailVerificationToken =
       template: getMailTemplate().generalEmailVerification,
       templateVariables: {
         userId: user?._id?.toString(),
-        firstName: user.firstName,
+        firstName: firstName,
         email: user.email,
         emailVerificationUrl,
         emailVerificationCode: token,
@@ -195,26 +168,35 @@ UserSchema.statics.verifyEmail = async function verifyEmail(userId, token) {
 UserSchema.statics.forgetPassword = async function forgetPassword(
   email: string,
 ) {
-  const user = await this.findOne(
-    { email: decodeURIComponent(email.trim()).toLowerCase() },
-    {
-      _id: 1,
-      firstName: 1,
-      password: 1,
-      email: 1,
-    },
-  );
+  const sanitizedEmail = decodeURIComponent(email.trim()).toLowerCase();
 
-  if (!user)
-    throw new BadRequestException(
-      'Email supplied cannot be found to effect password change.',
-    );
+  const user = await this.findOne({ email: sanitizedEmail })
+    .select('_id email password basicInfo')
+    .populate({
+      path: 'basicInfo',
+      select: 'firstName',
+    });
 
-  const newPassword = faker.internet.password(5) + '$?wE';
+  if (!user) throw new BadRequestException('Email Not Registered to Any User');
+
+  const newPassword =
+    faker.internet.password({
+      length: 8,
+      memorable: false,
+      pattern: /[A-Za-z0-9]/,
+    }) + '$?wE';
   const password = await BcryptUtil.generateHash(newPassword);
 
-  console.log('Password', newPassword, password);
+  const firstName = user.basicInfo?.firstName || '[name]';
 
+  console.log('Password', newPassword, password);
+  console.log('firstName: ', firstName);
+
+  // save the password
+  user.password = password;
+  await user.save();
+
+  // sennd reset mail
   sendMail({
     to: user.email,
     from: EmailFromType.HELLO,
@@ -222,19 +204,16 @@ UserSchema.statics.forgetPassword = async function forgetPassword(
     template: getMailTemplate().generalPasswordChange,
     templateVariables: {
       password: newPassword,
-      firstName: user.firstName,
+      firstName: firstName,
       email: user.email,
     },
   });
 
-  return this.findOneAndUpdate(
-    { _id: user._id },
-    { $set: { password } },
-    {
-      new: true,
-      lean: true,
-    },
-  ).select('email firstName lastName');
+  return {
+    email: user.email,
+    firstName,
+    message: 'password successfully changed',
+  };
 };
 
 UserSchema.statics.generateUserHandle = async function generateUserHandle(
@@ -259,9 +238,23 @@ UserSchema.statics.generateUserHandle = async function generateUserHandle(
 
 UserSchema.statics.signUp = async function signUp(
   req: ApiReq,
-  createUserDto: CreateUserDto | UserInviteDto,
+  createUserDto: CreateUserDto,
   sso: boolean = false,
+  injectedModels: {
+    BasicInfoModel: typeof mongoose.Model<any>;
+    ProfessionalInfoModel: typeof mongoose.Model<any>;
+    ContactInfoModel: typeof mongoose.Model<any>;
+  },
 ) {
+  if (!injectedModels) throw new BadRequestException('Models not provided');
+
+  const { BasicInfoModel, ProfessionalInfoModel, ContactInfoModel } =
+    injectedModels;
+
+  const email = createUserDto.email.trim().toLowerCase();
+  const existingUser = await this.findOne({ email }, { _id: 1 });
+  if (existingUser) throw new BadRequestException('User already exists.');
+
   let generatePassword: string;
   if ('password' in createUserDto) {
     const createUserDtoWithType = createUserDto as CreateUserDto;
@@ -270,33 +263,49 @@ UserSchema.statics.signUp = async function signUp(
     generatePassword = faker.internet.password({ length: 5 }) + '$?wE';
   }
   passwordMatch(generatePassword);
-
   const password = await BcryptUtil.generateHash(generatePassword);
-  const email = createUserDto.email.trim().toLowerCase();
 
-  const existingUser = await this.findOne({ email }, { _id: 1 });
-  if (existingUser) throw new BadRequestException('User already exists.');
+  const { email: m_email, ...rest } = createUserDto;
+  if ('password' in rest) {
+    delete rest.password;
+  }
 
-  const data: any = {
-    ...createUserDto,
+  // createnig subdocs
+  const basic_info = await BasicInfoModel.create({
     firstName: firstCapitalize(createUserDto.firstName.trim()),
     lastName: firstCapitalize(createUserDto.lastName.trim()),
+  });
+  const professional_info = await ProfessionalInfoModel.create({});
+  const contact_info = await ContactInfoModel.create({});
+
+  // create user
+  const data: any = {
     email,
     password,
     role: [UserRole.USER],
+    location: createUserDto.location,
+    joinMethod: createUserDto.joinMethod || RegistrationMethod.SIGN_UP,
+    basicInfo: basic_info._id,
+    professionalInfo: professional_info._id,
+    contactInfo: contact_info._id,
   };
 
   if (req.query.invitation === RegistrationMethod.INVITATION) {
     data.pendingInvitation = true;
   }
-
   data.userHandle = await (this as any).generateUserHandle(email);
+
+  // create the new data on the db
   const record = await this.create(data);
+
+  // coonfirm that the data was created and fetch that data (along with verify token response)
   const [details, user] = await Promise.all([
     sso
       ? []
       : (this as any).sendEmailVerificationToken(req, record._id.toString()),
-    this.findById(record._id.toString()),
+    this.findById(record._id.toString())
+      .populate('basicInfo professionalInfo contactInfo')
+      .lean(), // using lean for plain js object
   ] as any);
 
   sendMail({
@@ -305,9 +314,9 @@ UserSchema.statics.signUp = async function signUp(
     subject: 'Welcome to Our Developer Community at Inventors!',
     template: getMailTemplate().generalSignUp,
     templateVariables: {
-      firstName: data.firstName,
-      lastName: user.lastName,
-      phoneNumber: user.phone,
+      firstName: data.basic_info.firstName,
+      lastName: data.basic_info.lastName,
+      phoneNumber: data.basic_info.phone || undefined,
       email: data.email,
     },
   });

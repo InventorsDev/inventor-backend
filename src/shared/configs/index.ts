@@ -43,6 +43,7 @@ export const configs = () => ({
       generalEmailVerification: 'inventors-email-verification',
       userBirthdayNotification: 'inventors-birthday-notification',
       generalLeadRegistration: 'inventors-lead-invite',
+      userVerificationAcknowledgement: 'user-verification-acknowledgement',
     },
   },
 
@@ -76,6 +77,7 @@ export const configs = () => ({
       userBirthdayNotification: 'inventors-birthday-notification',
       generalLeadRegistration: 'inventors-lead-invite',
       leadApplicationStauts: 'lead-application-status',
+      userVerificationAcknowledgement: 'user-verification-acknowledgement',
     },
   },
 });
