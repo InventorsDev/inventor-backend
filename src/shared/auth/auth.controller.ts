@@ -48,7 +48,8 @@ export class AuthController {
   @UseGuards(LocalUsersGuard)
   @ApiOperation({
     summary: 'Login a user',
-    description: 'Login a user.',
+    description:
+      'Login a user into the system. This will return a JWT token. It requires a valid email and password.',
   })
   @Post('login')
   login(@Request() req, @Body() userLoginDto: UserLoginDto) {
@@ -57,7 +58,7 @@ export class AuthController {
 
   @ApiOperation({
     summary: 'Verify a user',
-    description: 'Verify a user.',
+    description: 'Verify a user. This requires a valid userId and token.',
   })
   @Get('/:userId/verify/:token/email')
   async verifyEmail(
@@ -69,7 +70,8 @@ export class AuthController {
 
   @ApiOperation({
     summary: 'Resend user verification email',
-    description: 'Resends the user verification email.',
+    description:
+      'Resends the user verification email. This requires a valid email.',
   })
   @Get('resend/:email/verification')
   async resendVerification(
@@ -93,6 +95,11 @@ export class AuthController {
     return this.authService.sendEmailVerificationToken(req, userId);
   }
 
+  @ApiOperation({
+    summary: 'Forget password',
+    description:
+      'Trigger the flow for a forgotten password. This requires a valid email, and will send an email to the user.',
+  })
   @Post('/:email/forget-password')
   async forgetPassword(@Param('email') email: string) {
     return (this.userModel as any).forgetPassword(email);
