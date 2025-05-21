@@ -100,13 +100,13 @@ export class UsersAdminsController {
     name: 'userByStatuses',
     required: false,
     type: String,
-    description: `One ore more of "${userStatuses}" separated by comma`,
+    description: `One or more of "${userStatuses}" separated by comma`,
   } as any)
   @ApiQuery({
     name: 'userByRoles',
     required: false,
     type: String,
-    description: `One ore more of "${userRoles}" separated by comma`,
+    description: `One or more of "${userRoles}" separated by comma`,
   } as any)
   @ApiQuery({
     name: 'userByIds',
@@ -121,11 +121,6 @@ export class UsersAdminsController {
     description: 'e.g: 2020-11-12,2022-11-15',
   } as any)
   @Get()
-  @ApiOperation({
-    summary: 'Finds all users which match the criteria given via query parameters.',
-    description:
-      'Allows for finding all users filtered by given criteria. Possible criteria include a `limit` on the total allowed results, the `page` to show, the `order` to display the users in (may be in `ASC`-ending or `DESC`-ending order), the `status`-es and `role`s to allow, specific `id`s, and a range for finding users created in a certain date ran',
-  })
   findAll(@Request() req: ApiReq) {
     return this.usersService.findAll(req);
   }
