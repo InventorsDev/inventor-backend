@@ -33,8 +33,6 @@ export class PostController {
   @ApiBearerAuth()
   @Get()
   async getAllPost(@Req() req: ApiReq) {
-    //Todo:
-    // Determine how the wouild be queried
     return this.postService.findAll(req);
   }
 

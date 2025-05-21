@@ -28,6 +28,7 @@ export class JwtUsersGuard
 
     try {
       const payload = await global.jwtService.verify(token);
+
       if (!payload || !payload.role) {
         throw new UnauthorizedException('Invalid token payload');
       }

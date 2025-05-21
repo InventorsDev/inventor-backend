@@ -1,30 +1,16 @@
-import { BadRequestException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsDefined,
-  IsEmail,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   ValidateIf,
 } from 'class-validator';
-import {
-  RegistrationMethod,
-  UserRole,
-  registrationMethods,
-  userRoles,
-} from 'src/shared/interfaces';
 import { validateNumber } from 'src/shared/utils';
 
 export class UserInviteDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsDefined()
-  @IsEmail()
-  email: string;
-
   @ApiProperty()
   @IsString()
   @IsDefined()
@@ -37,30 +23,11 @@ export class UserInviteDto {
   @IsNotEmpty()
   lastName: string;
 
-  @ApiProperty({ enumName: 'RoleInviteType', enum: UserRole })
-  @IsDefined()
-  @IsArray()
-  @IsNotEmpty()
-  @ValidateIf((data) => {
-    const isValidRole = data.roles.every((role) => userRoles.includes(role));
-    if (!isValidRole) {
-      throw new BadRequestException('Please supply valid role types');
-    }
-    return true;
-  })
-  roles: UserRole[];
-
-  @ApiProperty({ enumName: 'UserRegistrationType', enum: registrationMethods })
-  @IsDefined()
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  @ValidateIf((data) => {
-    if (!registrationMethods.includes(data.joinMethod)) {
-      throw new BadRequestException('Please supply a valid sign up options');
-    }
-    return true;
-  })
-  joinMethod: RegistrationMethod;
+  @IsDefined()
+  password: string;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -98,4 +65,34 @@ export class UserInviteDto {
   @IsOptional()
   @IsString()
   deviceToken?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  jobTitle?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  company?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsArray()
+  technologies?: string[];
+
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  yearsOfExperience?: number;
+
+  @ApiProperty()
+  @IsString()
+  @IsOptional()
+  linkedinUrl: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsOptional()
+  githubUrl: string;
 }
