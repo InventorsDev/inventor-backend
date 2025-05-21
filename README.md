@@ -60,7 +60,7 @@ Once you have cloned the project on your system, you will have your copy of the 
 For the application to function properly when running it, you need to setup some necessary Environment Variables in your `.env` file
 
 1. Create a file `.env` in your project root folder.
-2. Copy the Environment Variables from your `.env.sample` to your newly created `.env file`
+2. Copy the Environment Variables from your `.env.sample` to your newly created `.env`
 
 ```
 NODE_ENV=development

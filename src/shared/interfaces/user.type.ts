@@ -4,7 +4,12 @@ export enum UserRole {
   WRITER = 'WRITER',
   MODERATOR = 'MODERATOR',
   USER = 'USER',
+
+  POSTCOMMENT_USER = 'POSTCOMMENT_USER',
   EVENT_USER = 'EVENT_USER',
+  POST_USER = 'POST_USER'
+
+
 }
 
 export enum RegistrationMethod {
