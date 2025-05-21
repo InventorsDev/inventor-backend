@@ -20,7 +20,7 @@ export class Post {
   photo: string;
 
   @Prop({ type: Date, index: true })
-  blogDate: Date;
+  postDate: Date;
 
   @Prop({ enum: Status, default: Status.PENDING, index: true })
   status: Status;

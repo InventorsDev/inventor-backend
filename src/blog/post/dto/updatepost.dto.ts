@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsDate, IsEnum, IsArray } from 'class-validator';
-import { Status } from '../../shared/interfaces/post.type';
+import { Status } from '../../../shared/interfaces/post.type';
 
 export class UpdatePostDto {
   @IsOptional()

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { Status, } from '../interfaces/post.type';
+import { Status, } from '../interfaces/postcomment.type';
 import { IsArray, IsString } from 'class-validator';
 
 export type PostCommentDocument = HydratedDocument<PostComment>;
@@ -20,7 +20,7 @@ export class PostComment {
   photo: string;
 
   @Prop({ type: Date, index: true })
-  blogDate: Date;
+  commentDate: Date;
 
   @Prop({ enum: Status, default: Status.PENDING, index: true })
   status: Status;

@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { Connection, ConnectOptions, createConnection } from 'mongoose';
 import { Module } from '@nestjs/common';
 import { User, UserSchema } from './user.schema';
-import { PostCommentSchema, PostComment } from './postComment.schema';
+import { PostCommentSchema, PostComment } from './postcomment.schema';
 import { EventSchema } from './events.schema';
 import { PostSchema, Post } from './post.schema';
 import { DataLog, DataLogSchema } from './data.log.schema';
@@ -10,7 +10,7 @@ import { DataLog, DataLogSchema } from './data.log.schema';
 // All Schema Models
 export * from './data.log.schema';
 export * from './user.schema';
-export * from './postComment.schema'
+export * from './postcomment.schema'
 export * from './events.schema';
 export * from './post.schema';
 

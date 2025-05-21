@@ -5,7 +5,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Status} from '../../shared/interfaces/post.type';
+import { Status} from '../../../shared/interfaces/post.type';
 
 export class PostDto {
   @ApiProperty()

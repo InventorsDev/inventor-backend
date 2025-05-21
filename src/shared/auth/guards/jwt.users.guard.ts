@@ -53,8 +53,5 @@ export class JwtUsersGuard
     return type === 'Bearer' ? token : undefined;
   }
 
-  // async canActivate(context: ExecutionContext): Promise<boolean> {
-  //   await validateAccessTokenAfterRefreshOrRevoke(context);
-  //   return (await super.canActivate(context)) as boolean;
-  // }
+ 
 }
