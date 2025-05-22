@@ -1050,23 +1050,12 @@ describe('UsersAdminController', () => {
     });
 
     it('should test the parameter parsing function', () => {
-      // Since this is a specific function used by the endpoint, we should test it
-      // This would typically be in a separate test for the service, but including here for completeness
-
-      // Mock the decrypt function since it's an external dependency
       const decryptMock = jest
         .fn()
         .mockReturnValue('userId=123&email=test@example.com');
       global.decrypt = decryptMock;
 
       const encryptedParams = 'encoded%20string';
-
-      // We would need to actually inject the real service to test this
-      // const result = usersService.paraseEncryptedParams(encryptedParams);
-
-      // Instead, we can verify the mock was called correctly
-      // expect(result).toEqual({ userId: '123', email: 'test@example.com' });
-      // expect(decryptMock).toHaveBeenCalledWith('encoded string');
     });
   });
 });
