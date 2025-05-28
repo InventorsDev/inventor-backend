@@ -4,7 +4,6 @@ import { BasicInfo, BasicInfoSchema } from './basic.info.schema';
 import { ContactInfo, ContactInfoSchema } from './contact.info.schema';
 import { Module } from '@nestjs/common';
 import { User, UserSchema } from './user.schema';
-import { PostCommentSchema, PostComment } from './postcomment.schema';
 import { EventSchema } from './events.schema';
 import { PostSchema, Post } from './post.schema';
 import { DataLog, DataLogSchema } from './data.log.schema';
@@ -17,7 +16,6 @@ export * from './basic.info.schema';
 export * from './contact.info.schema';
 export * from './data.log.schema';
 export * from './user.schema';
-export * from './postcomment.schema'
 export * from './events.schema';
 export * from './post.schema';
 export * from './invite-tokens.schema'
@@ -25,7 +23,6 @@ export * from './professional.info.schema'
 
 const SCHEMA_LIST = [
   { name: User.name, schema: UserSchema, dbPrefix: 'APP' },
-  { name: PostComment.name, schema: PostCommentSchema, dbPrefix: 'APP' },
   { name: Event.name, schema: EventSchema, dbPrefix: 'APP' },
   { name: Post.name, schema: PostSchema, dbPrefix: 'APP' },
   { name: DataLog.name, schema: DataLogSchema, dbPrefix: 'LOG' },

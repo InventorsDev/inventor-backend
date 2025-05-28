@@ -1,3 +1,5 @@
+import { Query } from '@nestjs/common';
+import { Status } from 'src/shared/interfaces/post.type';
 import {
   Controller,
   Post,
@@ -25,6 +27,13 @@ export class PostController {
 
   @ApiBearerAuth()
   @UseGuards(JwtPostUserGuard)
+  @Get('status/list')
+  async getPostsByStatus(
+  @Query('statuses') statuses: string,
+) {
+   const statusList = statuses?.split(',') as Status[];
+  return this.postService.findByStatuses(statusList);
+}
   @Post()
   async createPost(@Body() payload: PostDto) {
     return this.postService.createPost(payload);

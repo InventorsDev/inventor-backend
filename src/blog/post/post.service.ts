@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { Post } from 'src/shared/schema';
+import { Post, } from 'src/shared/schema';
 import { PostDocument } from 'src/shared/schema/post.schema';
 import { PostDto } from './dto/post.dto';
 import { ApiReq } from 'src/shared/interfaces/req.type';
@@ -80,11 +80,18 @@ export class PostService {
       id,
       { status: Status.APPROVED },
       { new: true },
-    );
+   ).exec();
+
     if (!approvePost) {
       throw new NotFoundException(`Post with ID ${id} not found`);
     }
-
     return approvePost;
+  }
+
+  async findByStatuses(statuses: Status[]): Promise<Post[]> {
+    return this.postModel
+      .find({ status: { $in: statuses } }, {}, { lean: true })
+      .sort({ createdAt: -1 })
+      .exec();
   }
 }

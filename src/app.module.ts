@@ -7,7 +7,6 @@ import { AllExceptionsFilter } from './shared/exceptions';
 import { AuthModule } from './shared/auth/auth.module';
 import { DataLogsModule } from './shared/datalogs';
 import { UsersModule } from './users/users.module';
-import { PostCommentModule } from './blog/postcomment/postcomment.module';
 import { EventModule } from './events/events.users.module';
 import { PostModule } from './blog/post/post.module';
 
@@ -22,7 +21,6 @@ import { PostModule } from './blog/post/post.module';
     ]),
     DataLogsModule,
     UsersModule,
-    PostCommentModule,
     EventModule,
     PostModule,
   ],
