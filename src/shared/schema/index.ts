@@ -2,27 +2,29 @@ import { ConfigService } from '@nestjs/config';
 import { Connection, ConnectOptions, createConnection } from 'mongoose';
 import { BasicInfo, BasicInfoSchema } from './basic.info.schema';
 import { ContactInfo, ContactInfoSchema } from './contact.info.schema';
-import { DataLog, DataLogSchema } from './data.log.schema';
-import { EventSchema } from './events.schema';
-import { InviteToken, InviteTokenSchema } from './invite-tokens.schema';
-import {
-  ProfessionalInfo,
-  ProfessionalInfoSchema,
-} from './professional.info.schema';
+import { Module } from '@nestjs/common';
 import { User, UserSchema } from './user.schema';
+import { EventSchema } from './events.schema';
+import { PostSchema, Post } from './post.schema';
+import { DataLog, DataLogSchema } from './data.log.schema';
+import { InviteToken, InviteTokenSchema } from './invite-tokens.schema';
+import { ProfessionalInfo, ProfessionalInfoSchema } from './professional.info.schema';
+
 
 // All Schema Models
 export * from './basic.info.schema';
 export * from './contact.info.schema';
 export * from './data.log.schema';
-export * from './events.schema';
-export * from './invite-tokens.schema';
-export * from './professional.info.schema';
 export * from './user.schema';
+export * from './events.schema';
+export * from './post.schema';
+export * from './invite-tokens.schema'
+export * from './professional.info.schema'
 
 const SCHEMA_LIST = [
   { name: User.name, schema: UserSchema, dbPrefix: 'APP' },
   { name: Event.name, schema: EventSchema, dbPrefix: 'APP' },
+  { name: Post.name, schema: PostSchema, dbPrefix: 'APP' },
   { name: DataLog.name, schema: DataLogSchema, dbPrefix: 'LOG' },
   { name: InviteToken.name, schema: InviteTokenSchema, dbPrefix: 'APP' },
   { name: BasicInfo.name, schema: BasicInfoSchema, dbPrefix: 'APP' },
