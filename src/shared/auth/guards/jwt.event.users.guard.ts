@@ -29,7 +29,7 @@ export class JwtEventUserGuard extends AuthGuard('jwt-user') {
 
       const userRoles: UserRole[] = payload.role;
 
-      if (!hasRequiredRoles(userRoles, [UserRole.USER, UserRole.POST_USER])) {
+      if (!hasRequiredRoles(userRoles, [UserRole.USER, UserRole.EVENT_USER])) {
         throw new UnauthorizedException(
           'Invalid user roles, user must have event role',
         );
