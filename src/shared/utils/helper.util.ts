@@ -1,8 +1,8 @@
-import { ApiReq, LogLevel, UserRole } from '../interfaces';
-import * as dateFns from 'date-fns';
 import { BadRequestException } from '@nestjs/common';
-import UAParser from 'ua-parser-js';
 import * as CryptoJS from 'crypto-js';
+import * as dateFns from 'date-fns';
+import UAParser from 'ua-parser-js';
+import { ApiReq, LogLevel, UserRole } from '../interfaces';
 
 const MILES_TO_RADIAN = 0.000142857 as number;
 
@@ -223,13 +223,14 @@ export const decrypt = (link: string): string => {
   return new_link;
 };
 
- export const hasRequiredRoles = (
-    userRoles: UserRole[],
-    requiredRoles: UserRole[],
-  ): boolean => {
-    // checks if events user or admin user can access
-    return (
-      requiredRoles.every((role) => userRoles.includes(role)) ||
-      userRoles.includes(UserRole.ADMIN)
-    );
-  }
+export const hasRequiredRoles = (
+  userRoles: UserRole[],
+  requiredRoles: UserRole[],
+): boolean => {
+  // checks if events user or admin user can access
+  return (
+    requiredRoles.every((role) => userRoles.includes(role)) ||
+    userRoles.includes(UserRole.ADMIN) ||
+    userRoles.includes(UserRole.LEAD)
+  );
+};
