@@ -40,7 +40,7 @@ import { UsersService } from './users.service';
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
@@ -180,5 +180,15 @@ export class UsersController {
   ) {
     // Optional: Use payload.message if needed
     return this.usersService.requestReactivation(userId);
+  }
+
+  @Get('email-test')
+  sendMailTest(): boolean {
+    return this.usersService.pingMail()
+  }
+
+  @Get('response')
+  reply() {
+    return 'this is valid '
   }
 }

@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
 import { Model, Types } from 'mongoose';
-import {} from 'src/shared/configs';
+import { configs } from 'src/shared/configs';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import {
   ApiReq,
@@ -35,7 +35,6 @@ import {
 import {
   BcryptUtil,
   decrypt,
-  getMailTemplate,
   getPaginated,
   getPagingParams,
   passwordMatch,
@@ -43,6 +42,7 @@ import {
   uploadToCloudinary,
   verifyHandle,
 } from 'src/shared/utils';
+import { templateFunctionMap } from 'src/shared/utils/templates';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
@@ -61,7 +61,7 @@ export class UsersService {
     @Inject(ContactInfo.name)
     private readonly contactInfoModel: Model<ContactInfo>,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
@@ -323,11 +323,11 @@ export class UsersService {
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Password Change',
-      template: getMailTemplate().generalPasswordChange,
+      template: () => configs().resend.templates.generalPasswordChange,
       templateVariables: {
         firstName: 'test bot',
         password: newPassword,
-        email: user.email,
+        name: user.email,
       },
     });
     return this.userModel
@@ -430,10 +430,9 @@ export class UsersService {
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Application Received',
-      template: getMailTemplate().generalLeadRegistration,
+      template: () => configs().resend.templates.leadApplicationReceived,
       templateVariables: {
-        firstName: user_details.firstName || '',
-        position: leadPosition,
+        name: user_details.firstName || '',
       },
     });
     return 'Application sent';
@@ -466,11 +465,10 @@ export class UsersService {
       to: userApplication.email,
       from: EmailFromType.HELLO,
       subject: 'Lead Application Status',
-      template: getMailTemplate().leadApplicationStauts,
+      template: () => configs().resend.templates.leadApplicationReceived,
       templateVariables: {
-        firstName: user_details.firstName || '',
+        name: user_details.firstName || '',
         status: true,
-        email: userApplication.email,
       },
     });
     return `${user_details.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
@@ -487,10 +485,9 @@ export class UsersService {
       to: email,
       from: EmailFromType.HELLO,
       subject: 'Lead Application Status',
-      template: getMailTemplate().leadApplicationStauts,
+      template: () => configs().resend.templates.leadApproved,
       templateVariables: {
-        email: email,
-        message: `Thank you for your intrest in becoming a lead in inventors community. Unfortunately, your application has been declined \n${message}`,
+        name: email,
       },
     });
     return `${email} application has been rejected`;
@@ -558,7 +555,7 @@ export class UsersService {
       to: email,
       from: EmailFromType.HELLO,
       subject: 'INVENTORS COMMUNITY: Lead Invitation',
-      template: getMailTemplate().generalLeadRegistration,
+      template: () => configs().resend.templates.generalAccountDeletion,
       templateVariables: {
         link: invite_link,
       },
@@ -691,7 +688,7 @@ export class UsersService {
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Your Verification Request Has Been Received',
-      template: getMailTemplate().userVerificationAcknowledgement,
+      template: () => configs().resend.templates.generalEmailVerification,
       templateVariables: {
         firstName: (await this.basicInfoModel.findById(user.basicInfo))
           .firstName,
@@ -707,14 +704,18 @@ export class UsersService {
 
   // service for testing mail
   pingMail() {
+    const templateFn = templateFunctionMap[configs().resend.templates.generalSignUp];
+    if (!templateFn) {
+      throw new Error(`Template not found in templateFunctionMap`);
+    }
+
     sendMail({
       to: 'snebo54@gmail.com',
       from: EmailFromType.HELLO,
       subject: 'Mail check',
-      template: getMailTemplate().generalLeadRegistration,
+      template: templateFn,
       templateVariables: {
-        firstName: 'test bot',
-        position: 'test-position',
+        name: 'test bot',
       },
     });
     return true;

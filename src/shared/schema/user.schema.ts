@@ -1,7 +1,9 @@
 import { faker } from '@faker-js/faker';
 import { BadRequestException } from '@nestjs/common';
 import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { config } from 'dotenv';
 import mongoose, { HydratedDocument, Mongoose, Types } from 'mongoose';
+import { configs } from '../configs';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { ApiReq, EmailFromType } from '../interfaces';
 import {
@@ -16,7 +18,6 @@ import {
   BcryptUtil,
   firstCapitalize,
   getBaseUrlWithPath,
-  getMailTemplate,
   passwordMatch,
   redisGet,
   redisSet,
@@ -133,11 +134,9 @@ UserSchema.statics.sendEmailVerificationToken =
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Important - Email Confirmation Code',
-      template: getMailTemplate().generalEmailVerification,
+      template: () => configs().resend.templates.generalEmailVerification,
       templateVariables: {
-        userId: user?._id?.toString(),
-        firstName: firstName,
-        email: user.email,
+        firstName,
         emailVerificationUrl,
         emailVerificationCode: token,
       },
@@ -201,11 +200,9 @@ UserSchema.statics.forgetPassword = async function forgetPassword(
     to: user.email,
     from: EmailFromType.HELLO,
     subject: 'Reset Your Password - Action Required',
-    template: getMailTemplate().generalPasswordChange,
+    template: () => configs().resend.templates.generalPasswordChange,
     templateVariables: {
-      password: newPassword,
-      firstName: firstName,
-      email: user.email,
+      name: firstName,
     },
   });
 
@@ -312,12 +309,9 @@ UserSchema.statics.signUp = async function signUp(
     to: data.email,
     from: EmailFromType.HELLO,
     subject: 'Welcome to Our Developer Community at Inventors!',
-    template: getMailTemplate().generalSignUp,
+    template: () => configs().resend.templates.generalSignUp,
     templateVariables: {
-      firstName: data.basic_info.firstName,
-      lastName: data.basic_info.lastName,
-      phoneNumber: data.basic_info.phone || undefined,
-      email: data.email,
+      name: data.basic_info.firstName,
     },
   });
 

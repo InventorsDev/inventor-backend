@@ -1,7 +1,7 @@
 import FormData from 'form-data';
-import { configs } from '../configs';
 import Mailgun from 'mailgun.js';
-import { LogLevel, EmailParams } from '../interfaces';
+import { configs } from '../configs';
+import { EmailParams, LogLevel } from '../interfaces';
 
 export const getMailTemplate = () => configs().mailgun.templates;
 
@@ -37,7 +37,8 @@ export const sendMail = ({
           : to,
         'h:Reply-To': mailConfig.defaultEmailFrom.support,
         subject,
-        template,
+        template: typeof template === 'string' ? template : undefined,
+        html: '<html></html>', // placeholder cause i changed the type in the mail config file
         't:variables': JSON.stringify(templateVariables),
       };
 

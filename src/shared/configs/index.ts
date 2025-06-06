@@ -19,6 +19,37 @@ export const configs = () => ({
     },
     url: process.env.REDIS_URL,
   },
+  resend: {
+    apiKey: process.env.RESEND_API_KEY,
+    defaultEmailReceiver: 'dev@inventors.com',
+    defaultEmailTo: {
+      support: 'support@.com',
+      engineering: 'engineering@inventors.com',
+      marketing: 'marketing@inventors.com',
+    },
+    defaultEmailFrom: {
+      hello: 'Joshua from inventors <hello@inventors.com>',
+      support: 'Joshua from inventors <support@inventors.com>',
+      engineering: 'Joshua from inventors <engineering@inventors.com>',
+      marketing: 'Joshua from inventors <marketing@inventors.com>',
+      finance: 'Joshua from inventors <finance@inventors.com>',
+    },
+    templates: {
+      generalSignUp: 'inventors-welcome',
+      generalAccountDeletion: 'inventors-account-deletion',
+      generalPasswordChange: 'inventors-password-change',
+      generalLogin: 'inventors-signin-notification',
+      generalEmailVerification: 'inventors-email-verification',
+      userBirthdayNotification: 'inventors-birthday-notification',
+      generalLeadRegistration: 'inventors-lead-invite',
+      userVerificationAcknowledgement: 'user-verification-acknowledgement',
+      leadApplicationReceived: 'inventors-lead-application-received',
+      leadRejected: 'inventors-lead-rejected',
+      leadApproved: 'inventors-lead-approved',
+    },
+  },
+
+  // TODO: remove the below mailing services
   mailgun: {
     apiKey: process.env.MAIL_GUN_API_KEY,
     domain: process.env.MAIL_GUN_DOMAIN,

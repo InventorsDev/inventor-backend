@@ -1,17 +1,21 @@
+import { configs } from "../configs";
+
 export enum EmailFromType {
-  HELLO = 'HELLO',
-  SUPPORT = 'SUPPORT',
-  ENGINEERING = 'ENGINEERING',
-  MARKETING = 'MARKETING',
-  FINANCE = 'FINANCE',
+  HELLO = 'hello',
+  SUPPORT = 'support',
+  ENGINEERING = 'engineering',
+  MARKETING = 'marketing',
+  FINANCE = 'finance',
 }
 
 export const emailFromTypes = [...new Set(Object.values(EmailFromType))];
 
 export type EmailParams = {
+  userId?: string;
   to: string;
-  from: EmailFromType | string;
+  from: keyof ReturnType<typeof configs>["resend"]["defaultEmailFrom"];
   subject: string;
-  template: string;
-  templateVariables: any;
+  template?: (vars: Record<string, any>) => string;
+  templateKey?: string;
+  templateVariables: Record<string, any>
 };
