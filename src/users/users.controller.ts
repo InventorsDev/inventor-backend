@@ -2,15 +2,11 @@ import {
   Body,
   Controller,
   Get,
-  Inject,
-  InternalServerErrorException,
-  NotFoundException,
   Param,
   Patch,
   Post,
   Put,
   Query,
-  Redirect,
   Request,
   UseGuards,
   UsePipes,
@@ -19,15 +15,11 @@ import {
 import {
   ApiBearerAuth,
   ApiBody,
-  ApiOperation,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { Model } from 'mongoose';
 import { JwtUsersGuard } from 'src/shared/auth/guards/jwt.users.guard';
-import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
-import { User, UserDocument } from 'src/shared/schema';
 import { DeactivateAccountDto } from './dto/deactivate-account.dto';
 import { RequestReactivationDto } from './dto/request-reactivation.dto';
 import { TempLeadDto } from './dto/temp-lead.dto';
@@ -103,8 +95,8 @@ export class UsersController {
   }
 
   @Get('email-test')
-  sendMailTest(): {} {
-    return this.usersService.pingMail()
+  sendMailTest(@Query('email') email: string): {} {
+    return this.usersService.pingMail(email)
   }
 
   @Get(':id')

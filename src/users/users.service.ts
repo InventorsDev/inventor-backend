@@ -712,9 +712,9 @@ export class UsersService {
   }
 
   // service for testing mail
-  async pingMail() {
+  async pingMail(email) {
     await sendMail({
-      to: 'snebo54@gmail.com',
+      to: email,
       from: EmailFromType.HELLO,
       subject: 'Mail check',
       template: mailTemplates.generalSignUp,
