@@ -1,45 +1,38 @@
-import { Logger } from "@nestjs/common";
+import { InternalServerErrorException, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { Resend } from "resend";
 import { configs } from "../configs";
 import { EmailParams } from "../interfaces";
-import { templateFunctionMap } from "./templates";
 
-const resend = new Resend(configs().resend.apiKey);
-const mailTemplates = ()=> configs().resend.templates;
+const { resend: resendConfig } = configs();
+const RESEND = new Resend(resendConfig.apiKey);
+export const mailTemplates = resendConfig.templates
+const defaultEmailFrom = resendConfig.defaultEmailFrom
 
-export const getTemplateKey = (templateValue) => {
-  const templates = mailTemplates();
-  return Object.entries(templates).filter(
-    ([key, value]) => value === templateValue,
-  )?.[0]?.[0];
-};
-
-export const getTemplateFunction = (templateKey: string) => {
-  const fn = templateFunctionMap[templateKey];
-  if (!fn) throw new Error(`Email template not found for key: ${templateKey}`);
-  return fn;
+export const getTemplate = (templateValue, variables) => {
+  const template = Object.entries(mailTemplates).find(([_, value]) => value === templateValue)?.[0];
+  return (template ? mailTemplates[template](variables) : mailTemplates["noTemplateFound"])
 }
 
 export const sendMail = async ({
-  to, from, subject, template,templateKey, templateVariables, userId}: EmailParams) => {
-    try{
-      const {resend: resendConfig} = configs();
+  to, from, subject, template, templateVariables, userId }: EmailParams) => {
+  try {
+    const html = getTemplate(template, templateVariables)
 
-      const html = template? template(templateVariables) : getTemplateFunction(templateKey)(templateVariables)
-
-      const response = await resend.emails.send({
-        from: resendConfig.defaultEmailFrom[from] || from,
-        to,
-        subject,
-        headers: {
-          'X-Entity-Ref-ID': userId || 'user',
-        },
-        html
-      })
-      Logger.log('email sent')
-      return true;
-    }catch(e){
-      Logger.error(`Error sending mail: ${e.message}`, e.stack);
-      return false;
+    const uuid = crypto.randomUUID();
+    const response = await RESEND.emails.send({
+      from: defaultEmailFrom[from] || from,
+      to: [to],
+      subject,
+      html,
+      headers: {
+        'X-Entity-Ref-ID': uuid,
+      },
+    })
+    if (response.error) {
+      throw new ServiceUnavailableException(response.error)
     }
-  };
+  } catch (e) {
+    throw new InternalServerErrorException(e)
+  }
+  // console.log("template value: ", getTemplate(template, templateVariables))
+};

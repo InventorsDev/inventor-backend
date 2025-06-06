@@ -108,3 +108,5 @@ export const leadApplicationReceivedTemplate = ({ name }: { name: string }) =>
                 <p>Hi ${name},</p>
                 <p>Thanks for submitting your lead application. We’ll be in touch once it’s reviewed.</p>
               `);
+
+export const noTemplateFound = () => wrapEmail(`<h2>Seems Like This email got lost Sorry about that, we're working on a fix...</h2>`)

@@ -11,7 +11,6 @@ import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
 import { Model, Types } from 'mongoose';
-import { configs } from 'src/shared/configs';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import {
   ApiReq,
@@ -37,12 +36,12 @@ import {
   decrypt,
   getPaginated,
   getPagingParams,
+  mailTemplates,
   passwordMatch,
   sendMail,
   uploadToCloudinary,
   verifyHandle,
 } from 'src/shared/utils';
-import { templateFunctionMap } from 'src/shared/utils/templates';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
@@ -101,6 +100,16 @@ export class UsersService {
   }
 
   async findById(id: string, project: any = {}) {
+    console.log('findById called with:', {
+      id,
+      type: typeof id,
+      length: id?.length,
+      isValid: Types.ObjectId.isValid(id)
+    });
+
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException(`Invalid user ID format: ${id}`);
+    }
     const user = await this.userModel
       .findOne(new Types.ObjectId(id), project, { lean: true })
       .select('-password')
@@ -323,7 +332,7 @@ export class UsersService {
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Password Change',
-      template: () => configs().resend.templates.generalPasswordChange,
+      template: mailTemplates.userPasswordReset,
       templateVariables: {
         firstName: 'test bot',
         password: newPassword,
@@ -426,15 +435,15 @@ export class UsersService {
       user_details = await this.basicInfoModel.findById(user.basicInfo).exec();
     }
 
-    await sendMail({
-      to: user.email,
-      from: EmailFromType.HELLO,
-      subject: 'Application Received',
-      template: () => configs().resend.templates.leadApplicationReceived,
-      templateVariables: {
-        name: user_details.firstName || '',
-      },
-    });
+    // await sendMail({
+    //   to: user.email,
+    //   from: EmailFromType.HELLO,
+    //   subject: 'Application Received',
+    //   template: mailTemplates.leadApplication,
+    //   templateVariables: {
+    //     name: user_details.firstName || '',
+    //   },
+    // });
     return 'Application sent';
   }
 
@@ -465,7 +474,7 @@ export class UsersService {
       to: userApplication.email,
       from: EmailFromType.HELLO,
       subject: 'Lead Application Status',
-      template: () => configs().resend.templates.leadApplicationReceived,
+      template: mailTemplates.leadApproved,
       templateVariables: {
         name: user_details.firstName || '',
         status: true,
@@ -485,7 +494,7 @@ export class UsersService {
       to: email,
       from: EmailFromType.HELLO,
       subject: 'Lead Application Status',
-      template: () => configs().resend.templates.leadApproved,
+      template: mailTemplates.leadRejected,
       templateVariables: {
         name: email,
       },
@@ -555,7 +564,7 @@ export class UsersService {
       to: email,
       from: EmailFromType.HELLO,
       subject: 'INVENTORS COMMUNITY: Lead Invitation',
-      template: () => configs().resend.templates.generalAccountDeletion,
+      template: mailTemplates.leadInvite,
       templateVariables: {
         link: invite_link,
       },
@@ -688,7 +697,7 @@ export class UsersService {
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Your Verification Request Has Been Received',
-      template: () => configs().resend.templates.generalEmailVerification,
+      template: mailTemplates.emailVerification,
       templateVariables: {
         firstName: (await this.basicInfoModel.findById(user.basicInfo))
           .firstName,
@@ -703,21 +712,15 @@ export class UsersService {
   }
 
   // service for testing mail
-  pingMail() {
-    const templateFn = templateFunctionMap[configs().resend.templates.generalSignUp];
-    if (!templateFn) {
-      throw new Error(`Template not found in templateFunctionMap`);
-    }
-
-    sendMail({
+  async pingMail() {
+    await sendMail({
       to: 'snebo54@gmail.com',
       from: EmailFromType.HELLO,
       subject: 'Mail check',
-      template: templateFn,
+      template: mailTemplates.generalSignUp,
       templateVariables: {
         name: 'test bot',
       },
     });
-    return true;
   }
 }

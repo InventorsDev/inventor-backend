@@ -102,6 +102,11 @@ export class UsersController {
     return this.usersService.findAll(req);
   }
 
+  @Get('email-test')
+  sendMailTest(): {} {
+    return this.usersService.pingMail()
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
@@ -180,15 +185,5 @@ export class UsersController {
   ) {
     // Optional: Use payload.message if needed
     return this.usersService.requestReactivation(userId);
-  }
-
-  @Get('email-test')
-  sendMailTest(): boolean {
-    return this.usersService.pingMail()
-  }
-
-  @Get('response')
-  reply() {
-    return 'this is valid '
   }
 }

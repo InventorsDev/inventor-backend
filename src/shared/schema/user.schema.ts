@@ -1,9 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { BadRequestException } from '@nestjs/common';
 import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { config } from 'dotenv';
 import mongoose, { HydratedDocument, Mongoose, Types } from 'mongoose';
-import { configs } from '../configs';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { ApiReq, EmailFromType } from '../interfaces';
 import {
@@ -18,6 +16,7 @@ import {
   BcryptUtil,
   firstCapitalize,
   getBaseUrlWithPath,
+  mailTemplates,
   passwordMatch,
   redisGet,
   redisSet,
@@ -134,7 +133,7 @@ UserSchema.statics.sendEmailVerificationToken =
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Important - Email Confirmation Code',
-      template: () => configs().resend.templates.generalEmailVerification,
+      template: mailTemplates.emailVerification,
       templateVariables: {
         firstName,
         emailVerificationUrl,
@@ -200,7 +199,7 @@ UserSchema.statics.forgetPassword = async function forgetPassword(
     to: user.email,
     from: EmailFromType.HELLO,
     subject: 'Reset Your Password - Action Required',
-    template: () => configs().resend.templates.generalPasswordChange,
+    template: mailTemplates.passwordChangedNotification,
     templateVariables: {
       name: firstName,
     },
@@ -309,7 +308,7 @@ UserSchema.statics.signUp = async function signUp(
     to: data.email,
     from: EmailFromType.HELLO,
     subject: 'Welcome to Our Developer Community at Inventors!',
-    template: () => configs().resend.templates.generalSignUp,
+    template: mailTemplates.generalSignUp,
     templateVariables: {
       name: data.basic_info.firstName,
     },
