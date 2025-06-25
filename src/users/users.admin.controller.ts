@@ -93,13 +93,13 @@ export class UsersAdminsController {
     name: 'userByStatuses',
     required: false,
     type: String,
-    description: `One ore more of "${userStatuses}" separated by comma`,
+    description: `One or more of "${userStatuses}" separated by comma`,
   } as any)
   @ApiQuery({
     name: 'userByRoles',
     required: false,
     type: String,
-    description: `One ore more of "${userRoles}" separated by comma`,
+    description: `One or more of "${userRoles}" separated by comma`,
   } as any)
   @ApiQuery({
     name: 'userByIds',

@@ -19,7 +19,7 @@ export class LogInterceptor implements NestInterceptor {
     const ctx = context.switchToHttp();
     const req = ctx.getRequest();
     const res = ctx.getResponse();
-    const traceId = faker.datatype.uuid();
+    const traceId = faker.string.uuid();
     req.traceId = req.traceId || traceId;
     req.userIpAddress = getIpAddress(req);
 
