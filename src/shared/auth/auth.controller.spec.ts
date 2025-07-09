@@ -1,11 +1,20 @@
+import { BadRequestException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
+import { Model } from 'mongoose';
+import { RegistrationMethod, UserRole, UserStatus } from '../interfaces';
+import {
+  BasicInfo,
+  BasicInfoDoc,
+  ContactInfo,
+  ContactInfoDocs,
+  ProfessionalInfo,
+  ProfessionalInfoDocs,
+  User,
+  UserDocument,
+} from '../schema';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { User, UserDocument } from '../schema';
-import { Model } from 'mongoose';
-import { BadRequestException } from '@nestjs/common';
-import { RegistrationMethod, UserRole, UserStatus } from '../interfaces';
-import { JwtService } from '@nestjs/jwt';
 
 // extending mongoose model ot allow us to use custom mocks
 // used jest.mock becasue i'll mock them in the test
@@ -15,6 +24,11 @@ interface UserModel extends Model<UserDocument> {
   forgetPassword: jest.Mock;
   generateUserHandle: jest.Mock;
   sendEmailVerificationToken: jest.Mock;
+}
+interface MockModels {
+  BasicInfoModel: Partial<Model<BasicInfoDoc>>;
+  ProfessionalInfoModel: Partial<Model<ProfessionalInfoDocs>>;
+  ContactInfoModel: Partial<Model<ContactInfoDocs>>;
 }
 
 // requiered to tell typescript which methods we are mocking
@@ -137,6 +151,10 @@ describe('AuthController', () => {
     sign: jest.fn().mockReturnValue('mock_token'),
   };
 
+  const mockBasicInfoModel: Partial<Model<BasicInfoDoc>> = {};
+  const mockProfessionalInfoModel: Partial<Model<ProfessionalInfoDocs>> = {};
+  const mockContactInfoModel: Partial<Model<ContactInfoDocs>> = {};
+
   beforeEach(async () => {
     jest.clearAllMocks(); // clear all mock implementaions
 
@@ -154,6 +172,18 @@ describe('AuthController', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: BasicInfo.name,
+          useValue: mockBasicInfoModel,
+        },
+        {
+          provide: ProfessionalInfo.name,
+          useValue: mockProfessionalInfoModel,
+        },
+        {
+          provide: ContactInfo.name,
+          useValue: mockContactInfoModel,
         },
       ],
     }).compile();
@@ -192,7 +222,16 @@ describe('AuthController', () => {
       const result = await authController.register(mockReq, createUserDto);
 
       expect(result).toHaveProperty('email', createUserDto.email);
-      expect(userModel.signUp).toHaveBeenCalledWith(mockReq, createUserDto);
+      expect(userModel.signUp).toHaveBeenCalledWith(
+        mockReq,
+        createUserDto,
+        false,
+        {
+          BasicInfoModel: mockBasicInfoModel,
+          ProfessionalInfoModel: mockProfessionalInfoModel,
+          ContactInfoModel: mockContactInfoModel,
+        },
+      );
     });
 
     it('should throw an error if user already exists', async () => {
