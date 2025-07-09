@@ -1,21 +1,12 @@
-import {
-  Controller,
-  UseGuards,
-  Param,
-  Delete,
-  Patch,
-} from '@nestjs/common';
+import { Controller, UseGuards, Param, Delete, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 import { EventService } from './events.users.service';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 
-
 @ApiTags('admins')
 @Controller('admins')
 export class EventAdminsController {
-  constructor(
-    private readonly eventService: EventService,
-  ) {}
+  constructor(private readonly eventService: EventService) {}
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
@@ -32,5 +23,4 @@ export class EventAdminsController {
   async softDeleteEvent(@Param('id') id: string) {
     return this.eventService.softDeleteEvent(id);
   }
-
 }

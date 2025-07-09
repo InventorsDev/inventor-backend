@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { Post, } from 'src/shared/schema';
+import { Post } from 'src/shared/schema';
 import { PostDocument } from 'src/shared/schema/post.schema';
 import { PostDto } from './dto/post.dto';
 import { ApiReq } from 'src/shared/interfaces/req.type';
@@ -16,13 +16,13 @@ export class PostService {
   ) {}
 
   async createPost(payload: PostDto): Promise<Post> {
-       return this.postModel.create({
-         title: payload.title,
-         shortDesc: payload.shortDesc,
-         description: payload.description,
-         photo: payload.photo,
-         postDate: payload.postDate,
-       });
+    return this.postModel.create({
+      title: payload.title,
+      shortDesc: payload.shortDesc,
+      description: payload.description,
+      photo: payload.photo,
+      postDate: payload.postDate,
+    });
   }
 
   async findAll(req: ApiReq) {
@@ -56,7 +56,7 @@ export class PostService {
     const updatedPost = await this.postModel
       .findByIdAndUpdate(id, updatePostDto, { new: true, lean: true })
       .exec();
-      
+
     if (!updatedPost) {
       throw new NotFoundException(`Post with ID ${id} not found`);
     }
@@ -76,11 +76,9 @@ export class PostService {
   }
 
   async approvePost(id: string): Promise<Post> {
-    let approvePost = this.postModel.findByIdAndUpdate(
-      id,
-      { status: Status.APPROVED },
-      { new: true },
-   ).exec();
+    let approvePost = this.postModel
+      .findByIdAndUpdate(id, { status: Status.APPROVED }, { new: true })
+      .exec();
 
     if (!approvePost) {
       throw new NotFoundException(`Post with ID ${id} not found`);

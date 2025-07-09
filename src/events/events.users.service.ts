@@ -17,19 +17,19 @@ export class EventService {
   ) {}
 
   async createEvent(payload: EventDto): Promise<Event> {
-       return this.eventModel.create({
-         title: payload.title,
-         shortDesc: payload.shortDesc,
-         description: payload.description,
-         host: payload.host,
-         coHost: payload.coHost,
-         location: payload.location,
-         photo: payload.photo,
-         joinMethod: payload.joinMethod,
-         link: payload.link,
-         socialsLinks: payload.socialsLinks,
-         eventDate: payload.eventDate,
-       });
+    return this.eventModel.create({
+      title: payload.title,
+      shortDesc: payload.shortDesc,
+      description: payload.description,
+      host: payload.host,
+      coHost: payload.coHost,
+      location: payload.location,
+      photo: payload.photo,
+      joinMethod: payload.joinMethod,
+      link: payload.link,
+      socialsLinks: payload.socialsLinks,
+      eventDate: payload.eventDate,
+    });
   }
 
   async findAll(req: ApiReq) {
@@ -63,7 +63,7 @@ export class EventService {
     const updatedEvent = await this.eventModel
       .findByIdAndUpdate(id, updateEventDto, { new: true, lean: true })
       .exec();
-      
+
     if (!updatedEvent) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }

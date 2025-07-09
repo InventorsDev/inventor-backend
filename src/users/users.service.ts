@@ -664,7 +664,7 @@ export class UsersService {
     }
 
     const now = new Date();
-    
+
     if (
       user.nextVerificationRequestDate &&
       now < user.nextVerificationRequestDate
@@ -674,7 +674,7 @@ export class UsersService {
         `You already submitted a request. Try again after ${retryDate}`,
       );
     }
-    
+
     if (user.applicationStatus === ApplicationStatus.APPROVED) {
       throw new BadRequestException('You are already verified.');
     }
@@ -704,7 +704,6 @@ export class UsersService {
       nextAllowedRequest: user.nextVerificationRequestDate,
     };
   }
-  
 
   // service for testing mail
   pingMail() {

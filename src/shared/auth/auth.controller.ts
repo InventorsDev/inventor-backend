@@ -33,6 +33,7 @@ import {
 import { AuthService } from './auth.service';
 import { JwtUsersGuard } from './guards/jwt.users.guard';
 import { LocalUsersGuard } from './guards/local.users.guard';
+import { RefreshTokenDto } from '../dtos/refresh-token.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -75,6 +76,16 @@ export class AuthController {
   @Post('login')
   login(@Request() req, @Body() userLoginDto: UserLoginDto) {
     return this.authService.login(req);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtUsersGuard)
+  @Post('refresh-token')
+  async refreshToken(
+    @Body() refreshTokenDto: RefreshTokenDto,
+    @Request() req: ApiReq,
+  ) {
+    return this.authService.refreshToken(req, refreshTokenDto);
   }
 
   @ApiOperation({

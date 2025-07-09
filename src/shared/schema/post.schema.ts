@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { Status, } from '../interfaces/post.type';
+import { Status } from '../interfaces/post.type';
 import { IsArray, IsString } from 'class-validator';
 
 export type PostDocument = HydratedDocument<Post>;
@@ -8,10 +8,10 @@ export type PostDocument = HydratedDocument<Post>;
 @Schema({ timestamps: true })
 export class Post {
   @Prop({ required: true, index: true })
-  title: string; 
+  title: string;
 
   @Prop({ required: true })
-  shortDesc: string; 
+  shortDesc: string;
 
   @Prop({ required: true })
   description: string;

@@ -34,7 +34,7 @@ import { JwtEventUserGuard } from './guards/jwt.event.users.guard';
     JwtUsersGuard,
     JwtEventUserGuard,
     JwtAdminsGuard,
-    LocalUsersGuard
+    LocalUsersGuard,
   ],
   exports: [
     PassportModule,
@@ -46,7 +46,7 @@ import { JwtEventUserGuard } from './guards/jwt.event.users.guard';
     JwtUsersGuard,
     JwtAdminsGuard,
     LocalUsersGuard,
-    JwtEventUserGuard
+    JwtEventUserGuard,
   ],
 })
 export class AuthModule {}

@@ -12,7 +12,7 @@ describe('EventService', () => {
   let service: EventService;
 
   const mockEvent = {
-    _id: new Types.ObjectId(), 
+    _id: new Types.ObjectId(),
     title: 'Sample Event',
     shortDesc: 'A short description',
     description: 'A detailed description of the event',
@@ -27,7 +27,7 @@ describe('EventService', () => {
       twitter: 'https://twitter.com/sample',
       facebook: 'https://facebook.com/sample',
     },
-    eventDate: new Date()
+    eventDate: new Date(),
   };
 
   let eventModelMock = {
@@ -46,7 +46,6 @@ describe('EventService', () => {
       exec: jest.fn().mockResolvedValue(mockEvent),
     })),
   };
-
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -79,7 +78,11 @@ describe('EventService', () => {
         photo: 'photo_url',
         joinMethod: JoinMethod.MEET,
         link: 'event_link',
-        socialsLinks: { linkedIn: 'linkedin_url', twitter: 'twitter_url', facebook: 'facebook_url' },
+        socialsLinks: {
+          linkedIn: 'linkedin_url',
+          twitter: 'twitter_url',
+          facebook: 'facebook_url',
+        },
         eventDate: new Date(),
       };
 
@@ -93,14 +96,19 @@ describe('EventService', () => {
     it('should return an event by ID', async () => {
       const result = await service.findById(mockEvent._id.toString());
       expect(result).toEqual(mockEvent);
-      expect(eventModelMock.findById).toHaveBeenCalledWith(mockEvent._id.toString());
+      expect(eventModelMock.findById).toHaveBeenCalledWith(
+        mockEvent._id.toString(),
+      );
     });
 
     it('should throw NotFoundException if event is not found', async () => {
       eventModelMock.findById.mockImplementationOnce(() => ({
         lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(null)}));
-      await expect(service.findById('12345')).rejects.toThrow(NotFoundException);
+        exec: jest.fn().mockResolvedValue(null),
+      }));
+      await expect(service.findById('12345')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -108,16 +116,26 @@ describe('EventService', () => {
     it('should update and return an event', async () => {
       const updateEventDto: UpdateEventDto = { title: 'Updated Event' };
       eventModelMock.findByIdAndUpdate.mockResolvedValue(mockEvent);
-      const result = await service.updateEvent(mockEvent._id.toString(), updateEventDto);
+      const result = await service.updateEvent(
+        mockEvent._id.toString(),
+        updateEventDto,
+      );
       expect(result).toEqual(mockEvent);
-      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(mockEvent._id.toString(), updateEventDto, { new: true, lean: true });
+      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+        mockEvent._id.toString(),
+        updateEventDto,
+        { new: true, lean: true },
+      );
     });
 
     it('should throw NotFoundException if event to update is not found', async () => {
       eventModelMock.findByIdAndUpdate.mockImplementationOnce(() => ({
         lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(null)}));
-      await expect(service.updateEvent('12345', {})).rejects.toThrow(NotFoundException);
+        exec: jest.fn().mockResolvedValue(null),
+      }));
+      await expect(service.updateEvent('12345', {})).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -126,13 +144,21 @@ describe('EventService', () => {
       eventModelMock.findByIdAndUpdate.mockResolvedValue(mockEvent);
       const result = await service.softDeleteEvent(mockEvent._id.toString());
       expect(result).toEqual(mockEvent);
-      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(mockEvent._id.toString(), { status: Status.DELETED }, { new: true });
+      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+        mockEvent._id.toString(),
+        { status: Status.DELETED },
+        { new: true },
+      );
     });
 
     it('should throw NotFoundException if event to delete is not found', async () => {
       let id = mockEvent._id.toString();
-      eventModelMock.findByIdAndUpdate.mockRejectedValueOnce(new NotFoundException(`Event with ID ${id} not found`));
-      await expect(service.softDeleteEvent(id)).rejects.toThrow(new NotFoundException(`Event with ID ${id} not found`));
+      eventModelMock.findByIdAndUpdate.mockRejectedValueOnce(
+        new NotFoundException(`Event with ID ${id} not found`),
+      );
+      await expect(service.softDeleteEvent(id)).rejects.toThrow(
+        new NotFoundException(`Event with ID ${id} not found`),
+      );
     });
   });
 
@@ -141,13 +167,21 @@ describe('EventService', () => {
       eventModelMock.findByIdAndUpdate.mockResolvedValue(mockEvent);
       const result = await service.approveEvent(mockEvent._id.toString());
       expect(result).toEqual(mockEvent);
-      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(mockEvent._id.toString(), { status: Status.APPROVED }, { new: true });
+      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+        mockEvent._id.toString(),
+        { status: Status.APPROVED },
+        { new: true },
+      );
     });
 
     it('should throw NotFoundException if event to approve is not found', async () => {
       let id = mockEvent._id.toString();
-      eventModelMock.findByIdAndUpdate.mockRejectedValueOnce(new NotFoundException(`Event with ID ${id} not found`));
-      await expect(service.approveEvent(id)).rejects.toThrow(new NotFoundException(`Event with ID ${id} not found`));
+      eventModelMock.findByIdAndUpdate.mockRejectedValueOnce(
+        new NotFoundException(`Event with ID ${id} not found`),
+      );
+      await expect(service.approveEvent(id)).rejects.toThrow(
+        new NotFoundException(`Event with ID ${id} not found`),
+      );
     });
   });
 });

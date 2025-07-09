@@ -1,11 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import {
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
-import { JoinMethod, SocialsLinks, Location, Status} from '../../shared/interfaces/event.type';
+  JoinMethod,
+  SocialsLinks,
+  Location,
+  Status,
+} from '../../shared/interfaces/event.type';
 
 export class EventDto {
   @ApiProperty()

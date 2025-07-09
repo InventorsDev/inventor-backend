@@ -28,12 +28,10 @@ export class PostController {
   @ApiBearerAuth()
   @UseGuards(JwtPostUserGuard)
   @Get('status/list')
-  async getPostsByStatus(
-  @Query('statuses') statuses: string,
-) {
-   const statusList = statuses?.split(',') as Status[];
-  return this.postService.findByStatuses(statusList);
-}
+  async getPostsByStatus(@Query('statuses') statuses: string) {
+    const statusList = statuses?.split(',') as Status[];
+    return this.postService.findByStatuses(statusList);
+  }
   @Post()
   async createPost(@Body() payload: PostDto) {
     return this.postService.createPost(payload);
@@ -55,7 +53,6 @@ export class PostController {
   @UseGuards(JwtPostUserGuard)
   @Patch(':id')
   @ApiParam({ name: 'id', type: 'string' })
-  
   async updatePost(
     @Param('id') id: string,
     @Body() updatePostDto: UpdatePostDto,

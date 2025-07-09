@@ -1,5 +1,9 @@
 import { IsString, IsOptional, IsDate, IsEnum, IsArray } from 'class-validator';
-import { JoinMethod, SocialsLinks, Location} from '../../shared/interfaces/event.type';
+import {
+  JoinMethod,
+  SocialsLinks,
+  Location,
+} from '../../shared/interfaces/event.type';
 
 export class UpdateEventDto {
   @IsOptional()

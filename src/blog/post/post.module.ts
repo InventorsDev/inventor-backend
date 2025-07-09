@@ -5,7 +5,7 @@ import { DBModule } from 'src/shared/schema';
 
 @Module({
   imports: [DBModule],
-  controllers: [PostController,],
+  controllers: [PostController],
   providers: [PostService],
   exports: [PostService],
 })

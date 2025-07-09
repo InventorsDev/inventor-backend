@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 
-export class RequestReactivationDto {
-  @IsNotEmpty()
+export class RefreshTokenDto {
   @IsString()
-  message: string;
+  @IsNotEmpty()
+  refreshToken: string;
 }

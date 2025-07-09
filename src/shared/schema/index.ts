@@ -8,8 +8,10 @@ import { EventSchema } from './events.schema';
 import { PostSchema, Post } from './post.schema';
 import { DataLog, DataLogSchema } from './data.log.schema';
 import { InviteToken, InviteTokenSchema } from './invite-tokens.schema';
-import { ProfessionalInfo, ProfessionalInfoSchema } from './professional.info.schema';
-
+import {
+  ProfessionalInfo,
+  ProfessionalInfoSchema,
+} from './professional.info.schema';
 
 // All Schema Models
 export * from './basic.info.schema';
@@ -18,8 +20,8 @@ export * from './data.log.schema';
 export * from './user.schema';
 export * from './events.schema';
 export * from './post.schema';
-export * from './invite-tokens.schema'
-export * from './professional.info.schema'
+export * from './invite-tokens.schema';
+export * from './professional.info.schema';
 
 const SCHEMA_LIST = [
   { name: User.name, schema: UserSchema, dbPrefix: 'APP' },

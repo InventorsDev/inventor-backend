@@ -1,11 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
-import { Status} from '../../../shared/interfaces/post.type';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Status } from '../../../shared/interfaces/post.type';
 
 export class PostDto {
   @ApiProperty()

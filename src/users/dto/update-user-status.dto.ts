@@ -1,4 +1,3 @@
-
 import { IsEnum, IsNotEmpty } from 'class-validator';
 import { UserStatus } from 'src/shared/interfaces';
 

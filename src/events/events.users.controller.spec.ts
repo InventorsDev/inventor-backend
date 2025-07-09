@@ -4,8 +4,8 @@ import { EventUserController } from './events.users.controller';
 import { TestModule } from 'src/shared/testkits';
 
 describe('UsersController', () => {
-  let controller: EventUserController
- 
+  let controller: EventUserController;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [TestModule],

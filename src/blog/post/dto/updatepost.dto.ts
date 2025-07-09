@@ -14,7 +14,6 @@ export class UpdatePostDto {
   @IsString()
   description?: string;
 
-  
   @IsOptional()
   @IsString()
   photo?: string;
