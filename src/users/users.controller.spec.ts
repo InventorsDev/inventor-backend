@@ -468,10 +468,21 @@ describe('UsersAdminController', () => {
 
   describe('addPhoto', () => {
     const userId = new Types.ObjectId().toString();
-    const photoDto = {
-      userId,
-      photo: 'new-photo-url.jpg',
-    };
+    const photoDto = { userId, photo: 'new-photo-url.jpg' };
+    const mockReq = { user: createUserMock() };
+
+    it('should add a photo to user profile', async () => {
+      const expectedResult = createUserMock({ photo: photoDto.photo });
+      jest.spyOn(usersService, 'addPhoto').mockResolvedValue(expectedResult);
+
+      const result = await adminController.addPhoto(mockReq, userId, photoDto);
+
+      expect(result).toEqual(expectedResult);
+      expect(usersService.addPhoto).toHaveBeenCalledWith(
+        photoDto.userId,
+        photoDto,
+      );
+    });
 
     it('should throw error when invalid photo format', async () => {
       const mockReq = { user: createUserMock() };
@@ -486,12 +497,9 @@ describe('UsersAdminController', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw error when photo size exceeds limit', async () => {
-      const mockReq = { user: createUserMock() };
-
       jest
         .spyOn(usersService, 'addPhoto')
-        .mockRejectedValue(new BadRequestException('Photo size exceeds limit'));
+        .mockRejectedValue(new BadRequestException());
 
       await expect(
         adminController.addPhoto(mockReq, userId, photoDto),
@@ -501,14 +509,12 @@ describe('UsersAdminController', () => {
 
   describe('RequestVerificationToken', () => {
     const userId = new Types.ObjectId().toString();
+    const mockReq = { user: createUserMock() };
 
     it('should request new verification token', async () => {
-      const mockReq = { user: createUserMock() };
-
-      // Mocking the requestVerification method to resolve successfully
       jest
         .spyOn(usersService, 'requestVerification')
-        .mockResolvedValue(undefined); // or just don't mock return value
+        .mockResolvedValue(undefined);
 
       await adminController.RequestVerificationToken(mockReq, userId);
 
@@ -518,56 +524,14 @@ describe('UsersAdminController', () => {
       );
     });
 
-    it('should throw error when user not found', async () => {
-      const mockReq = { user: createUserMock() };
-
+    it('should handle verification errors', async () => {
       jest
         .spyOn(usersService, 'requestVerification')
-        .mockRejectedValue(new Error('User  not found'));
+        .mockRejectedValue(new Error('User not found'));
 
       await expect(
         adminController.RequestVerificationToken(mockReq, userId),
-      ).rejects.toThrow('User  not found');
-    });
-
-    it('should throw error when verification request not allowed', async () => {
-      const mockReq = { user: createUserMock() };
-
-      jest
-        .spyOn(usersService, 'requestVerification')
-        .mockRejectedValue(
-          new Error('Verification request not allowed at this time'),
-        );
-
-      await expect(
-        adminController.RequestVerificationToken(mockReq, userId),
-      ).rejects.toThrow('Verification request not allowed at this time');
-    });
-
-    it('should throw error when user already verified', async () => {
-      const mockReq = {
-        user: createUserMock({ applicationStatus: ApplicationStatus.APPROVED }),
-      };
-
-      jest
-        .spyOn(usersService, 'requestVerification')
-        .mockRejectedValue(new Error('User  is already verified'));
-
-      await expect(
-        adminController.RequestVerificationToken(mockReq, userId),
-      ).rejects.toThrow('User  is already verified');
-    });
-
-    it('should throw error when too many requests', async () => {
-      const mockReq = { user: createUserMock() };
-
-      jest
-        .spyOn(usersService, 'requestVerification')
-        .mockRejectedValue(new Error('Too many verification requests'));
-
-      await expect(
-        adminController.RequestVerificationToken(mockReq, userId),
-      ).rejects.toThrow('Too many verification requests');
+      ).rejects.toThrow('User not found');
     });
   });
 
@@ -612,7 +576,6 @@ describe('UsersAdminController', () => {
     it('should throw error when updating non-existent user', async () => {
       const statusDto = { status: UserStatus.ACTIVE };
       const mockReq = { user: createUserMock() };
-
       // Mocking the service to throw an error when the user is not found
       jest
         .spyOn(usersService, 'updateStatus')
@@ -728,6 +691,171 @@ describe('UsersAdminController', () => {
 
         expect(result).toEqual(expectedResults);
         expect(usersService.getUsersWithLeadRole).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Deactivate User Account', () => {
+    const userId = new Types.ObjectId().toString();
+    const deactivateDto = { reason: 'Taking a break' };
+    const mockReq = { user: createUserMock() };
+
+    it('should deactivate a user account', async () => {
+      const expectedResult = createUserMock({ status: UserStatus.DEACTIVATED });
+      jest
+        .spyOn(usersService, 'deactivateAccount')
+        .mockResolvedValue(expectedResult);
+
+      const result = await controller.deactivateAccount(
+        mockReq,
+        userId,
+        deactivateDto,
+      );
+
+      expect(result).toEqual(expectedResult);
+      expect(usersService.deactivateAccount).toHaveBeenCalledWith(userId);
+    });
+
+    it('should handle deactivation errors', async () => {
+      jest
+        .spyOn(usersService, 'deactivateAccount')
+        .mockRejectedValue(new NotFoundException());
+
+      await expect(
+        controller.deactivateAccount(mockReq, userId, deactivateDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('Request Reactivation', () => {
+    const userId = new Types.ObjectId().toString();
+    const reactivationDto = { message: 'Ready to come back' };
+
+    it('should request reactivation of a user account', async () => {
+      const expectedResult = createUserMock({ status: UserStatus.ACTIVE });
+      jest
+        .spyOn(usersService, 'requestReactivation')
+        .mockResolvedValue(expectedResult);
+
+      const result = await controller.requestReactivation(
+        userId,
+        reactivationDto,
+      );
+
+      expect(result).toEqual(expectedResult);
+      expect(usersService.requestReactivation).toHaveBeenCalledWith(userId);
+    });
+
+    it('should handle reactivation errors', async () => {
+      jest
+        .spyOn(usersService, 'requestReactivation')
+        .mockRejectedValue(new NotFoundException());
+
+      await expect(
+        controller.requestReactivation(userId, reactivationDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('Lead Registration', () => {
+    const tempLeadDto = {
+      email: 'lead@example.com',
+      leadPosition: 'Senior Developer',
+      firstName: 'John',
+      lastName: 'Doe',
+      createdAt: new Date(),
+    };
+
+    it('should successfully register a temporary lead', async () => {
+      const expectedResult = 'Application sent';
+      jest
+        .spyOn(usersService, 'createTempRegistration')
+        .mockResolvedValue(expectedResult);
+
+      const result = await controller.createLead(tempLeadDto);
+
+      expect(result).toEqual(expectedResult);
+      expect(usersService.createTempRegistration).toHaveBeenCalledWith(
+        tempLeadDto.email,
+        tempLeadDto.leadPosition,
+      );
+    });
+
+    it('should throw BadRequestException when registration not allowed', async () => {
+      jest
+        .spyOn(usersService, 'createTempRegistration')
+        .mockRejectedValue(new BadRequestException());
+
+      await expect(controller.createLead(tempLeadDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('Register New User Form', () => {
+    const encryptedData = 'encryptedString';
+    const userId = new Types.ObjectId().toString();
+    const email = 'user@example.com';
+
+    it('should redirect to create lead page when user exists', async () => {
+      const mockUser = createUserMock({
+        _id: new Types.ObjectId(userId),
+        email,
+      });
+
+      jest
+        .spyOn(usersService, 'paraseEncryptedParams')
+        .mockReturnValue({ userId, email });
+      jest.spyOn(usersService, 'findById').mockResolvedValue(mockUser);
+
+      const result = await controller.register(encryptedData);
+
+      expect(result).toEqual({ url: `/leads/createLead?email=${email}` });
+    });
+
+    it('should handle invalid links', async () => {
+      jest
+        .spyOn(usersService, 'paraseEncryptedParams')
+        .mockImplementation(() => {
+          throw new Error('Decryption failed');
+        });
+
+      await expect(controller.register(encryptedData)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('User Invite Link', () => {
+    const encryptedData = 'encryptedInviteString';
+    const userId = new Types.ObjectId().toString();
+    const email = 'invite@example.com';
+
+    it('should redirect to create lead page when user exists', async () => {
+      const mockUser = createUserMock({
+        _id: new Types.ObjectId(userId),
+        email,
+      });
+
+      jest
+        .spyOn(usersService, 'paraseEncryptedParams')
+        .mockReturnValue({ userId, email });
+      jest.spyOn(usersService, 'findById').mockResolvedValue(mockUser);
+
+      const result = await controller.register(encryptedData);
+
+      expect(result).toEqual({ url: `/leads/createLead?email=${email}` });
+    });
+
+    it('should redirect to new user form when userId is missing', async () => {
+      jest
+        .spyOn(usersService, 'paraseEncryptedParams')
+        .mockReturnValue({ userId: '', email });
+
+      const result = await controller.register(encryptedData);
+
+      expect(result).toEqual({
+        url: `/leads/new-user-form?email=${encodeURIComponent(email)}`,
       });
     });
   });
