@@ -51,7 +51,7 @@ export class UsersController {
 
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
-  @Put('/change-password')
+  @Patch('/change-password')
   async changePassword(
     @Request() req: ApiReq,
     @Body() payload: UserChangePasswordDto,
@@ -117,7 +117,7 @@ export class UsersController {
 
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
-  @Patch()
+  @Put()
   update(@Request() req: ApiReq, @Body() payload: UpdateUserDto) {
     const userId = req.user._id.toString();
     return this.usersService.update(userId, payload);
@@ -125,7 +125,7 @@ export class UsersController {
 
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
-  @Put('/profile-photo')
+  @Patch('/profile-photo')
   async addPhoto(@Request() req: ApiReq, @Body() payload: UserAddPhotoDto) {
     return this.usersService.addPhoto(req.user._id.toString(), payload);
   }
@@ -163,7 +163,7 @@ export class UsersController {
   }
 
   @UseGuards(JwtUsersGuard)
-  @Put(':userId/deactivate')
+  @Patch(':userId/deactivate')
   async deactivateAccount(
     @Request() req: any,
     @Param('userId') userId: string,
@@ -173,7 +173,7 @@ export class UsersController {
     return this.usersService.deactivateAccount(userId);
   }
 
-  @Put(':userId/request-reactivation')
+  @Patch(':userId/request-reactivation')
   async requestReactivation(
     @Param('userId') userId: string,
     @Body() payload: RequestReactivationDto,
