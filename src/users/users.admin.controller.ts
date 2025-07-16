@@ -134,7 +134,7 @@ export class UsersAdminsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Put('users/:userId/profile-photo')
+  @Patch('users/:userId/profile-photo')
   async addPhoto(
     @Request() req: ApiReq,
     @Param('userId') userId: string,
@@ -145,7 +145,7 @@ export class UsersAdminsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Put('users/:userId/change-password')
+  @Patch('users/:userId/change-password')
   async changePassword(
     @Request() req: ApiReq,
     @Param('userId') userId: string,
@@ -161,7 +161,7 @@ export class UsersAdminsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Put('users/:userId/verify/:token/email')
+  @Patch('users/:userId/verify/:token/email')
   async verifyEmail(
     @Param('userId') userId: string,
     @Param('token') token: string,
@@ -186,7 +186,7 @@ export class UsersAdminsController {
   @UseGuards(JwtAdminsGuard)
   @ApiOperation({
     summary: 'update user status',
-    description: 'changees the current status of the selected uerId',
+    description: 'changes the current status of the selected uerId',
   })
   @Patch('users/:userId/status')
   async updateUserStatus(
@@ -201,7 +201,7 @@ export class UsersAdminsController {
   @UseGuards(JwtAdminsGuard)
   @ApiQuery({ name: 'email', description: 'user email' })
   @ApiOperation({
-    summary: 'get a lead applicaiton',
+    summary: 'get a lead application',
     description: 'finds a lead application using email.',
   })
   @Get('lead/application/:email')
@@ -233,7 +233,7 @@ export class UsersAdminsController {
   @ApiOperation({
     summary: 'approve a lead application',
     description:
-      'finds a pending lead application using the email query param and apporve that pending applicaton on that account',
+      'finds a pending lead application using the email query param and approve that pending application on that account',
   })
   @Patch('lead/:email/approve')
   async approveApplication(@Param('email') email: string): Promise<string> {
