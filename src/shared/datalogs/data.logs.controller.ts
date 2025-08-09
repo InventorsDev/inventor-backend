@@ -8,7 +8,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { DataLogsService } from './data.logs.service';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 // import { JwtAdminsGuard, JwtUsersGuard } from '../auths';
 import { dataLogTypes, ApiReq } from '../interfaces';
 import { JwtAdminsGuard } from '../auth/guards/jwt.admins.guard';
@@ -18,6 +23,12 @@ import { JwtUsersGuard } from '../auth/guards/jwt.users.guard';
 export class DataLogsController {
   constructor(private readonly logsService: DataLogsService) {}
 
+  @ApiOperation({
+    summary: 'Get all logs',
+    description:
+      'Gets all available logs with admin privileges;' +
+      'can be filtered by proper specified (optional) filters.',
+  })
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
   @ApiQuery({ name: 'limit', required: false, type: String } as any)
@@ -77,6 +88,10 @@ export class DataLogsController {
     return this.logsService.findAll(req);
   }
 
+  @ApiOperation({
+    summary: 'Get public logs (user)',
+    description: 'Gets all public logs with user privileges. Requires a `logSource` to be specified.',
+  })
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
   @ApiTags('users')
@@ -85,6 +100,10 @@ export class DataLogsController {
     return this.logsService.publicLog(req, source);
   }
 
+  @ApiOperation({
+    summary: 'Get public logs (admin)',
+    description: 'Gets all public logs with admin privileges. Requires a `logSource` to be specified.',
+  })
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
   @ApiTags('admins')
@@ -93,6 +112,10 @@ export class DataLogsController {
     return this.logsService.publicLog(req, source);
   }
 
+  @ApiOperation({
+    summary: 'Delete a log',
+    description: 'Deletes a log with admin privileges by ID.',
+  })
   @ApiBearerAuth()
   // @UseGuards(JwtAdminsGuard)
   @ApiTags('admins')
