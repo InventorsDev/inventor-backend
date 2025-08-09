@@ -8,7 +8,6 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { UserLoginDto } from '../dtos/user-login.dto';
@@ -18,7 +17,6 @@ import {
   ApiOperation,
   ApiResponse,
 } from '@nestjs/swagger';
-import { LocalUsersGuard } from './guards/local.users.guard';
 import { ApiReq } from '../interfaces/req.type';
 import {
   BasicInfo,
