@@ -15,7 +15,7 @@ const notificationTypes = Object.values(NotificationType);
 export class NotificationDto {
   @ApiProperty({ description: '' })
   @IsNotEmpty()
-  recievierId: string;
+  receiverId: string;
 
   @ApiProperty({ description: '' })
   @IsNotEmpty()
@@ -41,6 +41,11 @@ export class NotificationDto {
   @IsBoolean()
   @IsNotEmpty()
   isRead: boolean;
+
+  @ApiProperty({ description: 'is this a admin notification' })
+  @IsBoolean()
+  @IsNotEmpty()
+  isAdminNotification: boolean;
 
   @ApiProperty({ description: '' })
   @IsOptional()

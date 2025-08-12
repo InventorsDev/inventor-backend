@@ -7,8 +7,8 @@ export type NotificationInfoDoc = HydratedDocument<NotificationInfo>;
 
 @Schema({ timestamps: true })
 export class NotificationInfo {
-  @Prop({ required: true }) recievierId: string;
-  @Prop({ required: true }) type: NotificationType; //TODO: turn this into an enum
+  @Prop({ required: true }) receiverId: string;
+  @Prop({ required: true }) type: NotificationType;
   @Prop({ required: true }) entityId: string;
   @Prop({ required: true })
   @IsString()
@@ -17,6 +17,9 @@ export class NotificationInfo {
   @Prop({ required: true, default: false })
   @IsBoolean()
   isRead: boolean;
+  @Prop({ required: true, default: false })
+  @IsBoolean()
+  isAdminNotification: boolean;
 }
 
 export const NotificationSchema =
