@@ -10,6 +10,7 @@ describe('NotificationsService', () => {
   beforeEach(async () => {
     // mokcingi model functions for testing
     userModel = { findById: jest.fn() };
+    // mocking the returned value of the to a json object, applying the lean function
     notificationModel = {
       find: jest.fn().mockReturnValue({
         lean: () => {
@@ -39,12 +40,13 @@ describe('NotificationsService', () => {
     );
   });
   it('should return admin notifications for admin user', async () => {
-    const mockAdminUser = { role: ['ADMIN'] };
+    const mockAdminUser = { role: ['ADMIN'] }; // setting example user obj role to admin
     const mockAdminNotifications = [
       { message: 'Test notification 1' },
       { message: 'Test notification 2' },
     ];
     userModel.findById.mockResolvedValue(mockAdminUser);
+    // mocking the returned value to give an array of javascript objects
     notificationModel.find.mockReturnValue({
       lean: () => ({
         exec: jest.fn().mockResolvedValue(mockAdminNotifications),
