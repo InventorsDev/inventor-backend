@@ -10,6 +10,7 @@ export class NotificationsService {
     @Inject(User.name)
     private readonly userModel: Model<User>,
   ) {}
+
   async getNotifications(userId: string): Promise<string[]> {
     // check if user exists
     const user = await this.userModel.findById(userId);

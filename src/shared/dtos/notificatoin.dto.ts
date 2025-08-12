@@ -25,7 +25,7 @@ export class NotificationDto {
     }
     return true;
   })
-  type: ['lead', 'event'];
+  notification_type: ['lead', 'event'];
 
   @ApiProperty({ description: '' })
   @IsNotEmpty()
