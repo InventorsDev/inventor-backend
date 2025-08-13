@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Request } from '@nestjs/common';
+import { Controller, Get, Param, Query, Request } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { ApiReq } from 'src/shared/interfaces';
 import { NotificationsService } from './notifications.service';
@@ -8,7 +8,7 @@ import { NotificationsService } from './notifications.service';
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
-  @Get()
+  @Get('/notifications')
   @ApiResponse({
     status: 200,
     description: 'List of notifications',
@@ -19,5 +19,18 @@ export class NotificationsController {
       req.user._id.toString(),
     );
     return notifications;
+  }
+
+  @Get('/notifications/:notificationId')
+  @ApiResponse({
+    status: 200,
+    description: 'Return the id of the object that prompted the notification',
+  })
+  async getNotificationParentId(
+    @Param('notificationId') notificationId: string,
+  ) {
+    const notification =
+      await this.notificationsService.getNotificationById(notificationId);
+    return notification;
   }
 }
