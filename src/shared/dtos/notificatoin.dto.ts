@@ -13,11 +13,17 @@ import { NotificationType } from '../interfaces';
 const notificationTypes = Object.values(NotificationType);
 
 export class NotificationDto {
-  @ApiProperty({ description: '' })
+  @ApiProperty({
+    description:
+      'the userid of the person receiving the notification/ person that made the request',
+  })
   @IsNotEmpty()
   receiverId: string;
 
-  @ApiProperty({ description: '' })
+  @ApiProperty({
+    description: 'determinies if the notification is a lead or event',
+  })
+  @IsEnum(NotificationType)
   @IsNotEmpty()
   @ValidateIf((data) => {
     if (!notificationTypes.includes(data.type)) {
@@ -27,17 +33,25 @@ export class NotificationDto {
   })
   notification_type: ['lead', 'event'];
 
-  @ApiProperty({ description: '' })
+  @ApiProperty({
+    description:
+      'the id of the object that prompted the notification, eg the application id',
+  })
   @IsNotEmpty()
   @IsString()
   entityId: string;
 
-  @ApiProperty({ description: '' })
+  @ApiProperty({
+    description: 'message displayed as summary for the notification',
+  })
   @IsNotEmpty()
   @IsString()
   message: string;
 
-  @ApiProperty({ description: '' })
+  @ApiProperty({
+    description:
+      'mark if the user has opened but not resolved the notification',
+  })
   @IsBoolean()
   @IsNotEmpty()
   isRead: boolean;
@@ -47,7 +61,9 @@ export class NotificationDto {
   @IsNotEmpty()
   isAdminNotification: boolean;
 
-  @ApiProperty({ description: '' })
+  @ApiProperty({
+    description: 'additional data to be sent with the notification',
+  })
   @IsOptional()
   data: any;
 }
