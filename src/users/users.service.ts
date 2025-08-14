@@ -11,12 +11,14 @@ import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
 import { Model, Types } from 'mongoose';
+import { NotificationsService } from 'src/notifications/notifications.service';
 import {} from 'src/shared/configs';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import {
   ApiReq,
   ApplicationStatus,
   EmailFromType,
+  NotificationType,
   RegistrationMethod,
   UserRole,
   UserStatus,
@@ -61,6 +63,7 @@ export class UsersService {
     @Inject(ContactInfo.name)
     private readonly contactInfoModel: Model<ContactInfo>,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
@@ -395,7 +398,7 @@ export class UsersService {
     email: string,
     leadPosition: string,
   ): Promise<string> {
-    const user = await this.findByEmail(email);
+    const user = await this.userModel.findOne({ email }); // switch to findOne because of id
     // check the next application time
     const today = new Date();
     if (user.nextApplicationTime > today) {
@@ -421,6 +424,19 @@ export class UsersService {
     } catch {
       return 'Error updating user';
     }
+    // create a notification
+    await this.notificationsService.createNotification({
+      receiverId: user._id.toString(),
+      notification_type: NotificationType.Leads,
+      entityId: user._id.toString(),
+      message: 'Lead Application Received',
+      data: {
+        leadPosition,
+      },
+      isRead: false,
+      isAdminNotification: false,
+    });
+
     let user_details;
     if (user.basicInfo) {
       user_details = await this.basicInfoModel.findById(user.basicInfo).exec();
@@ -663,7 +679,7 @@ export class UsersService {
     }
 
     const now = new Date();
-    
+
     if (
       user.nextVerificationRequestDate &&
       now < user.nextVerificationRequestDate
@@ -673,11 +689,10 @@ export class UsersService {
         `You already submitted a request. Try again after ${retryDate}`,
       );
     }
-    
+
     if (user.applicationStatus === ApplicationStatus.APPROVED) {
       throw new BadRequestException('You are already verified.');
     }
-
 
     // Update user state
     user.applicationStatus = ApplicationStatus.PENDING;
@@ -698,13 +713,12 @@ export class UsersService {
         nextTryDate: format(user.nextVerificationRequestDate, 'PPPP'),
       },
     });
-  
+
     return {
       message: 'Verification request sent.',
       nextAllowedRequest: user.nextVerificationRequestDate,
     };
   }
-  
 
   // service for testing mail
   pingMail() {

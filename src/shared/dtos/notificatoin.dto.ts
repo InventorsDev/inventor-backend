@@ -23,7 +23,6 @@ export class NotificationDto {
   @ApiProperty({
     description: 'determinies if the notification is a lead or event',
   })
-  @IsEnum(NotificationType)
   @IsNotEmpty()
   @ValidateIf((data) => {
     if (!notificationTypes.includes(data.type)) {
@@ -31,7 +30,7 @@ export class NotificationDto {
     }
     return true;
   })
-  notification_type: ['lead', 'event'];
+  notification_type: NotificationType;
 
   @ApiProperty({
     description:
