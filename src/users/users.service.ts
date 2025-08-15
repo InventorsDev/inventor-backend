@@ -8,6 +8,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectModel } from '@nestjs/mongoose';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
 import { Model, Types } from 'mongoose';
@@ -52,15 +53,15 @@ import { UserInviteDto } from './dto/user-invite.dto';
 @Injectable()
 export class UsersService {
   constructor(
-    @Inject(User.name)
+    @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
-    @Inject(InviteToken.name)
+    @InjectModel(InviteToken.name)
     private readonly inviteTokenModel: Model<TokenDocument>,
-    @Inject(BasicInfo.name)
+    @InjectModel(BasicInfo.name)
     private readonly basicInfoModel: Model<BasicInfo>,
-    @Inject(ProfessionalInfo.name)
+    @InjectModel(ProfessionalInfo.name)
     private readonly professionalInfoModel: Model<ProfessionalInfo>,
-    @Inject(ContactInfo.name)
+    @InjectModel(ContactInfo.name)
     private readonly contactInfoModel: Model<ContactInfo>,
     private readonly configService: ConfigService,
     private readonly notificationsService: NotificationsService,
@@ -399,6 +400,9 @@ export class UsersService {
     leadPosition: string,
   ): Promise<string> {
     const user = await this.userModel.findOne({ email }); // switch to findOne because of id
+    // check if user exists
+    if (!user) throw new NotFoundException('User not found');
+
     // check the next application time
     const today = new Date();
     if (user.nextApplicationTime > today) {
@@ -409,6 +413,7 @@ export class UsersService {
     // create next application date
     const futureDate = new Date();
     futureDate.setMonth(futureDate.getMonth() + 3);
+
     // update the user data that has to do with application
     try {
       await this.userModel.findOneAndUpdate(
@@ -424,23 +429,27 @@ export class UsersService {
     } catch {
       return 'Error updating user';
     }
-    // create a notification
-    await this.notificationsService.createNotification({
-      receiverId: user._id.toString(),
-      notification_type: NotificationType.Leads,
-      entityId: user._id.toString(),
-      message: 'Lead Application Received',
-      data: {
-        leadPosition,
-      },
-      isRead: false,
-      isAdminNotification: false,
-    });
 
+    // get user firstname
     let user_details;
     if (user.basicInfo) {
       user_details = await this.basicInfoModel.findById(user.basicInfo).exec();
     }
+
+    // create a notification in the db (for both admin and user)
+    const notification_id = await this.notificationsService.createNotification({
+      receiverId: user._id.toString(),
+      notification_type: NotificationType.Leads,
+      entityId: user._id.toString(),
+      message: `${user_details.firstName} has applied to be a lead for the position of ${leadPosition}`,
+      data: {
+        leadPosition,
+        applicationDate: new Date().toLocaleDateString(),
+        applicatntEmail: user.email,
+      },
+      isRead: false,
+      isAdminNotification: true,
+    });
 
     await sendMail({
       to: user.email,
@@ -478,6 +487,10 @@ export class UsersService {
     userApplication.role = [UserRole.LEAD];
     userApplication.applicationStatus = ApplicationStatus.APPROVED;
     userApplication.save();
+
+    // resolve notification
+
+    // send mail
     sendMail({
       to: userApplication.email,
       from: EmailFromType.HELLO,
