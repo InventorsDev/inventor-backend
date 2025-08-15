@@ -1,35 +1,55 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from 'src/shared/interfaces';
+import { Status } from 'src/shared/interfaces/event.type';
+import { ApiReq } from 'src/shared/interfaces/req.type';
 import { Event } from 'src/shared/schema';
 import { EventDocument } from 'src/shared/schema/events.schema';
+import { getPaginated, getPagingParams } from 'src/shared/utils';
 import { EventDto } from './dto/event.dto';
-import { ApiReq } from 'src/shared/interfaces/req.type';
-import { getPagingParams, getPaginated } from 'src/shared/utils';
 import { UpdateEventDto } from './dto/updateEvent.dto';
-import { Status } from 'src/shared/interfaces/event.type';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class EventService {
   constructor(
-    @Inject(Event.name)
+    @InjectModel(Event.name)
     private readonly eventModel: Model<EventDocument>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createEvent(payload: EventDto): Promise<Event> {
-       return this.eventModel.create({
-         title: payload.title,
-         shortDesc: payload.shortDesc,
-         description: payload.description,
-         host: payload.host,
-         coHost: payload.coHost,
-         location: payload.location,
-         photo: payload.photo,
-         joinMethod: payload.joinMethod,
-         link: payload.link,
-         socialsLinks: payload.socialsLinks,
-         eventDate: payload.eventDate,
-       });
+    const event = await this.eventModel.create({
+      title: payload.title,
+      shortDesc: payload.shortDesc,
+      description: payload.description,
+      host: payload.host,
+      coHost: payload.coHost,
+      location: payload.location,
+      photo: payload.photo,
+      joinMethod: payload.joinMethod,
+      link: payload.link,
+      socialsLinks: payload.socialsLinks,
+      eventDate: payload.eventDate,
+    });
+
+    await this.notificationsService.createNotification({
+      receiverId: payload.host,
+      notification_type: NotificationType.events,
+      entityId: event._id.toString(),
+      message: `New event ${event.title} has been created`,
+      data: {
+        eventTitle: event.title,
+        eventDescription: event.description,
+        eventLocation: event.location,
+        eventDate: event.eventDate,
+      },
+      isRead: false,
+      isAdminNotification: true,
+    });
+
+    return event;
   }
 
   async findAll(req: ApiReq) {
@@ -63,7 +83,7 @@ export class EventService {
     const updatedEvent = await this.eventModel
       .findByIdAndUpdate(id, updateEventDto, { new: true, lean: true })
       .exec();
-      
+
     if (!updatedEvent) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
@@ -91,6 +111,8 @@ export class EventService {
     if (!approveEvent) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
+
+    //TODO: move event to audit
 
     return approveEvent;
   }

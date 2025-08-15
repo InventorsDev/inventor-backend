@@ -488,7 +488,21 @@ export class UsersService {
     userApplication.applicationStatus = ApplicationStatus.APPROVED;
     userApplication.save();
 
-    // resolve notification
+    // TODO: move existing notification to audit
+    // create notification for user
+    const _ = await this.notificationsService.createNotification({
+      receiverId: userApplication._id.toString(),
+      notification_type: NotificationType.Leads,
+      entityId: userApplication._id.toString(),
+      message: `Congratulations! You have been approved as a ${userApplication.leadPosition}`,
+      data: {
+        leadPosition: userApplication.leadPosition,
+        applicationDate: new Date().toLocaleDateString(),
+        applicatntEmail: userApplication.email,
+      },
+      isRead: false,
+      isAdminNotification: false,
+    });
 
     // send mail
     sendMail({
@@ -502,15 +516,32 @@ export class UsersService {
         email: userApplication.email,
       },
     });
-    return `${user_details.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
+    return `approval success`;
   }
 
+  // TODO: refactor the createNotification to take a user, message, isAdmin, notificationType and data
   // reject a lead application
   async rejectTempApplication(email: string, message: string): Promise<string> {
-    const userApplication = this.viewOneApplication(email);
-    (await userApplication).leadPosition = '';
-    (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
-    (await userApplication).save();
+    const userApplication = await this.viewOneApplication(email);
+    userApplication.leadPosition = '';
+    userApplication.applicationStatus = ApplicationStatus.REJECTED;
+    await userApplication.save();
+
+    // TODO: move existing notification to audit
+    // create notification for user
+    const _ = await this.notificationsService.createNotification({
+      receiverId: userApplication._id.toString(),
+      notification_type: NotificationType.Leads,
+      entityId: userApplication._id.toString(),
+      message: `Thank you for applying, unfortunately, you have not been approved as a lead for ${userApplication.leadPosition}`,
+      data: {
+        leadPosition: userApplication.leadPosition,
+        applicationDate: new Date().toLocaleDateString(),
+        applicatntEmail: userApplication.email,
+      },
+      isRead: false,
+      isAdminNotification: false,
+    });
 
     sendMail({
       to: email,

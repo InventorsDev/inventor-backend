@@ -1,22 +1,22 @@
 import {
-  Controller,
-  Post,
   Body,
-  UseGuards,
-  Request,
+  Controller,
+  Delete,
   Get,
   Param,
-  Req,
   Patch,
-  Delete,
+  Post,
+  Req,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
-import { EventService } from './events.users.service';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 import { JwtEventUserGuard } from 'src/shared/auth/guards/jwt.event.users.guard';
+import { JwtUsersGuard } from 'src/shared/auth/guards/jwt.users.guard';
 import { ApiReq } from 'src/shared/interfaces';
 import { EventDto } from './dto/event.dto';
 import { UpdateEventDto } from './dto/updateEvent.dto';
-import { JwtUsersGuard } from 'src/shared/auth/guards/jwt.users.guard';
+import { EventService } from './events.users.service';
 
 @ApiTags('event')
 @Controller('event')
