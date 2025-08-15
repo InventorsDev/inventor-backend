@@ -10,7 +10,7 @@ describe('EventUserController', () => {
   let controller: EventUserController;
   let service: jest.Mocked<EventService>;
 
-  const mockEvent = { id: '1', title: 'Sample Event' };
+  const mockEvent = { id: '1', title: 'Sample Event', admin_id: 'admin_id' };
 
   afterEach(async () => {
     jest.clearAllMocks();

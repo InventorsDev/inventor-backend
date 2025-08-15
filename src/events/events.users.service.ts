@@ -102,18 +102,34 @@ export class EventService {
     return deleteEvent;
   }
 
-  async approveEvent(id: string): Promise<Event> {
-    let approveEvent = this.eventModel.findByIdAndUpdate(
+  async approveEvent(
+    id: string,
+    admin_id: string,
+    message: string = 'event approved',
+  ): Promise<Event> {
+    const approveEvent = await this.eventModel.findByIdAndUpdate(
       id,
       { status: Status.APPROVED },
       { new: true },
     );
+
     if (!approveEvent) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
 
+    const event = await this.eventModel.findById({ _id: id });
     //TODO: move event to audit
-
+    const existingNotification =
+      await this.notificationsService.getNotificationByUserId(
+        event.host,
+        event._id.toString(),
+      );
+    await this.notificationsService.resolveNotification(
+      existingNotification._id.toString(),
+      admin_id,
+      message,
+      'APPROVED',
+    );
     return approveEvent;
   }
 }

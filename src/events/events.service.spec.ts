@@ -61,6 +61,8 @@ describe('EventService', () => {
 
     notificationsServiceMock = {
       createNotification: jest.fn().mockResolvedValue(undefined),
+      getNotificationByUserId: jest.fn().mockResolvedValue(undefined),
+      resolveNotification: jest.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -171,15 +173,56 @@ describe('EventService', () => {
   });
 
   describe('approveEvent', () => {
-    it('should approve an event', async () => {
-      eventModelMock.findByIdAndUpdate.mockResolvedValueOnce(mockEvent); // direct return
-      const result = await service.approveEvent(mockEvent._id.toString());
+    it('should approve an event and resolve notification', async () => {
+      const admin_id = 'admin_id';
+      const message = 'event approved';
+
+      // Mock findByIdAndUpdate to resolve with updated event
+      eventModelMock.findByIdAndUpdate = jest.fn().mockResolvedValue(mockEvent);
+
+      // Mock findById to return the same event
+      eventModelMock.findById = jest.fn().mockResolvedValue(mockEvent);
+
+      // Mock notifications
+      notificationsServiceMock.getNotificationByUserId = jest
+        .fn()
+        .mockResolvedValue({ _id: 'notif_id' });
+      notificationsServiceMock.resolveNotification = jest
+        .fn()
+        .mockResolvedValue(undefined);
+
+      const result = await service.approveEvent(
+        mockEvent._id.toString(),
+        admin_id,
+        message,
+      );
+
       expect(result).toEqual(mockEvent);
       expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
         mockEvent._id.toString(),
         { status: Status.APPROVED },
         { new: true },
       );
+      expect(eventModelMock.findById).toHaveBeenCalledWith({
+        _id: mockEvent._id.toString(),
+      });
+      expect(
+        notificationsServiceMock.getNotificationByUserId,
+      ).toHaveBeenCalledWith(mockEvent.host, mockEvent._id.toString());
+      expect(notificationsServiceMock.resolveNotification).toHaveBeenCalledWith(
+        'notif_id',
+        admin_id,
+        message,
+        'APPROVED',
+      );
+    });
+
+    it('should throw NotFoundException if event not found', async () => {
+      eventModelMock.findByIdAndUpdate = jest.fn().mockResolvedValue(null);
+
+      await expect(
+        service.approveEvent(mockEvent._id.toString(), 'admin_id'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

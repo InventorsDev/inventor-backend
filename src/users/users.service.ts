@@ -498,7 +498,7 @@ export class UsersService {
         userApplication._id.toString(),
         userApplication._id.toString(),
       );
-    this.notificationsService.resolveNotification(
+    await this.notificationsService.resolveNotification(
       existingNotification._id.toString(),
       admin_id,
       message,
@@ -552,7 +552,7 @@ export class UsersService {
         userApplication._id.toString(),
         userApplication._id.toString(),
       );
-    this.notificationsService.resolveNotification(
+    await this.notificationsService.resolveNotification(
       existingNotification._id.toString(),
       admin_id,
       message,
