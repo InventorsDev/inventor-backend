@@ -465,7 +465,11 @@ export class UsersService {
   }
 
   // approve a lead application
-  async approveTempApplication(email: string): Promise<string> {
+  async approveTempApplication(
+    admin_id: string,
+    email: string,
+    message: string = '',
+  ): Promise<string> {
     const userApplication = await this.userModel
       .findOne({
         email: email,
@@ -488,7 +492,19 @@ export class UsersService {
     userApplication.applicationStatus = ApplicationStatus.APPROVED;
     userApplication.save();
 
-    // TODO: move existing notification to audit
+    // find notifications for user and resolve them
+    const existingNotification =
+      await this.notificationsService.getNotificationByUserId(
+        userApplication._id.toString(),
+        userApplication._id.toString(),
+      );
+    this.notificationsService.resolveNotification(
+      existingNotification._id.toString(),
+      admin_id,
+      message,
+      'APPROVED',
+    );
+
     // create notification for user
     const _ = await this.notificationsService.createNotification({
       receiverId: userApplication._id.toString(),
@@ -521,13 +537,27 @@ export class UsersService {
 
   // TODO: refactor the createNotification to take a user, message, isAdmin, notificationType and data
   // reject a lead application
-  async rejectTempApplication(email: string, message: string): Promise<string> {
+  async rejectTempApplication(
+    email: string,
+    admin_id: string,
+    message: string,
+  ): Promise<string> {
     const userApplication = await this.viewOneApplication(email);
     userApplication.leadPosition = '';
     userApplication.applicationStatus = ApplicationStatus.REJECTED;
     await userApplication.save();
 
-    // TODO: move existing notification to audit
+    const existingNotification =
+      await this.notificationsService.getNotificationByUserId(
+        userApplication._id.toString(),
+        userApplication._id.toString(),
+      );
+    this.notificationsService.resolveNotification(
+      existingNotification._id.toString(),
+      admin_id,
+      message,
+      'REJECTED',
+    );
     // create notification for user
     const _ = await this.notificationsService.createNotification({
       receiverId: userApplication._id.toString(),

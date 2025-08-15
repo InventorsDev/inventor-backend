@@ -711,52 +711,63 @@ describe('UsersController', () => {
     describe('approveApplication', () => {
       it('should approve a lead application', async () => {
         const email = 'lead@example.com';
+        const admin_id = 'admin_id';
         const expectedResult = 'Application approved successfully';
+        const mockReq = { user: { _id: admin_id } } as any;
 
         jest
           .spyOn(usersService, 'approveTempApplication')
           .mockResolvedValue(expectedResult);
 
-        const result = await adminController.approveApplication(email);
+        const result = await adminController.approveApplication(email, mockReq);
 
         expect(result).toEqual(expectedResult);
-        expect(usersService.approveTempApplication).toHaveBeenCalledWith(email);
+        expect(usersService.approveTempApplication).toHaveBeenCalledWith(
+          email,
+          admin_id,
+        );
       });
     });
 
     describe('reject', () => {
       it('should reject a lead application with custom message', async () => {
         const email = 'lead@example.com';
+        const admin_id = 'admin_id';
         const rejectDto = { message: 'Custom rejection message' };
         const expectedResult = 'Application rejected successfully';
+        const mockReq = { user: { _id: admin_id } } as any;
 
         jest
           .spyOn(usersService, 'rejectTempApplication')
           .mockResolvedValue(expectedResult);
 
-        const result = await adminController.reject(email, rejectDto);
+        const result = await adminController.reject(email, mockReq, rejectDto);
 
         expect(result).toEqual(expectedResult);
         expect(usersService.rejectTempApplication).toHaveBeenCalledWith(
           email,
+          admin_id,
           rejectDto.message,
         );
       });
 
       it('should reject with default message when no message provided', async () => {
         const email = 'lead@example.com';
+        const admin_id = 'admin_id';
         const rejectDto = {};
         const expectedResult = 'Application rejected successfully';
+        const mockReq = { user: { _id: admin_id } } as any;
 
         jest
           .spyOn(usersService, 'rejectTempApplication')
           .mockResolvedValue(expectedResult);
 
-        const result = await adminController.reject(email, rejectDto);
+        const result = await adminController.reject(email, mockReq, rejectDto);
 
         expect(result).toEqual(expectedResult);
         expect(usersService.rejectTempApplication).toHaveBeenCalledWith(
           email,
+          admin_id,
           'Your application was rejected',
         );
       });

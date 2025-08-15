@@ -6,6 +6,10 @@ import { ContactInfo, ContactInfoSchema } from './contact.info.schema';
 import { DataLog, DataLogSchema } from './data.log.schema';
 import { EventSchema } from './events.schema';
 import { InviteToken, InviteTokenSchema } from './invite-tokens.schema';
+import {
+  NotificationAuditInfo,
+  NotificationAuditSchema,
+} from './notificationAudit.schema';
 import { NotificationInfo, NotificationSchema } from './notifications.schema';
 import { Post, PostSchema } from './post.schema';
 import {
@@ -20,6 +24,7 @@ export * from './contact.info.schema';
 export * from './data.log.schema';
 export * from './events.schema';
 export * from './invite-tokens.schema';
+export * from './notificationAudit.schema';
 export * from './notifications.schema';
 export * from './post.schema';
 export * from './professional.info.schema';
@@ -39,6 +44,11 @@ const SCHEMA_LIST = [
   },
   { name: ContactInfo.name, schema: ContactInfoSchema, dbPrefix: 'APP' },
   { name: NotificationInfo.name, schema: NotificationSchema, dbPrefix: 'APP' },
+  {
+    name: NotificationAuditInfo.name,
+    schema: NotificationAuditSchema,
+    dbPrefix: 'LOG',
+  },
 ];
 
 export const CONNECTION = SCHEMA_LIST.reduce((result, data) => {

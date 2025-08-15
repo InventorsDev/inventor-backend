@@ -6,6 +6,7 @@ describe('NotificationsService', () => {
   let service: NotificationsService;
   let userModel: any;
   let notificationModel: any;
+  let notificationAuditModel: any;
 
   beforeEach(async () => {
     // mokcingi model functions for testing
@@ -18,12 +19,16 @@ describe('NotificationsService', () => {
         },
       }),
     };
+    notificationAuditModel = {
+      create: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationsService,
         { provide: 'NotificationInfo', useValue: notificationModel },
         { provide: 'User', useValue: userModel },
+        { provide: 'NotificationAuditInfo', useValue: notificationAuditModel },
       ],
     }).compile();
 

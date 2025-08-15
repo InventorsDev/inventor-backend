@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { NotificationDto } from 'src/shared/dtos/notificatoin.dto';
-import { NotificationInfo, User } from 'src/shared/schema';
+import {
+  NotificationAuditInfo,
+  NotificationInfo,
+  User,
+} from 'src/shared/schema';
 
 @Injectable()
 export class NotificationsService {
@@ -15,6 +19,8 @@ export class NotificationsService {
     private readonly notificationModel: Model<NotificationInfo>,
     @Inject(User.name)
     private readonly userModel: Model<User>,
+    @Inject(NotificationAuditInfo.name)
+    private readonly notificationAuditModel: Model<NotificationAuditInfo>,
   ) {}
 
   async getNotifications(userId: string): Promise<string[]> {
@@ -51,6 +57,21 @@ export class NotificationsService {
       notificationId: notification._id.toString(),
       parentId: notification.entityId,
     };
+  }
+
+  async getNotificationByUserId(userId: string, entityId: string) {
+    const notification = await this.notificationModel.findOne({
+      receiverId: userId,
+      entityId,
+    });
+
+    if (!notification) {
+      throw new NotFoundException(
+        'No unread notifications found for this entity',
+      );
+    }
+
+    return notification;
   }
 
   async getUnreadNotificationsByEntity(entityId: string): Promise<any[]> {
@@ -146,9 +167,10 @@ export class NotificationsService {
   }
 
   async resolveNotification(
+    notification_id: string,
     admin_id: string,
     message: string,
-    notification_id: string,
+    status: string,
   ): Promise<string> {
     // Fetch the notification to copy its data
     const notification = await this.notificationModel
@@ -158,14 +180,23 @@ export class NotificationsService {
     if (!notification) {
       throw new NotFoundException('Notification not found');
     }
+    const notificationToAudit = {
+      actorId: admin_id,
+      notificationSummary: notification.message,
+      resolutionMessage: message,
+      resolutionStatus: status,
+      entityType: notification.notification_type,
+      entityId: notification.entityId,
+    };
 
     // Delete the notification
     const deleted = await this.deleteNotification(notification_id);
     if (!deleted) {
       throw new InternalServerErrorException('Error deleting notification');
     }
-    // TODO: use notification to create audit file with admin id
 
-    return '';
+    await this.notificationAuditModel.create(notificationToAudit);
+
+    return 'Notification resolved successfully';
   }
 }

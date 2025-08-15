@@ -9,6 +9,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -236,8 +237,12 @@ export class UsersAdminsController {
       'finds a pending lead application using the email query param and approve that pending application on that account',
   })
   @Patch('lead/:email/approve')
-  async approveApplication(@Param('email') email: string): Promise<string> {
-    return await this.usersService.approveTempApplication(email);
+  async approveApplication(
+    @Param('email') email: string,
+    @Request() req: ApiReq,
+  ): Promise<string> {
+    const admin_id = req.user._id.toString();
+    return await this.usersService.approveTempApplication(email, admin_id);
   }
 
   // reject a lead request
@@ -247,12 +252,15 @@ export class UsersAdminsController {
   @Patch('lead/:email/reject')
   async reject(
     @Param('email') email: string,
+    @Request() req: ApiReq,
     @Body() rejectApplicationDto: RejectApplicationDto,
   ): Promise<string> {
     const defaultMessage = 'Your application was rejected';
     const rejectionMessage = rejectApplicationDto.message || defaultMessage;
+    const admin_id = req.user._id.toString();
     return await this.usersService.rejectTempApplication(
       email,
+      admin_id,
       rejectionMessage,
     );
   }
