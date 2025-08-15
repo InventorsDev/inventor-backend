@@ -68,7 +68,7 @@ describe('EventService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EventService,
-        { provide: getModelToken('Event'), useValue: eventModelMock },
+        { provide: Event.name, useValue: eventModelMock },
         { provide: NotificationsService, useValue: notificationsServiceMock },
       ],
     }).compile();

@@ -53,15 +53,15 @@ import { UserInviteDto } from './dto/user-invite.dto';
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectModel(User.name)
+    @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
-    @InjectModel(InviteToken.name)
+    @Inject(InviteToken.name)
     private readonly inviteTokenModel: Model<TokenDocument>,
-    @InjectModel(BasicInfo.name)
+    @Inject(BasicInfo.name)
     private readonly basicInfoModel: Model<BasicInfo>,
-    @InjectModel(ProfessionalInfo.name)
+    @Inject(ProfessionalInfo.name)
     private readonly professionalInfoModel: Model<ProfessionalInfo>,
-    @InjectModel(ContactInfo.name)
+    @Inject(ContactInfo.name)
     private readonly contactInfoModel: Model<ContactInfo>,
     private readonly configService: ConfigService,
     private readonly notificationsService: NotificationsService,

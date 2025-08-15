@@ -73,23 +73,23 @@ describe('UsersService', () => {
       providers: [
         UsersService,
         {
-          provide: getModelToken(User.name),
+          provide: User.name,
           useValue: mockUserModel,
         },
         {
-          provide: getModelToken(InviteToken.name),
+          provide: InviteToken.name,
           useValue: mockInviteTokenModel,
         },
         {
-          provide: getModelToken(BasicInfo.name),
+          provide: BasicInfo.name,
           useValue: mockBasicInfoModel,
         },
         {
-          provide: getModelToken(ProfessionalInfo.name),
+          provide: ProfessionalInfo.name,
           useValue: mockProfessionalInfoModel,
         },
         {
-          provide: getModelToken(ContactInfo.name),
+          provide: ContactInfo.name,
           useValue: mockContactInfoModel,
         },
         {

@@ -14,7 +14,7 @@ import { UpdateEventDto } from './dto/updateEvent.dto';
 @Injectable()
 export class EventService {
   constructor(
-    @InjectModel(Event.name)
+    @Inject(Event.name)
     private readonly eventModel: Model<EventDocument>,
     private readonly notificationsService: NotificationsService,
   ) {}
