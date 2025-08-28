@@ -130,6 +130,65 @@ export class EventService {
       message,
       'APPROVED',
     );
+    
+    // Notify other admins about the resolution
+    await this.notificationsService.notifyOtherAdminsOfResolution(
+      event._id.toString(),
+      admin_id,
+      'approved',
+      NotificationType.events,
+    );
+    
     return approveEvent;
+  }
+
+  async rejectEvent(
+    id: string,
+    admin_id: string,
+    message: string = 'Event rejected',
+  ): Promise<Event> {
+    const rejectEvent = await this.eventModel.findByIdAndUpdate(
+      id,
+      { status: Status.REJECTED },
+      { new: true },
+    );
+
+    if (!rejectEvent) {
+      throw new NotFoundException(`Event with ID ${id} not found`);
+    }
+
+    const event = await this.eventModel.findById({ _id: id });
+    const existingNotification =
+      await this.notificationsService.getNotificationByUserId(
+        event.host,
+        event._id.toString(),
+      );
+    await this.notificationsService.resolveNotification(
+      existingNotification._id.toString(),
+      admin_id,
+      message,
+      'REJECTED',
+    );
+    
+    // Notify other admins about the resolution
+    await this.notificationsService.notifyOtherAdminsOfResolution(
+      event._id.toString(),
+      admin_id,
+      'rejected',
+      NotificationType.events,
+    );
+    
+    // Create notification for the user about rejection
+    await this.notificationsService.createNotification({
+      receiverId: event.host,
+      notification_type: NotificationType.events,
+      entityId: event._id.toString(),
+      message: `Your event "${event.title}" has been rejected: ${message}`,
+      data: { eventTitle: event.title, reason: message },
+      isRead: false,
+      isAdminNotification: false,
+    });
+    
+    return rejectEvent;
   }
 }

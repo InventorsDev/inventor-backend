@@ -723,8 +723,8 @@ describe('UsersController', () => {
 
         expect(result).toEqual(expectedResult);
         expect(usersService.approveTempApplication).toHaveBeenCalledWith(
-          email,
           admin_id,
+          email,
         );
       });
     });

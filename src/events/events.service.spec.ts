@@ -63,6 +63,8 @@ describe('EventService', () => {
       createNotification: jest.fn().mockResolvedValue(undefined),
       getNotificationByUserId: jest.fn().mockResolvedValue(undefined),
       resolveNotification: jest.fn().mockResolvedValue(undefined),
+      notifyOtherAdminsOfResolution: jest.fn().mockResolvedValue(undefined),
+      createAdminNotificationForNewRequest: jest.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -109,6 +111,7 @@ describe('EventService', () => {
         expect.objectContaining({
           receiverId: eventDto.host,
           message: expect.stringContaining(eventDto.title),
+          isAdminNotification: true,
         }),
       );
       expect(result).toEqual(mockEvent);
@@ -214,6 +217,12 @@ describe('EventService', () => {
         admin_id,
         message,
         'APPROVED',
+      );
+      expect(notificationsServiceMock.notifyOtherAdminsOfResolution).toHaveBeenCalledWith(
+        mockEvent._id.toString(),
+        admin_id,
+        'approved',
+        'EVENTS_REQUEST',
       );
     });
 

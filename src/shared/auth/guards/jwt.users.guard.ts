@@ -35,14 +35,19 @@ export class JwtUsersGuard
 
       const userRoles: UserRole[] = payload.role;
 
-      if (!hasRequiredRoles(userRoles, [UserRole.USER])) {
+      if (
+        !hasRequiredRoles(userRoles, [UserRole.USER]) ||
+        !hasRequiredRoles(userRoles, [UserRole.ADMIN]) ||
+        !hasRequiredRoles(userRoles, [UserRole.LEAD])
+      ) {
         throw new UnauthorizedException(
-          'Invalid user roles, user must have event role',
+          'Invalid user roles, user must have a valid role',
         );
       }
 
       request.user = payload;
     } catch (error) {
+      console.log(error);
       throw new UnauthorizedException('Token validation failed');
     }
 
@@ -53,6 +58,4 @@ export class JwtUsersGuard
     const [type, token] = request.headers['authorization']?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
-
- 
 }

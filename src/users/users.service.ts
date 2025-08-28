@@ -436,20 +436,18 @@ export class UsersService {
       user_details = await this.basicInfoModel.findById(user.basicInfo).exec();
     }
 
-    // create a notification in the db (for both admin and user)
-    const notification_id = await this.notificationsService.createNotification({
-      receiverId: user._id.toString(),
-      notification_type: NotificationType.Leads,
-      entityId: user._id.toString(),
-      message: `${user_details.firstName} has applied to be a lead for the position of ${leadPosition}`,
-      data: {
+    // create a notification in the db for admins
+    await this.notificationsService.createAdminNotificationForNewRequest(
+      user._id.toString(),
+      NotificationType.Leads,
+      `${user_details.firstName || user.email} has applied to be a lead for the position of ${leadPosition}`,
+      {
         leadPosition,
         applicationDate: new Date().toLocaleDateString(),
-        applicatntEmail: user.email,
+        applicantEmail: user.email,
+        applicantName: user_details.firstName || 'Unknown',
       },
-      isRead: false,
-      isAdminNotification: true,
-    });
+    );
 
     await sendMail({
       to: user.email,
@@ -504,6 +502,14 @@ export class UsersService {
       message,
       'APPROVED',
     );
+    
+    // Notify other admins about the resolution
+    await this.notificationsService.notifyOtherAdminsOfResolution(
+      userApplication._id.toString(),
+      admin_id,
+      'approved',
+      NotificationType.Leads,
+    );
 
     // create notification for user
     const _ = await this.notificationsService.createNotification({
@@ -557,6 +563,14 @@ export class UsersService {
       admin_id,
       message,
       'REJECTED',
+    );
+    
+    // Notify other admins about the resolution
+    await this.notificationsService.notifyOtherAdminsOfResolution(
+      userApplication._id.toString(),
+      admin_id,
+      'rejected',
+      NotificationType.Leads,
     );
     // create notification for user
     const _ = await this.notificationsService.createNotification({
@@ -775,6 +789,21 @@ export class UsersService {
     ); // 30 days later (this was initially 3 months)
     await user.save();
 
+    // Get user details for notification
+    const userDetails = await this.basicInfoModel.findById(user.basicInfo);
+    
+    // Create notification for admins about new verification request
+    await this.notificationsService.createAdminNotificationForNewRequest(
+      user._id.toString(),
+      NotificationType.Leads,
+      `New verification request from ${userDetails.firstName || user.email}`,
+      {
+        applicantEmail: user.email,
+        applicantName: userDetails.firstName || 'Unknown',
+        applicationType: 'Verification Request',
+      },
+    );
+
     // Send confirmation to user
     await sendMail({
       to: user.email,
@@ -782,8 +811,7 @@ export class UsersService {
       subject: 'Your Verification Request Has Been Received',
       template: getMailTemplate().userVerificationAcknowledgement,
       templateVariables: {
-        firstName: (await this.basicInfoModel.findById(user.basicInfo))
-          .firstName,
+        firstName: userDetails.firstName,
         nextTryDate: format(user.nextVerificationRequestDate, 'PPPP'),
       },
     });

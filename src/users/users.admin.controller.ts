@@ -242,7 +242,7 @@ export class UsersAdminsController {
     @Request() req: ApiReq,
   ): Promise<string> {
     const admin_id = req.user._id.toString();
-    return await this.usersService.approveTempApplication(email, admin_id);
+    return await this.usersService.approveTempApplication(admin_id, email);
   }
 
   // reject a lead request

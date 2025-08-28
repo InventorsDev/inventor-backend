@@ -59,9 +59,8 @@ export class NotificationsService {
     };
   }
 
-  async getNotificationByUserId(userId: string, entityId: string) {
+  async getNotificationByUserId(entityId: string, userId: string) {
     const notification = await this.notificationModel.findOne({
-      receiverId: userId,
       entityId,
     });
 
@@ -70,7 +69,7 @@ export class NotificationsService {
         'No unread notifications found for this entity',
       );
     }
-
+    console.log(`userId: ${userId}, entityId: ${entityId}`);
     return notification;
   }
 
@@ -198,5 +197,62 @@ export class NotificationsService {
     await this.notificationAuditModel.create(notificationToAudit);
 
     return 'Notification resolved successfully';
+  }
+
+  async getAdminNotifications(status?: string): Promise<any[]> {
+    const query: any = { isAdminNotification: true };
+
+    if (status === 'pending') {
+      query.isRead = false;
+    } else if (status === 'read') {
+      query.isRead = true;
+    }
+
+    const notifications = await this.notificationModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+
+    return notifications;
+  }
+
+  async createAdminNotificationForNewRequest(
+    entityId: string,
+    entityType: string,
+    message: string,
+    data?: any,
+  ): Promise<void> {
+    const adminNotification = {
+      receiverId: 'ADMIN',
+      notification_type: entityType,
+      entityId,
+      message,
+      data,
+      isRead: false,
+      isAdminNotification: true,
+    };
+
+    await this.notificationModel.create(adminNotification);
+  }
+
+  async notifyOtherAdminsOfResolution(
+    entityId: string,
+    adminId: string,
+    action: string,
+    entityType: string,
+  ): Promise<void> {
+    await this.notificationModel.deleteMany({
+      entityId,
+      isAdminNotification: true,
+    });
+
+    const message = `Request ${entityId} was ${action} by another admin`;
+    await this.createAdminNotificationForNewRequest(
+      entityId,
+      entityType,
+      message,
+      { resolvedBy: adminId, action },
+    );
   }
 }
