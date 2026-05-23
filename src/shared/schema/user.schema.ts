@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { BadRequestException } from '@nestjs/common';
 import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { HydratedDocument, Mongoose, Types } from 'mongoose';
+import mongoose, { HydratedDocument, Types } from 'mongoose';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { ApiReq, EmailFromType } from '../interfaces';
 import {
@@ -11,7 +11,7 @@ import {
   SocialsRawSchema,
   UserRole,
   UserStatus,
-} from '../interfaces/user.type';
+} from 'src/shared/interfaces';
 import {
   BcryptUtil,
   firstCapitalize,
@@ -314,9 +314,9 @@ UserSchema.statics.signUp = async function signUp(
     subject: 'Welcome to Our Developer Community at Inventors!',
     template: getMailTemplate().generalSignUp,
     templateVariables: {
-      firstName: data.basic_info.firstName,
-      lastName: data.basic_info.lastName,
-      phoneNumber: data.basic_info.phone || undefined,
+      firstName: basic_info.firstName,
+      lastName: basic_info.lastName,
+      phoneNumber: basic_info.phone || undefined,
       email: data.email,
     },
   });

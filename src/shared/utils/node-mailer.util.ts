@@ -52,7 +52,7 @@ export async function sendMail(options: {
     console.log('Email sent: ' + info.response);
   } catch (error) {
     console.error('Error sending email: ' + error.message);
-    global.dataLogService.log(
+    global.dataLogService?.log(
       'NodeMailerSendMail',
       {
         source: 'NodeMailerSendMail',
