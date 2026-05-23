@@ -1,13 +1,12 @@
 import { Module } from '@nestjs/common';
-import { EventService } from './events.users.service';
-import { EventUserController } from './events.users.controller';
-import { EventAdminsController } from './events.admin.controller';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 import { DBModule } from 'src/shared/schema';
+import { EventAdminsController } from './events.admin.controller';
+import { EventUserController } from './events.users.controller';
+import { EventService } from './events.users.service';
 
 @Module({
-  imports: [
-    DBModule
-  ],
+  imports: [DBModule, NotificationsModule],
   controllers: [EventUserController, EventAdminsController],
   providers: [EventService],
   exports: [EventService],

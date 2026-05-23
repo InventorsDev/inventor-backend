@@ -8,15 +8,18 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectModel } from '@nestjs/mongoose';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
 import { Model, Types } from 'mongoose';
+import { NotificationsService } from 'src/notifications/notifications.service';
 import {} from 'src/shared/configs';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import {
   ApiReq,
   ApplicationStatus,
   EmailFromType,
+  NotificationType,
   RegistrationMethod,
   UserRole,
   UserStatus,
@@ -61,6 +64,7 @@ export class UsersService {
     @Inject(ContactInfo.name)
     private readonly contactInfoModel: Model<ContactInfo>,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
@@ -395,7 +399,10 @@ export class UsersService {
     email: string,
     leadPosition: string,
   ): Promise<string> {
-    const user = await this.findByEmail(email);
+    const user = await this.userModel.findOne({ email }); // switch to findOne because of id
+    // check if user exists
+    if (!user) throw new NotFoundException('User not found');
+
     // check the next application time
     const today = new Date();
     if (user.nextApplicationTime > today) {
@@ -406,6 +413,7 @@ export class UsersService {
     // create next application date
     const futureDate = new Date();
     futureDate.setMonth(futureDate.getMonth() + 3);
+
     // update the user data that has to do with application
     try {
       await this.userModel.findOneAndUpdate(
@@ -421,10 +429,25 @@ export class UsersService {
     } catch {
       return 'Error updating user';
     }
+
+    // get user firstname
     let user_details;
     if (user.basicInfo) {
       user_details = await this.basicInfoModel.findById(user.basicInfo).exec();
     }
+
+    // create a notification in the db for admins
+    await this.notificationsService.createAdminNotificationForNewRequest(
+      user._id.toString(),
+      NotificationType.Leads,
+      `${user_details.firstName || user.email} has applied to be a lead for the position of ${leadPosition}`,
+      {
+        leadPosition,
+        applicationDate: new Date().toLocaleDateString(),
+        applicantEmail: user.email,
+        applicantName: user_details.firstName || 'Unknown',
+      },
+    );
 
     await sendMail({
       to: user.email,
@@ -440,7 +463,11 @@ export class UsersService {
   }
 
   // approve a lead application
-  async approveTempApplication(email: string): Promise<string> {
+  async approveTempApplication(
+    admin_id: string,
+    email: string,
+    message: string = '',
+  ): Promise<string> {
     const userApplication = await this.userModel
       .findOne({
         email: email,
@@ -462,6 +489,44 @@ export class UsersService {
     userApplication.role = [UserRole.LEAD];
     userApplication.applicationStatus = ApplicationStatus.APPROVED;
     userApplication.save();
+
+    // find notifications for user and resolve them
+    const existingNotification =
+      await this.notificationsService.getNotificationByUserId(
+        userApplication._id.toString(),
+        userApplication._id.toString(),
+      );
+    await this.notificationsService.resolveNotification(
+      existingNotification._id.toString(),
+      admin_id,
+      message,
+      'APPROVED',
+    );
+    
+    // Notify other admins about the resolution
+    await this.notificationsService.notifyOtherAdminsOfResolution(
+      userApplication._id.toString(),
+      admin_id,
+      'approved',
+      NotificationType.Leads,
+    );
+
+    // create notification for user
+    const _ = await this.notificationsService.createNotification({
+      receiverId: userApplication._id.toString(),
+      notification_type: NotificationType.Leads,
+      entityId: userApplication._id.toString(),
+      message: `Congratulations! You have been approved as a ${userApplication.leadPosition}`,
+      data: {
+        leadPosition: userApplication.leadPosition,
+        applicationDate: new Date().toLocaleDateString(),
+        applicatntEmail: userApplication.email,
+      },
+      isRead: false,
+      isAdminNotification: false,
+    });
+
+    // send mail
     sendMail({
       to: userApplication.email,
       from: EmailFromType.HELLO,
@@ -473,15 +538,54 @@ export class UsersService {
         email: userApplication.email,
       },
     });
-    return `${user_details.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
+    return `approval success`;
   }
 
+  // TODO: refactor the createNotification to take a user, message, isAdmin, notificationType and data
   // reject a lead application
-  async rejectTempApplication(email: string, message: string): Promise<string> {
-    const userApplication = this.viewOneApplication(email);
-    (await userApplication).leadPosition = '';
-    (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
-    (await userApplication).save();
+  async rejectTempApplication(
+    email: string,
+    admin_id: string,
+    message: string,
+  ): Promise<string> {
+    const userApplication = await this.viewOneApplication(email);
+    userApplication.leadPosition = '';
+    userApplication.applicationStatus = ApplicationStatus.REJECTED;
+    await userApplication.save();
+
+    const existingNotification =
+      await this.notificationsService.getNotificationByUserId(
+        userApplication._id.toString(),
+        userApplication._id.toString(),
+      );
+    await this.notificationsService.resolveNotification(
+      existingNotification._id.toString(),
+      admin_id,
+      message,
+      'REJECTED',
+    );
+    
+    // Notify other admins about the resolution
+    await this.notificationsService.notifyOtherAdminsOfResolution(
+      userApplication._id.toString(),
+      admin_id,
+      'rejected',
+      NotificationType.Leads,
+    );
+    // create notification for user
+    const _ = await this.notificationsService.createNotification({
+      receiverId: userApplication._id.toString(),
+      notification_type: NotificationType.Leads,
+      entityId: userApplication._id.toString(),
+      message: `Thank you for applying, unfortunately, you have not been approved as a lead for ${userApplication.leadPosition}`,
+      data: {
+        leadPosition: userApplication.leadPosition,
+        applicationDate: new Date().toLocaleDateString(),
+        applicatntEmail: userApplication.email,
+      },
+      isRead: false,
+      isAdminNotification: false,
+    });
 
     sendMail({
       to: email,
@@ -663,7 +767,7 @@ export class UsersService {
     }
 
     const now = new Date();
-    
+
     if (
       user.nextVerificationRequestDate &&
       now < user.nextVerificationRequestDate
@@ -673,11 +777,10 @@ export class UsersService {
         `You already submitted a request. Try again after ${retryDate}`,
       );
     }
-    
+
     if (user.applicationStatus === ApplicationStatus.APPROVED) {
       throw new BadRequestException('You are already verified.');
     }
-
 
     // Update user state
     user.applicationStatus = ApplicationStatus.PENDING;
@@ -686,6 +789,21 @@ export class UsersService {
     ); // 30 days later (this was initially 3 months)
     await user.save();
 
+    // Get user details for notification
+    const userDetails = await this.basicInfoModel.findById(user.basicInfo);
+    
+    // Create notification for admins about new verification request
+    await this.notificationsService.createAdminNotificationForNewRequest(
+      user._id.toString(),
+      NotificationType.Leads,
+      `New verification request from ${userDetails.firstName || user.email}`,
+      {
+        applicantEmail: user.email,
+        applicantName: userDetails.firstName || 'Unknown',
+        applicationType: 'Verification Request',
+      },
+    );
+
     // Send confirmation to user
     await sendMail({
       to: user.email,
@@ -693,18 +811,16 @@ export class UsersService {
       subject: 'Your Verification Request Has Been Received',
       template: getMailTemplate().userVerificationAcknowledgement,
       templateVariables: {
-        firstName: (await this.basicInfoModel.findById(user.basicInfo))
-          .firstName,
+        firstName: userDetails.firstName,
         nextTryDate: format(user.nextVerificationRequestDate, 'PPPP'),
       },
     });
-  
+
     return {
       message: 'Verification request sent.',
       nextAllowedRequest: user.nextVerificationRequestDate,
     };
   }
-  
 
   // service for testing mail
   pingMail() {

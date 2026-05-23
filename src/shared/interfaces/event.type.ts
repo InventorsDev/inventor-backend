@@ -13,6 +13,7 @@ export enum Status {
   APPROVED = 'APPROVED',
   PENDING = 'PENDING',
   DELETED = 'DELETED',
+  REJECTED = 'REJECTED',
   ACTIVE = "ACTIVE"
 }
 

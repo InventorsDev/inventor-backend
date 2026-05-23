@@ -100,6 +100,9 @@ export class User {
   @Prop(raw(SocialsRawSchema))
   socials: Socials;
 
+  @Prop()
+  photo: string; // photo prop missing from schema, but required in test and controller
+
   @Prop({ type: Date })
   nextVerificationRequestDate: Date;
 }

@@ -132,7 +132,6 @@ export class UsersController {
 
   // exising user requesting to be a lead
   @ApiBearerAuth()
-  @UseGuards(JwtUsersGuard)
   @Post('/lead-registration')
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiBody({ type: TempLeadDto })

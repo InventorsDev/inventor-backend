@@ -1,14 +1,15 @@
 import { Logger, Module } from '@nestjs/common';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { LogInterceptor } from './shared/interceptors';
-import { AllExceptionsFilter } from './shared/exceptions';
+import { PostModule } from './blog/post/post.module';
+import { EventModule } from './events/events.users.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { AuthModule } from './shared/auth/auth.module';
 import { DataLogsModule } from './shared/datalogs';
+import { AllExceptionsFilter } from './shared/exceptions';
+import { LogInterceptor } from './shared/interceptors';
 import { UsersModule } from './users/users.module';
-import { EventModule } from './events/events.users.module';
-import { PostModule } from './blog/post/post.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PostModule } from './blog/post/post.module';
     UsersModule,
     EventModule,
     PostModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
