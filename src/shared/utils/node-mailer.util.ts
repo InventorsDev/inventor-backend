@@ -39,15 +39,14 @@ export async function sendMail(options: {
   template: string;
   templateVariables: any;
 }) {
-  const html = loadTemplate(options.template, options.templateVariables);
-  const mailOptions = {
-    from: nodeMailer.defaultEmailFrom[options.from.toString().toLowerCase()],
-    to: options.to,
-    subject: options.subject,
-    html: html,
-  };
-
   try {
+    const html = loadTemplate(options.template, options.templateVariables);
+    const mailOptions = {
+      from: nodeMailer.defaultEmailFrom[options.from.toString().toLowerCase()],
+      to: options.to,
+      subject: options.subject,
+      html: html,
+    };
     const info = await transporter.sendMail(mailOptions);
     console.log('Email sent: ' + info.response);
   } catch (error) {
