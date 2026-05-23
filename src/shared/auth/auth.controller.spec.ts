@@ -25,11 +25,6 @@ interface UserModel extends Model<UserDocument> {
   generateUserHandle: jest.Mock;
   sendEmailVerificationToken: jest.Mock;
 }
-interface MockModels {
-  BasicInfoModel: Partial<Model<BasicInfoDoc>>;
-  ProfessionalInfoModel: Partial<Model<ProfessionalInfoDocs>>;
-  ContactInfoModel: Partial<Model<ContactInfoDocs>>;
-}
 
 // requiered to tell typescript which methods we are mocking
 // if removed, things like "authserice.resendverificationlink.mockRejectedValues" will not work
@@ -72,18 +67,18 @@ describe('AuthController', () => {
   // to avoid conflict like services calling redis and db static functions, mocked
   // services are defined here
   const mockAuthService: MockAuthService = {
-    login: jest.fn().mockImplementation((req) => {
+    login: jest.fn().mockImplementation(() => {
       return Promise.resolve({
         access_token: 'mock_token', // will be what is returned as the token
         ...mockUser,
       });
     }),
-    resendVerificationLink: jest.fn().mockImplementation((req, email) => {
+    resendVerificationLink: jest.fn().mockImplementation(() => {
       return Promise.resolve({
         message: 'Verification email sent successfully',
       });
     }),
-    sendEmailVerificationToken: jest.fn().mockImplementation((req, userId) => {
+    sendEmailVerificationToken: jest.fn().mockImplementation(() => {
       return Promise.resolve({
         emailVerificationCode: '123456',
         emailVerificationUrl: 'http://localhost/verify/123456',
@@ -108,16 +103,14 @@ describe('AuthController', () => {
         );
       }),
 
-    signUp: jest
-      .fn()
-      .mockImplementation((req: any, createUserDto: any, sso = false) => {
-        return Promise.resolve({
-          ...mockUser,
-          ...createUserDto,
-          emailVerificationCode: '123456',
-          emailVerificationUrl: 'http://localhost/verify/123456',
-        });
-      }),
+    signUp: jest.fn().mockImplementation((createUserDto: any) => {
+      return Promise.resolve({
+        ...mockUser,
+        ...createUserDto,
+        emailVerificationCode: '123456',
+        emailVerificationUrl: 'http://localhost/verify/123456',
+      });
+    }),
 
     forgetPassword: jest.fn().mockImplementation((email: string) => {
       if (email === 'john@example.com') {
@@ -132,7 +125,7 @@ describe('AuthController', () => {
       );
     }),
 
-    sendEmailVerificationToken: jest.fn().mockImplementation((req, userId) => {
+    sendEmailVerificationToken: jest.fn().mockImplementation(() => {
       return Promise.resolve({
         emailVerificationCode: '123456',
         emailVerificationUrl: 'http://localhost/verify/123456',
@@ -144,7 +137,7 @@ describe('AuthController', () => {
     findOne: jest.fn(),
     findById: jest.fn(),
     create: jest.fn(),
-  } as unknown as UserModel; // bypass typescript type checking || i know... but it works
+  } as unknown as UserModel; // bypass TypeScript type checking || I know... but it works
 
   // ensure that the jwt always returns the same token
   const mockJwtService = {
@@ -272,7 +265,10 @@ describe('AuthController', () => {
         user: mockUser,
       };
 
-      const result = await authController.login(mockReqWithUser, loginDto);
+      const result = await authController.login(
+        mockReqWithUser as any,
+        loginDto,
+      );
 
       expect(result).toHaveProperty('access_token');
       expect(result).toHaveProperty('email', mockUser.email);
@@ -285,7 +281,10 @@ describe('AuthController', () => {
         user: mockUser,
       };
 
-      const result = await authController.login(mockReqWithUser, loginDto);
+      const result = await authController.login(
+        mockReqWithUser as any,
+        loginDto,
+      );
 
       expect(result).toMatchObject({
         access_token: expect.any(String),

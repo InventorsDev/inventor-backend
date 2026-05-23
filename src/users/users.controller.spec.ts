@@ -19,6 +19,7 @@ import {
 } from '@nestjs/common';
 import { Document, Types } from 'mongoose';
 import { IPageable } from 'src/shared/utils';
+
 type UserDocument = Document<unknown, {}, User> &
   User & { _id: Types.ObjectId };
 
@@ -472,7 +473,7 @@ describe('UsersAdminController', () => {
     const mockReq = { user: createUserMock() };
 
     it('should add a photo to user profile', async () => {
-      const expectedResult = createUserMock({ photo: photoDto.photo });
+      const expectedResult = createUserMock();
       jest.spyOn(usersService, 'addPhoto').mockResolvedValue(expectedResult);
 
       const result = await adminController.addPhoto(mockReq, userId, photoDto);
@@ -497,6 +498,7 @@ describe('UsersAdminController', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('should throw BadRequestException on upload failure', async () => {
       jest
         .spyOn(usersService, 'addPhoto')
         .mockRejectedValue(new BadRequestException());
@@ -696,9 +698,8 @@ describe('UsersAdminController', () => {
   });
 
   describe('Deactivate User Account', () => {
-    const userId = new Types.ObjectId().toString();
-    const deactivateDto = { reason: 'Taking a break' };
-    const mockReq = { user: createUserMock() };
+    const mockUser = createUserMock();
+    const mockReq = { user: mockUser } as any;
 
     it('should deactivate a user account', async () => {
       const expectedResult = createUserMock({ status: UserStatus.DEACTIVATED });
@@ -706,14 +707,10 @@ describe('UsersAdminController', () => {
         .spyOn(usersService, 'deactivateAccount')
         .mockResolvedValue(expectedResult);
 
-      const result = await controller.deactivateAccount(
-        mockReq,
-        userId,
-        deactivateDto,
-      );
+      const result = await controller.deactivateAccount(mockReq);
 
       expect(result).toEqual(expectedResult);
-      expect(usersService.deactivateAccount).toHaveBeenCalledWith(userId);
+      expect(usersService.deactivateAccount).toHaveBeenCalledWith(mockUser._id);
     });
 
     it('should handle deactivation errors', async () => {
@@ -721,39 +718,9 @@ describe('UsersAdminController', () => {
         .spyOn(usersService, 'deactivateAccount')
         .mockRejectedValue(new NotFoundException());
 
-      await expect(
-        controller.deactivateAccount(mockReq, userId, deactivateDto),
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('Request Reactivation', () => {
-    const userId = new Types.ObjectId().toString();
-    const reactivationDto = { message: 'Ready to come back' };
-
-    it('should request reactivation of a user account', async () => {
-      const expectedResult = createUserMock({ status: UserStatus.ACTIVE });
-      jest
-        .spyOn(usersService, 'requestReactivation')
-        .mockResolvedValue(expectedResult);
-
-      const result = await controller.requestReactivation(
-        userId,
-        reactivationDto,
+      await expect(controller.deactivateAccount(mockReq)).rejects.toThrow(
+        NotFoundException,
       );
-
-      expect(result).toEqual(expectedResult);
-      expect(usersService.requestReactivation).toHaveBeenCalledWith(userId);
-    });
-
-    it('should handle reactivation errors', async () => {
-      jest
-        .spyOn(usersService, 'requestReactivation')
-        .mockRejectedValue(new NotFoundException());
-
-      await expect(
-        controller.requestReactivation(userId, reactivationDto),
-      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -765,6 +732,7 @@ describe('UsersAdminController', () => {
       lastName: 'Doe',
       createdAt: new Date(),
     };
+    const mockReq = { user: { email: tempLeadDto.email } } as any;
 
     it('should successfully register a temporary lead', async () => {
       const expectedResult = 'Application sent';
@@ -772,7 +740,7 @@ describe('UsersAdminController', () => {
         .spyOn(usersService, 'createTempRegistration')
         .mockResolvedValue(expectedResult);
 
-      const result = await controller.createLead(tempLeadDto);
+      const result = await controller.createLead(tempLeadDto, mockReq);
 
       expect(result).toEqual(expectedResult);
       expect(usersService.createTempRegistration).toHaveBeenCalledWith(
@@ -786,77 +754,9 @@ describe('UsersAdminController', () => {
         .spyOn(usersService, 'createTempRegistration')
         .mockRejectedValue(new BadRequestException());
 
-      await expect(controller.createLead(tempLeadDto)).rejects.toThrow(
+      await expect(controller.createLead(tempLeadDto, mockReq)).rejects.toThrow(
         BadRequestException,
       );
-    });
-  });
-
-  describe('Register New User Form', () => {
-    const encryptedData = 'encryptedString';
-    const userId = new Types.ObjectId().toString();
-    const email = 'user@example.com';
-
-    it('should redirect to create lead page when user exists', async () => {
-      const mockUser = createUserMock({
-        _id: new Types.ObjectId(userId),
-        email,
-      });
-
-      jest
-        .spyOn(usersService, 'paraseEncryptedParams')
-        .mockReturnValue({ userId, email });
-      jest.spyOn(usersService, 'findById').mockResolvedValue(mockUser);
-
-      const result = await controller.register(encryptedData);
-
-      expect(result).toEqual({ url: `/leads/createLead?email=${email}` });
-    });
-
-    it('should handle invalid links', async () => {
-      jest
-        .spyOn(usersService, 'paraseEncryptedParams')
-        .mockImplementation(() => {
-          throw new Error('Decryption failed');
-        });
-
-      await expect(controller.register(encryptedData)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
-  describe('User Invite Link', () => {
-    const encryptedData = 'encryptedInviteString';
-    const userId = new Types.ObjectId().toString();
-    const email = 'invite@example.com';
-
-    it('should redirect to create lead page when user exists', async () => {
-      const mockUser = createUserMock({
-        _id: new Types.ObjectId(userId),
-        email,
-      });
-
-      jest
-        .spyOn(usersService, 'paraseEncryptedParams')
-        .mockReturnValue({ userId, email });
-      jest.spyOn(usersService, 'findById').mockResolvedValue(mockUser);
-
-      const result = await controller.register(encryptedData);
-
-      expect(result).toEqual({ url: `/leads/createLead?email=${email}` });
-    });
-
-    it('should redirect to new user form when userId is missing', async () => {
-      jest
-        .spyOn(usersService, 'paraseEncryptedParams')
-        .mockReturnValue({ userId: '', email });
-
-      const result = await controller.register(encryptedData);
-
-      expect(result).toEqual({
-        url: `/leads/new-user-form?email=${encodeURIComponent(email)}`,
-      });
     });
   });
 });

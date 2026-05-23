@@ -2,34 +2,19 @@ import {
   Body,
   Controller,
   Get,
-  Inject,
-  InternalServerErrorException,
-  NotFoundException,
   Param,
   Patch,
   Post,
   Put,
   Query,
-  Redirect,
   Request,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiOperation,
-  ApiQuery,
-  ApiTags,
-} from '@nestjs/swagger';
-import { Model } from 'mongoose';
+import { ApiBearerAuth, ApiBody, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtUsersGuard } from 'src/shared/auth/guards/jwt.users.guard';
-import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import { ApiReq, userRoles, userStatuses } from 'src/shared/interfaces';
-import { User, UserDocument } from 'src/shared/schema';
-import { DeactivateAccountDto } from './dto/deactivate-account.dto';
-import { RequestReactivationDto } from './dto/request-reactivation.dto';
 import { TempLeadDto } from './dto/temp-lead.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
@@ -110,7 +95,7 @@ export class UsersController {
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
   @Get('lookup/:email')
-  async findByUsername(@Param('email') email: string) {
+  async findByEmail(@Param('email') email: string) {
     const user = await this.usersService.findByEmail(email);
     return !!(user && user.email);
   }
@@ -136,12 +121,14 @@ export class UsersController {
   @Post('/lead-registration')
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiBody({ type: TempLeadDto })
-  async createLead(@Body() tempLeadDto: TempLeadDto): Promise<string> {
-    const tempRegistration = await this.usersService.createTempRegistration(
-      tempLeadDto.email,
+  async createLead(
+    @Body() tempLeadDto: TempLeadDto,
+    @Request() req: ApiReq,
+  ): Promise<string> {
+    return await this.usersService.createTempRegistration(
+      req.user.email,
       tempLeadDto.leadPosition,
     );
-    return tempRegistration;
   }
 
   @Post('invite/complete-invite/')
@@ -163,22 +150,8 @@ export class UsersController {
   }
 
   @UseGuards(JwtUsersGuard)
-  @Patch(':userId/deactivate')
-  async deactivateAccount(
-    @Request() req: any,
-    @Param('userId') userId: string,
-    @Body() payload: DeactivateAccountDto,
-  ) {
-    // Optional: Use payload.reason if needed
-    return this.usersService.deactivateAccount(userId);
-  }
-
-  @Patch(':userId/request-reactivation')
-  async requestReactivation(
-    @Param('userId') userId: string,
-    @Body() payload: RequestReactivationDto,
-  ) {
-    // Optional: Use payload.message if needed
-    return this.usersService.requestReactivation(userId);
+  @Patch('/deactivate')
+  async deactivateAccount(@Request() req: ApiReq) {
+    return this.usersService.deactivateAccount(req.user._id);
   }
 }
