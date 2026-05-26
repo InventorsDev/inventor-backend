@@ -41,7 +41,7 @@ export class UsersAdminsController {
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
     private readonly usersService: UsersService,
-  ) {}
+  ) { }
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
@@ -63,8 +63,11 @@ export class UsersAdminsController {
   })
   @Get('users/lookup/:email')
   async findByUsername(@Param('email') email: string) {
-    const user = await this.usersService.findByEmail(email);
-    return !!(user && user.email);
+    const exists = await this.usersService.checkUserExists(email);
+    return {
+      exists,
+      message: exists ? 'User exists' : 'User does not exist',
+    };
   }
 
   @ApiBearerAuth()
