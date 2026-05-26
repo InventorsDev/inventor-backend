@@ -314,9 +314,9 @@ UserSchema.statics.signUp = async function signUp(
     subject: 'Welcome to Our Developer Community at Inventors!',
     template: getMailTemplate().generalSignUp,
     templateVariables: {
-      firstName: data.basic_info.firstName,
-      lastName: data.basic_info.lastName,
-      phoneNumber: data.basic_info.phone || undefined,
+      firstName: basic_info.firstName,
+      lastName: basic_info.lastName,
+      phoneNumber: basic_info.phone || undefined,
       email: data.email,
     },
   });

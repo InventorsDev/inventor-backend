@@ -7,6 +7,7 @@ export const buildQuery = (
   defaultQuery: any = null,
   locationQuery = null,
 ): any => {
+  query = { ...query };
   const filters: Array<any> = [];
 
   const regexSearches = (searchFields, value) => {
@@ -28,7 +29,7 @@ export const buildQuery = (
 
   for (const key in query) {
     let searchFields = [];
-    if (!Object.prototype.hasOwnProperty.call(query, key)) continue;
+    if (!query.hasOwnProperty(key)) continue;
 
     let value = query[key] || '';
 
