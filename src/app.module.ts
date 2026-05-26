@@ -9,6 +9,7 @@ import { DataLogsModule } from './shared/datalogs';
 import { UsersModule } from './users/users.module';
 import { EventModule } from './events/events.users.module';
 import { PostModule } from './blog/post/post.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PostModule } from './blog/post/post.module';
     UsersModule,
     EventModule,
     PostModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
