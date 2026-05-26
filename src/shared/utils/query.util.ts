@@ -28,7 +28,7 @@ export const buildQuery = (
 
   for (const key in query) {
     let searchFields = [];
-    if (!query.hasOwnProperty(key)) continue;
+    if (!Object.prototype.hasOwnProperty.call(query, key)) continue;
 
     let value = query[key] || '';
 
