@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
 import { Model, Types } from 'mongoose';
-import {} from 'src/shared/configs';
+import { } from 'src/shared/configs';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import {
   ApiReq,
@@ -61,7 +61,7 @@ export class UsersService {
     @Inject(ContactInfo.name)
     private readonly contactInfoModel: Model<ContactInfo>,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
@@ -653,9 +653,14 @@ export class UsersService {
   }
 
   // reference routing a new user
-  async createUser(userData: CreateUserDto) {
-    return (this.userModel as any).signUp(userData);
+  async createUser(req: ApiReq, userData: CreateUserDto) {
+    return (this.userModel as any).signUp(req, userData, false, {
+      BasicInfoModel: this.basicInfoModel,
+      ProfessionalInfoModel: this.professionalInfoModel,
+      ContactInfoModel: this.contactInfoModel,
+    });
   }
+
   async requestVerification(req: ApiReq, userId: string) {
     const user = await this.userModel.findById(userId);
     if (!user) {
@@ -663,7 +668,7 @@ export class UsersService {
     }
 
     const now = new Date();
-    
+
     if (
       user.nextVerificationRequestDate &&
       now < user.nextVerificationRequestDate
@@ -673,11 +678,10 @@ export class UsersService {
         `You already submitted a request. Try again after ${retryDate}`,
       );
     }
-    
+
     if (user.applicationStatus === ApplicationStatus.APPROVED) {
       throw new BadRequestException('You are already verified.');
     }
-
 
     // Update user state
     user.applicationStatus = ApplicationStatus.PENDING;
@@ -698,13 +702,12 @@ export class UsersService {
         nextTryDate: format(user.nextVerificationRequestDate, 'PPPP'),
       },
     });
-  
+
     return {
       message: 'Verification request sent.',
       nextAllowedRequest: user.nextVerificationRequestDate,
     };
   }
-  
 
   // service for testing mail
   pingMail() {

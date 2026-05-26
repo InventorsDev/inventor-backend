@@ -124,7 +124,7 @@ export class UsersAdminsController {
   @UseGuards(JwtAdminsGuard)
   @Post('users')
   async createUser(@Request() req: ApiReq, @Body() payload: CreateUserDto) {
-    return (this.userModel as any).signUp(req, payload);
+    return this.usersService.createUser(req, payload);
   }
 
   @ApiBearerAuth()
