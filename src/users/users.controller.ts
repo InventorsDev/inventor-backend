@@ -149,6 +149,7 @@ export class UsersController {
     return this.usersService.requestVerification(req, userId);
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
   @Patch('/deactivate')
   async deactivateAccount(@Request() req: ApiReq) {

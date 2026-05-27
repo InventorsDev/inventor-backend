@@ -114,7 +114,6 @@ UserSchema.statics.sendEmailVerificationToken =
         path: 'basicInfo',
         select: 'firstName',
       });
-    console.log('User: ', user)
     if (!user) throw new BadRequestException('User not found');
     const firstName = user.basicInfo?.firstName || '[name]';
     const emailVerificationKey = `inventors:users:email:verification:${userId}`;

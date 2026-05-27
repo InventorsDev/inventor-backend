@@ -548,7 +548,6 @@ export class UsersService {
 
       // generate token
       token = await this.generateRandomToken(email);
-      console.log('token ', token);
     } catch (err) {
       throw new UnprocessableEntityException('failed to register user');
     }

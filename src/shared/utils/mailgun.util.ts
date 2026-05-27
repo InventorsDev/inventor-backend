@@ -1,11 +1,11 @@
 import FormData from 'form-data';
 import { configs } from '../configs';
 import Mailgun from 'mailgun.js';
-import { LogLevel, EmailParams } from '../interfaces';
+import { EmailParams, LogLevel } from '../interfaces';
 
 export const getMailTemplate = () => configs().mailgun.templates;
 
-export const getTemplateKey = (templateValue) => {
+export const getTemplateKey = (templateValue: string) => {
   const templates = getMailTemplate();
   return Object.entries(templates).filter(
     ([key, value]) => value === templateValue,
@@ -62,7 +62,6 @@ export const sendMail = ({
 
       return true;
     } catch (e) {
-      console.log(e);
       global.dataLogsService.log(
         'MailGunSendMail',
         {
