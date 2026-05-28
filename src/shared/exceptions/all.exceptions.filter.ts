@@ -53,7 +53,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.SERVICE_UNAVAILABLE;
 
-    req.traceId = req.traceId || faker.datatype.uuid();
+    req.traceId = req.traceId || faker.string.uuid();
     req.userIpAddress = getIpAddress(req);
 
     const msg =

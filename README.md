@@ -1,47 +1,10 @@
-<p  align="center">
+# Inventor Backend API
 
-<a  href="http://nestjs.com/"  target="blank"><img  src="https://nestjs.com/img/logo-small.svg"  width="200"  alt="Nest Logo" /></a>
-
-</p>
-
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-<p  align="center">A progressive <a  href="http://nodejs.org"  target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-
-<p  align="center">
-
-<a  href="https://www.npmjs.com/~nestjscore"  target="_blank"><img  src="https://img.shields.io/npm/v/@nestjs/core.svg"  alt="NPM Version" /></a>
-
-<a  href="https://www.npmjs.com/~nestjscore"  target="_blank"><img  src="https://img.shields.io/npm/l/@nestjs/core.svg"  alt="Package License" /></a>
-
-<a  href="https://www.npmjs.com/~nestjscore"  target="_blank"><img  src="https://img.shields.io/npm/dm/@nestjs/common.svg"  alt="NPM Downloads" /></a>
-
-<a  href="https://circleci.com/gh/nestjs/nest"  target="_blank"><img  src="https://img.shields.io/circleci/build/github/nestjs/nest/master"  alt="CircleCI" /></a>
-
-<a  href="https://coveralls.io/github/nestjs/nest?branch=master"  target="_blank"><img  src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9"  alt="Coverage" /></a>
-
-<a  href="https://discord.gg/G7Qnnhy"  target="_blank"><img  src="https://img.shields.io/badge/discord-online-brightgreen.svg"  alt="Discord"/></a>
-
-<a  href="https://opencollective.com/nest#backer"  target="_blank"><img  src="https://opencollective.com/nest/backers/badge.svg"  alt="Backers on Open Collective" /></a>
-
-<a  href="https://opencollective.com/nest#sponsor"  target="_blank"><img  src="https://opencollective.com/nest/sponsors/badge.svg"  alt="Sponsors on Open Collective" /></a>
-
-<a  href="https://paypal.me/kamilmysliwiec"  target="_blank"><img  src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-
-<a  href="https://opencollective.com/nest#sponsor"  target="_blank"><img  src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg"  alt="Support us"></a>
-
-<a  href="https://twitter.com/nestframework"  target="_blank"><img  src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-
-</p>
-
-<!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-
-[![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+A progressive Node.js framework for building efficient and scalable server-side applications.
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+This repository hosts the backend services for the Inventor platform.
 
 ## Setup the app
 
@@ -60,7 +23,7 @@ Once you have cloned the project on your system, you will have your copy of the 
 For the application to function properly when running it, you need to setup some necessary Environment Variables in your `.env` file
 
 1. Create a file `.env` in your project root folder.
-2. Copy the Environment Variables from your `.env.sample` to your newly created `.env file`
+2. Copy the Environment Variables from your `.env.sample` to your newly created `.env`
 
 ```
 NODE_ENV=development
@@ -139,7 +102,7 @@ This URL will take you to the Swagger interface, where you can explore and inter
 
 ## Using the Provided Endpoints in Swagger Documentation
 
-This guide will walk developers through the process of using the provided endpoints in the Swagger documentation. Follow the steps below to ensure you can successfully interact with the APIs.
+This guide will walk developers through the process of using the provided endpoints in the Swagger documentation. Follow the steps below to ensure you can successfully interact with the APIs .
 
 ## Prerequisites
 
@@ -255,19 +218,7 @@ $  npm  run  test:cov
 
 ```
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-
-- Website - [https://nestjs.com](https://nestjs.com/)
-
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
 ## License
 
-Nest is [MIT licensed](LICENSE).
+This project is licensed under the MIT License.
 

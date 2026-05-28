@@ -7,6 +7,7 @@ export const buildQuery = (
   defaultQuery: any = null,
   locationQuery = null,
 ): any => {
+  query = { ...query };
   const filters: Array<any> = [];
 
   const regexSearches = (searchFields, value) => {

@@ -5,6 +5,7 @@ import { TestModule } from 'src/shared/testkits';
 
 describe('UsersController', () => {
   let controller: EventUserController
+ 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [TestModule],
