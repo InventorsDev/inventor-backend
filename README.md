@@ -102,7 +102,7 @@ This URL will take you to the Swagger interface, where you can explore and inter
 
 ## Using the Provided Endpoints in Swagger Documentation
 
-This guide will walk developers through the process of using the provided endpoints in the Swagger documentation. Follow the steps below to ensure you can successfully interact with the APIs.
+This guide will walk developers through the process of using the provided endpoints in the Swagger documentation. Follow the steps below to ensure you can successfully interact with the APIs .
 
 ## Prerequisites
 
