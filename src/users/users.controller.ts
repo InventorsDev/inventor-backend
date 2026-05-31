@@ -25,7 +25,7 @@ import { UsersService } from './users.service';
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
@@ -153,6 +153,6 @@ export class UsersController {
   @UseGuards(JwtUsersGuard)
   @Patch('/deactivate')
   async deactivateAccount(@Request() req: ApiReq) {
-    return this.usersService.deactivateAccount(req.user._id);
+    return this.usersService.deactivateAccount(req.user._id.toString());
   }
 }
