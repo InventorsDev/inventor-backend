@@ -60,7 +60,7 @@ export class UsersService {
     @Inject(ContactInfo.name)
     private readonly contactInfoModel: Model<ContactInfo>,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
@@ -654,9 +654,14 @@ export class UsersService {
   }
 
   // reference routing a new user
-  async createUser(userData: CreateUserDto) {
-    return (this.userModel as any).signUp(userData);
+  async createUser(req: ApiReq, userData: CreateUserDto) {
+    return (this.userModel as any).signUp(req, userData, false, {
+      BasicInfoModel: this.basicInfoModel,
+      ProfessionalInfoModel: this.professionalInfoModel,
+      ContactInfoModel: this.contactInfoModel,
+    });
   }
+
   async requestVerification(req: ApiReq, userId: string) {
     const user = await this.userModel.findById(userId);
     if (!user) {

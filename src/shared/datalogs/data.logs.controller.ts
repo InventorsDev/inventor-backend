@@ -94,7 +94,7 @@ export class DataLogsController {
   }
 
   @ApiBearerAuth()
-  // @UseGuards(JwtAdminsGuard)
+  @UseGuards(JwtAdminsGuard)
   @ApiTags('admins')
   @Delete('admins/data-logs/:dataLogId')
   remove(@Param('dataLogId') dataLogId: string) {

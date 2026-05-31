@@ -27,4 +27,19 @@ describe('DataLogsController', () => {
       expect(!!dataLogsController).toBe(true);
     });
   });
+
+  describe('remove', () => {
+    it('should call logsService.remove with the provided dataLogId', async () => {
+      const dataLogId = 'some-log-id';
+      const mockResult = { id: dataLogId, message: 'Log deleted' };
+      const removeSpy = jest
+        .spyOn(global.dataLogsService, 'remove')
+        .mockResolvedValue(mockResult as any);
+
+      const result = await dataLogsController.remove(dataLogId);
+
+      expect(result).toEqual(mockResult);
+      expect(removeSpy).toHaveBeenCalledWith(dataLogId);
+    });
+  });
 });
