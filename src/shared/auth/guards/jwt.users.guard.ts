@@ -4,7 +4,6 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
 import { hasRequiredRoles } from 'src/shared/utils';
 import { UserRole } from '../../interfaces';
@@ -14,7 +13,7 @@ export class JwtUsersGuard
   extends AuthGuard('jwt-user')
   implements CanActivate
 {
-  constructor(private jwtService: JwtService) {
+  constructor() {
     super();
   }
 
@@ -23,29 +22,27 @@ export class JwtUsersGuard
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new UnauthorizedException('Token not found');
+      throw new UnauthorizedException('access token not found');
     }
 
+    let payload: any;
     try {
-      const payload = await global.jwtService.verify(token);
-
-      if (!payload || !payload.role) {
-        throw new UnauthorizedException('Invalid token payload');
-      }
-
-      const userRoles: UserRole[] = payload.role;
-
-      if (!hasRequiredRoles(userRoles, [UserRole.USER])) {
-        throw new UnauthorizedException(
-          'Invalid user roles, user must have event role',
-        );
-      }
-
-      request.user = payload;
-    } catch (error) {
-      throw new UnauthorizedException('Token validation failed');
+      payload = await global.jwtService.verify(token);
+    } catch {
+      throw new UnauthorizedException('access token is invalid or expired');
     }
 
+    if (!payload?.role) {
+      throw new UnauthorizedException('Invalid access token payload');
+    }
+
+    if (!hasRequiredRoles(payload.role as UserRole[], [UserRole.USER])) {
+      throw new UnauthorizedException(
+        'Insufficient role to access this resource',
+      );
+    }
+
+    request.user = payload;
     return true;
   }
 
@@ -53,6 +50,4 @@ export class JwtUsersGuard
     const [type, token] = request.headers['authorization']?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
-
- 
 }

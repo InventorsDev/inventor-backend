@@ -1,10 +1,14 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { ApiReq, ReqType, UserStatus } from '../interfaces';
-import { User, UserDocument } from '../schema/user.schema';
+import { User, UserDocument } from 'src/shared/schema';
 import { faker } from '@faker-js/faker';
-import { BcryptUtil, firstCapitalize, isMobile, redisGet, redisSet } from '../utils';
+import {
+  BcryptUtil,
+  isMobile,
+  redisGet,
+  redisSet,
+} from '../utils';
 import { RefreshTokenDto } from 'src/users/dto/refresh-token.dto';
 
 @Injectable()
@@ -12,7 +16,6 @@ export class AuthService {
   constructor(
     @Inject(User.name)
     private readonly usersModel: Model<UserDocument>,
-    private jwtService: JwtService,
   ) {}
 
   async sendEmailVerificationToken(req: any, userId: string) {
@@ -69,7 +72,7 @@ export class AuthService {
 
   async refreshToken(req: ApiReq, refreshToken: RefreshTokenDto) {
     const tokenType = isMobile(req) ? ReqType.MOBILE : ReqType.WEB;
-    const oldRefreshKey = `Refresh_token:${tokenType}:${refreshToken}`;
+    const oldRefreshKey = `Refresh_token:${tokenType}:${refreshToken.refreshToken}`;
     const tokenData = await redisGet(oldRefreshKey);
 
     if (!tokenData) {

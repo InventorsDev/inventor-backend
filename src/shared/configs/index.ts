@@ -1,5 +1,6 @@
 // enviroment variables were not getting loaded here. The below import fixes that
 import * as dotenv from 'dotenv';
+
 dotenv.config();
 
 export const configs = () => ({
@@ -76,6 +77,7 @@ export const configs = () => ({
       generalEmailVerification: 'inventors-email-verification',
       userBirthdayNotification: 'inventors-birthday-notification',
       generalLeadRegistration: 'inventors-lead-invite',
+      leadApplicationReceived: 'inventors-lead-application',
       leadApplicationStauts: 'lead-application-status',
       userVerificationAcknowledgement: 'user-verification-acknowledgement',
     },

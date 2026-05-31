@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { BadRequestException } from '@nestjs/common';
 import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { HydratedDocument, Mongoose, Types } from 'mongoose';
+import mongoose, { HydratedDocument, Types } from 'mongoose';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { ApiReq, EmailFromType } from '../interfaces';
 import {
@@ -11,7 +11,7 @@ import {
   SocialsRawSchema,
   UserRole,
   UserStatus,
-} from '../interfaces/user.type';
+} from 'src/shared/interfaces';
 import {
   BcryptUtil,
   firstCapitalize,
@@ -54,7 +54,7 @@ export class User {
     coordinates: number[];
   };
 
-  // put this into a diff collectiona nd grab data from that
+  // put this into a diff collection and grab data from that
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'BasicInfo' })
   basicInfo: mongoose.Types.ObjectId;
 
@@ -108,13 +108,12 @@ export const UserSchema = SchemaFactory.createForClass(User);
 
 UserSchema.statics.sendEmailVerificationToken =
   async function sendEmailVerificationToken(req: ApiReq, userId: string) {
-    const user = await this.findById(new Types.ObjectId(userId))
+    const user = await this.findById(userId)
       .select('email basicInfo')
       .populate({
         path: 'basicInfo',
-        select: 'firstname',
+        select: 'firstName',
       });
-
     if (!user) throw new BadRequestException('User not found');
     const firstName = user.basicInfo?.firstName || '[name]';
     const emailVerificationKey = `inventors:users:email:verification:${userId}`;
@@ -135,8 +134,7 @@ UserSchema.statics.sendEmailVerificationToken =
       subject: 'Important - Email Confirmation Code',
       template: getMailTemplate().generalEmailVerification,
       templateVariables: {
-        userId: user?._id?.toString(),
-        firstName: firstName,
+        firstName,
         email: user.email,
         emailVerificationUrl,
         emailVerificationCode: token,
@@ -188,9 +186,6 @@ UserSchema.statics.forgetPassword = async function forgetPassword(
   const password = await BcryptUtil.generateHash(newPassword);
 
   const firstName = user.basicInfo?.firstName || '[name]';
-
-  console.log('Password', newPassword, password);
-  console.log('firstName: ', firstName);
 
   // save the password
   user.password = password;

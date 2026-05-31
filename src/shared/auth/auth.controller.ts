@@ -15,9 +15,8 @@ import {
   ApiBearerAuth,
   ApiTags,
   ApiOperation,
-  ApiResponse,
 } from '@nestjs/swagger';
-import { ApiReq } from '../interfaces/req.type';
+import { ApiReq } from 'src/shared/interfaces';
 import {
   BasicInfo,
   BasicInfoDoc,
@@ -32,6 +31,7 @@ import { AuthService } from './auth.service';
 import { JwtUsersGuard } from './guards/jwt.users.guard';
 import { LocalUsersGuard } from './guards/local.users.guard';
 import { RefreshTokenDto } from 'src/users/dto/refresh-token.dto';
+import * as express from 'express';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -72,7 +72,7 @@ export class AuthController {
       'Login a user into the system. This will return a JWT token. It requires a valid email and password.',
   })
   @Post('login')
-  login(@Request() req, @Body() userLoginDto: UserLoginDto) {
+  login(@Request() req: express.Request, @Body() userLoginDto: UserLoginDto) {
     return this.authService.login(req);
   }
 
