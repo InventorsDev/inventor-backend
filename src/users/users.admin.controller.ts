@@ -7,7 +7,6 @@ import {
   Param,
   Patch,
   Post,
-  Put,
   Query,
   Request,
   UseGuards,
@@ -31,8 +30,8 @@ import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
-import { UserInviteDto } from './dto/user-invite.dto';
 import { UsersService } from './users.service';
+import { RequestReactivationDto } from 'src/users/dto/request-reactivation.dto';
 
 @ApiTags('admins')
 @Controller('admins')
@@ -75,8 +74,6 @@ export class UsersAdminsController {
   @Delete('users/:id')
   @ApiOperation({
     summary: 'delete a user',
-    description:
-      'Delete a user from the application and all their data. Note. As of now, data cannot be reocvered',
   })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
@@ -241,6 +238,17 @@ export class UsersAdminsController {
   @Patch('lead/:email/approve')
   async approveApplication(@Param('email') email: string): Promise<string> {
     return await this.usersService.approveTempApplication(email);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'reactivate deactivated account' })
+  @UseGuards(JwtAdminsGuard)
+  @Patch(':userId/reactivate')
+  async requestReactivation(
+    @Param('userId') userId: string,
+    @Body() payload: RequestReactivationDto,
+  ) {
+    return this.usersService.requestReactivation(userId);
   }
 
   // reject a lead request

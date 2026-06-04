@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsNumber,
+  IsOptional,
+  IsPhoneNumber,
+  IsString,
+} from 'class-validator';
 
 class CountryDto {
   @ApiProperty()
@@ -80,8 +86,8 @@ class ProfessionalInfoDto {
 class ContactInfoDto {
   @ApiProperty()
   @IsOptional()
-  @IsNumber()
-  phone?: number;
+  @IsPhoneNumber()
+  phone?: string;
 
   @ApiProperty()
   @IsOptional()
@@ -107,10 +113,6 @@ export class UpdateUserDto {
   @IsOptional()
   @ApiProperty()
   email?: string;
-
-  @ApiProperty()
-  @IsOptional()
-  password?: string;
 
   @ApiProperty({ type: () => BasicInfoDto })
   @IsOptional()

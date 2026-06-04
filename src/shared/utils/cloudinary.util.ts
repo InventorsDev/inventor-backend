@@ -17,7 +17,6 @@ export const uploadToCloudinary = async (
     const uploaded = await cloudinary.v2.uploader.upload(dataURL, { folder });
     return uploaded.secure_url;
   } catch (e) {
-    console.log(e);
     global.dataLogsService.log(
       global.req.traceId,
       { source: 'uploadToCloudinary', message: e.message, stackTrace: e.stack },

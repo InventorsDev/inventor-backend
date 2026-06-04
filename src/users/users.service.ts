@@ -10,8 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
-import { Model, Types } from 'mongoose';
-import { } from 'src/shared/configs';
+import { Document, Model, Types } from 'mongoose';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import {
   ApiReq,
@@ -41,12 +40,12 @@ import {
   passwordMatch,
   sendMail,
   uploadToCloudinary,
-  verifyHandle,
 } from 'src/shared/utils';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserInviteDto } from './dto/user-invite.dto';
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -67,20 +66,20 @@ export class UsersService {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
   }
 
-  private async verifyUserHandle(handle: string, userId: string) {
-    verifyHandle(handle);
-    const user = await this.userModel.findOne(
-      { userHandle: handle.replace(/@/g, '').toLowerCase().trim() },
-      { userHandle: 1, _id: 1 },
-    );
-
-    if (
-      (user !== null || user?.userHandle) &&
-      user?._id?.toString() !== userId
-    ) {
-      throw new BadRequestException('This handle has been taken');
-    }
-  }
+  // private async verifyUserHandle(handle: string, userId: string) {
+  //   verifyHandle(handle);
+  //   const user = await this.userModel.findOne(
+  //     { userHandle: handle.replace(/@/g, '').toLowerCase().trim() },
+  //     { userHandle: 1, _id: 1 },
+  //   );
+  //
+  //   if (
+  //     (user !== null || user?.userHandle) &&
+  //     user?._id?.toString() !== userId
+  //   ) {
+  //     throw new BadRequestException('This handle has been taken');
+  //   }
+  // }
 
   async findAll(req: ApiReq) {
     const { page, currentLimit, skip, order, dbQuery } = getPagingParams(req);
@@ -108,12 +107,12 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    const full_user = await this.userModel
+
+    return this.userModel
       .findById(id)
       .populate('basicInfo')
       .populate('professionalInfo')
       .populate('contactInfo');
-    return full_user;
   }
 
   async findByEmail(email: string, project: any = {}): Promise<User> {
@@ -154,12 +153,6 @@ export class UsersService {
       if (payload.email) {
         updateTasks.push(
           this.userModel.findByIdAndUpdate(userId, { email: payload.email }),
-        );
-      }
-      if (payload.password) {
-        const hashed = BcryptUtil.generateHash(payload.password);
-        updateTasks.push(
-          this.userModel.findByIdAndUpdate(userId, { password: hashed }),
         );
       }
 
@@ -211,7 +204,16 @@ export class UsersService {
   }
 
   async addPhoto(userId: string, payload: UserAddPhotoDto): Promise<User> {
+    if (!payload.photo?.includes('data:image')) {
+      throw new BadRequestException(
+        'photo must be a valid base64 data image string',
+      );
+    }
+
     const photo = await uploadToCloudinary(payload.photo);
+    if (!photo) {
+      throw new BadRequestException('Photo upload failed');
+    }
 
     return this.userModel.findOneAndUpdate(
       { _id: new Types.ObjectId(userId) },
@@ -400,7 +402,7 @@ export class UsersService {
     const today = new Date();
     if (user.nextApplicationTime > today) {
       throw new BadRequestException(
-        `The next time you can apply as a lead is ${format(user.nextApplicationTime, 'eeee, MMMM do, h:mm a')}`,
+        `Cannot apply until ${format(user.nextApplicationTime, 'eeee, MMMM do, h:mm a')}`,
       );
     }
     // create next application date
@@ -421,7 +423,8 @@ export class UsersService {
     } catch {
       return 'Error updating user';
     }
-    let user_details;
+    let user_details: Document<unknown, {}, BasicInfo> &
+      BasicInfo & { _id: Types.ObjectId };
     if (user.basicInfo) {
       user_details = await this.basicInfoModel.findById(user.basicInfo).exec();
     }
@@ -430,7 +433,7 @@ export class UsersService {
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Application Received',
-      template: getMailTemplate().generalLeadRegistration,
+      template: getMailTemplate().leadApplicationReceived,
       templateVariables: {
         firstName: user_details.firstName || '',
         position: leadPosition,
@@ -545,7 +548,6 @@ export class UsersService {
 
       // generate token
       token = await this.generateRandomToken(email);
-      console.log('token ', token);
     } catch (err) {
       throw new UnprocessableEntityException('failed to register user');
     }
@@ -580,55 +582,55 @@ export class UsersService {
 
   // complete profile link
   async completeProfile(data: UserInviteDto, token: string): Promise<string> {
-    const tokenDoc = await this.inviteTokenModel.findOne({ token: token });
+    // Round 1: token validation and password hash are independent
+    const [tokenDoc, hashedPassword] = await Promise.all([
+      this.inviteTokenModel.findOne({ token }),
+      BcryptUtil.generateHash(data.password),
+    ]);
+
     if (!tokenDoc || tokenDoc.used || tokenDoc.expiresAt < new Date()) {
       throw new BadRequestException('Token is invalid or expired');
     }
 
-    console.log(tokenDoc);
+    // Round 2: user lookup depends on tokenDoc.email
+    const user = await this.userModel
+      .findOne({ email: tokenDoc.email.toLowerCase() })
+      .select('basicInfo professionalInfo contactInfo status');
 
-    const user = await this.userModel.findOne({
-      email: tokenDoc.email.toLowerCase(),
-    });
     if (!user || user.status !== UserStatus.PENDING) {
       throw new BadRequestException('No pending user found');
     }
 
-    const hashedPassword = await BcryptUtil.generateHash(data.password);
-
-    await this.basicInfoModel.findByIdAndUpdate(user.basicInfo, {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      gender: data.gender,
-      age: data.age,
-    });
-
-    await this.professionalInfoModel.findByIdAndUpdate(user.professionalInfo, {
-      jobTitle: data.jobTitle,
-      company: data.company,
-      yearsOfExperience: data.yearsOfExperience,
-      technologies: data.technologies,
-    });
-
-    await this.contactInfoModel.findByIdAndUpdate(user.contactInfo, {
-      linkedInUrl: data.linkedinUrl,
-      github: data.githubUrl,
-      phone: data.phone,
-    });
-
-    user.password = hashedPassword;
-    user.role = [UserRole.LEAD];
-    user.status = UserStatus.ACTIVE;
-    user.emailVerification = true;
-    user.joinMethod = RegistrationMethod.INVITATION;
-    user.deviceId = data.deviceId;
-    user.deviceToken = data.deviceToken;
-
-    await user.save();
-
-    // mark the token as used
-    tokenDoc.used = true;
-    tokenDoc.save();
+    // Round 3: all writes are independent
+    await Promise.all([
+      this.basicInfoModel.findByIdAndUpdate(user.basicInfo, {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        gender: data.gender,
+        age: data.age,
+      }),
+      this.professionalInfoModel.findByIdAndUpdate(user.professionalInfo, {
+        jobTitle: data.jobTitle,
+        company: data.company,
+        yearsOfExperience: data.yearsOfExperience,
+        technologies: data.technologies,
+      }),
+      this.contactInfoModel.findByIdAndUpdate(user.contactInfo, {
+        linkedInUrl: data.linkedinUrl,
+        github: data.githubUrl,
+        phone: data.phone,
+      }),
+      this.userModel.findByIdAndUpdate(user._id, {
+        password: hashedPassword,
+        role: [UserRole.LEAD],
+        status: UserStatus.ACTIVE,
+        emailVerification: true,
+        joinMethod: RegistrationMethod.INVITATION,
+        deviceId: data.deviceId,
+        deviceToken: data.deviceToken,
+      }),
+      this.inviteTokenModel.findByIdAndUpdate(tokenDoc._id, { used: true }),
+    ]);
 
     return 'profile completed successfully';
   }
@@ -648,8 +650,7 @@ export class UsersService {
   // get all leads
   // decided to go the crude way since i couldn't get the function to work without changing it [lean value giving issues]
   async getUsersWithLeadRole(): Promise<User[]> {
-    const users = await this.userModel.find({ role: 'LEAD' }).exec();
-    return users;
+    return await this.userModel.find({ role: 'LEAD' }).exec();
   }
 
   // reference routing a new user

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Email Confirmation</title>
+</head>
+<body>
+  <p>Hello {{firstName}},</p>
+
+  <p>Please confirm your email address by using the code below or clicking the link.</p>
+
+  <p><strong>Confirmation Code: {{emailVerificationCode}}</strong></p>
+
+  <p>Or click here to verify: <a href="{{emailVerificationUrl}}">{{emailVerificationUrl}}</a></p>
+
+  <p>This code expires in 24 hours. If you did not create an account, please ignore this email.</p>
+
+  <p>Thank you,</p>
+  <p>Inventors Team</p>
+</body>
+</html>
