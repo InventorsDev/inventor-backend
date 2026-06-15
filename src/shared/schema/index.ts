@@ -1,14 +1,11 @@
 import { ConfigService } from '@nestjs/config';
 import { Connection, ConnectOptions, createConnection } from 'mongoose';
-import { BasicInfo, BasicInfoSchema } from './basic.info.schema';
-import { ContactInfo, ContactInfoSchema } from './contact.info.schema';
 import { Module } from '@nestjs/common';
 import { User, UserSchema } from './user.schema';
 import { EventSchema } from './events.schema';
 import { PostSchema, Post } from './post.schema';
 import { DataLog, DataLogSchema } from './data.log.schema';
 import { InviteToken, InviteTokenSchema } from './invite-tokens.schema';
-import { ProfessionalInfo, ProfessionalInfoSchema } from './professional.info.schema';
 
 
 // All Schema Models
@@ -27,13 +24,8 @@ const SCHEMA_LIST = [
   { name: Post.name, schema: PostSchema, dbPrefix: 'APP' },
   { name: DataLog.name, schema: DataLogSchema, dbPrefix: 'LOG' },
   { name: InviteToken.name, schema: InviteTokenSchema, dbPrefix: 'APP' },
-  { name: BasicInfo.name, schema: BasicInfoSchema, dbPrefix: 'APP' },
-  {
-    name: ProfessionalInfo.name,
-    schema: ProfessionalInfoSchema,
-    dbPrefix: 'APP',
-  },
-  { name: ContactInfo.name, schema: ContactInfoSchema, dbPrefix: 'APP' },
+  // BasicInfo / ProfessionalInfo / ContactInfo are now embedded sub-documents
+  // of User and are no longer registered as standalone collections.
 ];
 
 export const CONNECTION = SCHEMA_LIST.reduce((result, data) => {

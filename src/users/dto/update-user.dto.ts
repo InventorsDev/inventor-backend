@@ -106,6 +106,11 @@ class ContactInfoDto {
 
   @ApiProperty()
   @IsOptional()
+  @IsString()
+  twitterUrl?: string;
+
+  @ApiProperty()
+  @IsOptional()
   @IsArray()
   other?: any[];
 }

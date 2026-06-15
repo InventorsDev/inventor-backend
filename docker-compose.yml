@@ -1,0 +1,54 @@
+# Local dev datastores for inventor-backend (MongoDB + Redis).
+#
+# Usage:
+#   docker compose up -d           # start in background
+#   docker compose ps              # status
+#   docker compose logs -f mongo   # tail logs
+#   docker compose stop            # stop (keeps data)
+#   docker compose down            # stop + remove containers (keeps named volumes)
+#   docker compose down -v         # stop + remove containers AND data volumes
+#
+# Storage hygiene (keep Docker disk usage bounded):
+#   docker system df               # see what's using space
+#   docker image prune -f          # remove dangling images
+#   docker builder prune -f        # clear build cache
+#   docker system prune -af --volumes   # nuke everything unused (careful: removes stopped data volumes)
+#
+# The app's existing .env already targets these (localhost:27017 / 127.0.0.1:6379),
+# so nothing else needs wiring. Mongo serves both `inventor_app` and `inventor_log`
+# (databases are created lazily on first write). No auth — local dev only.
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: inventor_mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: inventor_redis
+    restart: unless-stopped
+    command: ['redis-server', '--save', '60', '1', '--appendonly', 'no']
+    ports:
+      # host 6380 (6379 is taken by another local project); container stays 6379
+      - '6380:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  mongo_data:
+  redis_data:

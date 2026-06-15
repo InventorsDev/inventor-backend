@@ -4,13 +4,14 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
-import { Document, Model, Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import {
   ApiReq,
@@ -20,13 +21,7 @@ import {
   UserRole,
   UserStatus,
 } from 'src/shared/interfaces';
-import {
-  BasicInfo,
-  ContactInfo,
-  ProfessionalInfo,
-  User,
-  UserDocument,
-} from 'src/shared/schema';
+import { User, UserDocument } from 'src/shared/schema';
 import {
   InviteToken,
   TokenDocument,
@@ -48,17 +43,13 @@ import { UserInviteDto } from './dto/user-invite.dto';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
     @Inject(InviteToken.name)
     private readonly inviteTokenModel: Model<TokenDocument>,
-    @Inject(BasicInfo.name)
-    private readonly basicInfoModel: Model<BasicInfo>,
-    @Inject(ProfessionalInfo.name)
-    private readonly professionalInfoModel: Model<ProfessionalInfo>,
-    @Inject(ContactInfo.name)
-    private readonly contactInfoModel: Model<ContactInfo>,
     private readonly configService: ConfigService,
   ) { }
 
@@ -101,18 +92,13 @@ export class UsersService {
 
   async findById(id: string, project: any = {}) {
     const user = await this.userModel
-      .findOne(new Types.ObjectId(id), project, { lean: true })
+      .findOne({ _id: new Types.ObjectId(id) }, project, { lean: true })
       .select('-password')
       .exec();
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-
-    return this.userModel
-      .findById(id)
-      .populate('basicInfo')
-      .populate('professionalInfo')
-      .populate('contactInfo');
+    return user;
   }
 
   async findByEmail(email: string, project: any = {}): Promise<User> {
@@ -139,68 +125,41 @@ export class UsersService {
   }
 
   async update(userId: string, payload: UpdateUserDto) {
-    const user = await this.userModel
-      .findById(userId)
-      .select('basicInfo professionalInfo contactInfo');
+    this.logger.log(`Updating user ${userId}`);
+    const user = await this.userModel.findById(userId).select('_id');
     if (!user) throw new NotFoundException('User not Found');
 
-    const session = await this.userModel.startSession();
-    session.startTransaction();
+    // All fields live on a single document -> one atomic $set with dot-notation.
+    const updates: Record<string, unknown> = {};
+    if (payload.email) updates.email = payload.email;
+    this.flatten('basicInfo', payload.basic_info, updates);
+    this.flatten('professionalInfo', payload.professional_info, updates);
+    this.flatten('contactInfo', payload.contact_info, updates);
+
+    let updatedUser: User;
     try {
-      const updateTasks: Promise<any>[] = [];
-
-      // top level fields
-      if (payload.email) {
-        updateTasks.push(
-          this.userModel.findByIdAndUpdate(userId, { email: payload.email }),
-        );
-      }
-
-      // submodels
-      if (payload.basic_info) {
-        updateTasks.push(
-          this.basicInfoModel.findByIdAndUpdate(
-            user.basicInfo,
-            payload.basic_info,
-          ),
-        );
-      }
-      if (payload.professional_info) {
-        updateTasks.push(
-          this.professionalInfoModel.findByIdAndUpdate(
-            user.professionalInfo,
-            payload.professional_info,
-          ),
-        );
-      }
-      if (payload.contact_info) {
-        updateTasks.push(
-          this.contactInfoModel.findByIdAndUpdate(
-            user.contactInfo,
-            payload.contact_info,
-          ),
-        );
-      }
-      await Promise.all(updateTasks);
+      updatedUser = await this.userModel
+        .findByIdAndUpdate(userId, { $set: updates }, { new: true, lean: true })
+        .select('-password');
     } catch (err) {
-      await session.abortTransaction();
+      this.logger.error(`Failed to update user ${userId}`, err as Error);
       throw new InternalServerErrorException('failed to update user');
-    } finally {
-      session.endSession();
     }
 
-    // get new user info
-    const updatedUser = await this.userModel
-      .findById(userId)
-      .populate('basicInfo')
-      .populate('professionalInfo')
-      .populate('contactInfo')
-      .lean();
-    if (updatedUser) delete updatedUser.password;
-    return {
-      message: 'User updated successfully',
-      data: updatedUser,
-    };
+    return { message: 'User updated successfully', data: updatedUser };
+  }
+
+  // flatten a nested sub-object into dot-notation paths for a partial $set,
+  // so unspecified sub-fields are preserved.
+  private flatten(
+    prefix: string,
+    source: object | undefined,
+    target: Record<string, unknown>,
+  ) {
+    if (!source) return;
+    for (const [key, value] of Object.entries(source)) {
+      if (value !== undefined) target[`${prefix}.${key}`] = value;
+    }
   }
 
   async addPhoto(userId: string, payload: UserAddPhotoDto): Promise<User> {
@@ -237,9 +196,6 @@ export class UsersService {
     const user = await this.userModel
       .findOne({ _id: new Types.ObjectId(req.user._id.toString()) })
       .select('-password')
-      .populate('basicInfo')
-      .populate('professionalInfo')
-      .populate('contactInfo')
       .lean()
       .exec();
 
@@ -423,19 +379,13 @@ export class UsersService {
     } catch {
       return 'Error updating user';
     }
-    let user_details: Document<unknown, {}, BasicInfo> &
-      BasicInfo & { _id: Types.ObjectId };
-    if (user.basicInfo) {
-      user_details = await this.basicInfoModel.findById(user.basicInfo).exec();
-    }
-
     await sendMail({
       to: user.email,
       from: EmailFromType.HELLO,
       subject: 'Application Received',
       template: getMailTemplate().leadApplicationReceived,
       templateVariables: {
-        firstName: user_details.firstName || '',
+        firstName: user.basicInfo?.firstName || '',
         position: leadPosition,
       },
     });
@@ -453,13 +403,9 @@ export class UsersService {
     if (!userApplication) {
       throw new NotFoundException(`Application for ${email} not found`);
     }
-    let user_details;
-    try {
-      user_details = await this.basicInfoModel.findById(
-        userApplication.basicInfo,
-      );
-    } catch (err) {
-      throw new BadRequestException(err, 'The user is not fully registered');
+    const user_details = userApplication.basicInfo;
+    if (!user_details) {
+      throw new BadRequestException('The user is not fully registered');
     }
 
     userApplication.role = [UserRole.LEAD];
@@ -504,60 +450,45 @@ export class UsersService {
     if (!email || email === '') {
       throw new BadRequestException('lead email not provided');
     }
+    const sanitizedEmail = email.trim().toLowerCase();
+    this.logger.log(`Inviting lead ${sanitizedEmail}`);
 
-    const existing = await this.checkUserExists(email);
+    const existing = await this.checkUserExists(sanitizedEmail);
     if (existing) {
       throw new BadRequestException('user already exists');
     }
-    // create a user (limited information)
+    // create a user (limited information) with empty embedded profile
     const dummyPassword = await BcryptUtil.generateHash('inventors1234');
-    const userHandle = await (this.userModel as any).generateUserHandle(email);
-    let token;
+    const userHandle = await (this.userModel as any).generateUserHandle(
+      sanitizedEmail,
+    );
+    let token: TokenDocument;
 
     try {
-      // create basic Info
-      const basicInfo = await this.basicInfoModel.create({
-        firstName: '',
-        lastName: '',
-      });
-
-      // create professional info
-      const professionalInfo = await this.professionalInfoModel.create({
-        jobTitle: '',
-        company: '',
-        yearsOfExperience: 0,
-      });
-
-      // create contact info
-      const contactInfo = await this.contactInfoModel.create({
-        other: [],
-      });
-
-      const newUser = this.userModel.create({
-        email: email.toLowerCase(),
+      await this.userModel.create({
+        email: sanitizedEmail,
         password: dummyPassword,
-        basicInfo: basicInfo._id,
-        professionalInfo: professionalInfo._id,
-        contactInfo: contactInfo._id,
-        roles: [UserRole.LEAD],
+        basicInfo: { firstName: '', lastName: '' },
+        professionalInfo: { jobTitle: '', company: '', yearsOfExperience: 0 },
+        contactInfo: { other: [] },
+        role: [UserRole.LEAD],
         joinMethod: RegistrationMethod.INVITATION,
         status: UserStatus.PENDING,
         userHandle,
       });
-      console.log('new user: ', newUser);
 
-      // generate token
-      token = await this.generateRandomToken(email);
+      token = await this.generateRandomToken(sanitizedEmail);
     } catch (err) {
+      this.logger.error(`Failed to register lead ${sanitizedEmail}`, err as Error);
       throw new UnprocessableEntityException('failed to register user');
     }
 
     // add the token as a link
-    const invite_link = `${this.configService.get<string>('BASE_URL')}/users/invite/complete-invite?token=${token}`; //
+    const invite_link = `${this.configService.get<string>('BASE_URL')}/users/invite/complete-invite?token=${token.token}`;
 
     // send mail to user
     await sendMail({
-      to: email,
+      to: sanitizedEmail,
       from: EmailFromType.HELLO,
       subject: 'INVENTORS COMMUNITY: Lead Invitation',
       template: getMailTemplate().generalLeadRegistration,
@@ -566,6 +497,7 @@ export class UsersService {
       },
     });
 
+    this.logger.log(`Invite sent to ${sanitizedEmail}`);
     return 'invite sent to user';
   }
 
@@ -595,43 +527,41 @@ export class UsersService {
     // Round 2: user lookup depends on tokenDoc.email
     const user = await this.userModel
       .findOne({ email: tokenDoc.email.toLowerCase() })
-      .select('basicInfo professionalInfo contactInfo status');
+      .select('status');
 
     if (!user || user.status !== UserStatus.PENDING) {
       throw new BadRequestException('No pending user found');
     }
 
-    // Round 3: all writes are independent
+    // Round 3: single atomic doc write (embedded profile) + token burn
     await Promise.all([
-      this.basicInfoModel.findByIdAndUpdate(user.basicInfo, {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        gender: data.gender,
-        age: data.age,
-      }),
-      this.professionalInfoModel.findByIdAndUpdate(user.professionalInfo, {
-        jobTitle: data.jobTitle,
-        company: data.company,
-        yearsOfExperience: data.yearsOfExperience,
-        technologies: data.technologies,
-      }),
-      this.contactInfoModel.findByIdAndUpdate(user.contactInfo, {
-        linkedInUrl: data.linkedinUrl,
-        github: data.githubUrl,
-        phone: data.phone,
-      }),
       this.userModel.findByIdAndUpdate(user._id, {
-        password: hashedPassword,
-        role: [UserRole.LEAD],
-        status: UserStatus.ACTIVE,
-        emailVerification: true,
-        joinMethod: RegistrationMethod.INVITATION,
-        deviceId: data.deviceId,
-        deviceToken: data.deviceToken,
+        $set: {
+          password: hashedPassword,
+          role: [UserRole.LEAD],
+          status: UserStatus.ACTIVE,
+          emailVerification: true,
+          joinMethod: RegistrationMethod.INVITATION,
+          deviceId: data.deviceId,
+          deviceToken: data.deviceToken,
+          photo: data.photo,
+          'basicInfo.firstName': data.firstName,
+          'basicInfo.lastName': data.lastName,
+          'basicInfo.gender': data.gender,
+          'basicInfo.age': data.age,
+          'professionalInfo.jobTitle': data.jobTitle,
+          'professionalInfo.company': data.company,
+          'professionalInfo.yearsOfExperience': data.yearsOfExperience,
+          'professionalInfo.technologies': data.technologies,
+          'contactInfo.linkedInUrl': data.linkedinUrl,
+          'contactInfo.github': data.githubUrl,
+          'contactInfo.phone': data.phone,
+        },
       }),
       this.inviteTokenModel.findByIdAndUpdate(tokenDoc._id, { used: true }),
     ]);
 
+    this.logger.log(`Profile completed for ${tokenDoc.email}`);
     return 'profile completed successfully';
   }
 
@@ -655,11 +585,7 @@ export class UsersService {
 
   // reference routing a new user
   async createUser(req: ApiReq, userData: CreateUserDto) {
-    return (this.userModel as any).signUp(req, userData, false, {
-      BasicInfoModel: this.basicInfoModel,
-      ProfessionalInfoModel: this.professionalInfoModel,
-      ContactInfoModel: this.contactInfoModel,
-    });
+    return (this.userModel as any).signUp(req, userData, false);
   }
 
   async requestVerification(req: ApiReq, userId: string) {
@@ -698,8 +624,7 @@ export class UsersService {
       subject: 'Your Verification Request Has Been Received',
       template: getMailTemplate().userVerificationAcknowledgement,
       templateVariables: {
-        firstName: (await this.basicInfoModel.findById(user.basicInfo))
-          .firstName,
+        firstName: user.basicInfo?.firstName || '',
         nextTryDate: format(user.nextVerificationRequestDate, 'PPPP'),
       },
     });

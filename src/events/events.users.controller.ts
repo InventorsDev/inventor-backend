@@ -26,15 +26,13 @@ export class EventUserController {
   @ApiBearerAuth()
   @UseGuards(JwtEventUserGuard)
   @Post()
-  async createEvent(@Body() payload: EventDto) {
-    return this.eventService.createEvent(payload);
+  async createEvent(@Body() payload: EventDto, @Request() req: ApiReq) {
+    return this.eventService.createEvent(payload, req.user._id.toString());
   }
 
-  @ApiBearerAuth()
+  // public: returns approved events only
   @Get()
   async getAllEvents(@Req() req: ApiReq) {
-    //Todo:
-    // Determine how the wouild be queried
     return this.eventService.findAll(req);
   }
 
@@ -51,15 +49,16 @@ export class EventUserController {
   async updateEvent(
     @Param('id') id: string,
     @Body() updateEventDto: UpdateEventDto,
+    @Request() req: ApiReq,
   ) {
-    return this.eventService.updateEvent(id, updateEventDto);
+    return this.eventService.updateEvent(id, updateEventDto, req);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtEventUserGuard)
   @Delete(':id')
   @ApiParam({ name: 'id', type: 'string' })
-  async deleteEvent(@Param('id') id: string) {
-    return this.eventService.softDeleteEvent(id);
+  async deleteEvent(@Param('id') id: string, @Request() req: ApiReq) {
+    return this.eventService.softDeleteEvent(id, req);
   }
 }
