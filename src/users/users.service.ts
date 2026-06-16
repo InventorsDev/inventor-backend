@@ -443,7 +443,9 @@ export class UsersService {
       throw new BadRequestException('user already exists');
     }
     // create a user (limited information) with empty embedded profile
-    const dummyPassword = await BcryptUtil.generateHash(randomBytes(32).toString('hex'));
+    const dummyPassword = await BcryptUtil.generateHash(
+      randomBytes(32).toString('hex'),
+    );
     const userHandle = await (this.userModel as any).generateUserHandle(
       sanitizedEmail,
     );
@@ -491,21 +493,24 @@ export class UsersService {
 
   // reject a lead application
   async rejectTempApplication(email: string, message: string): Promise<string> {
-    const userApplication = this.viewOneApplication(email);
-    (await userApplication).leadPosition = '';
-    (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
-    (await userApplication).save();
+    const userApplication = await this.viewOneApplication(email);
 
-    sendMail({
+    userApplication.leadPosition = '';
+    userApplication.applicationStatus = ApplicationStatus.REJECTED;
+
+    await userApplication.save();
+
+    await sendMail({
       to: email,
       from: EmailFromType.HELLO,
       subject: 'Lead Application Status',
       template: getMailTemplate().leadApplicationStauts,
       templateVariables: {
-        email: email,
-        message: `Thank you for your intrest in becoming a lead in inventors community. Unfortunately, your application has been declined \n${message}`,
+        email,
+        message: `Thank you for your interest in becoming a lead in the Inventors community. Unfortunately, your application has been declined.\n${message}`,
       },
     });
+
     return `${email} application has been rejected`;
   }
 
