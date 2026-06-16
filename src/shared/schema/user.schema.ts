@@ -284,7 +284,7 @@ UserSchema.statics.signUp = async function signUp(
     sso
       ? []
       : (this as any).sendEmailVerificationToken(req, record._id.toString()),
-    this.findById(record._id.toString()).lean(), // using lean for plain js object
+    this.findById(record._id.toString()).select('-password').lean(), // using lean for plain js object
   ] as any);
 
   sendMail({
