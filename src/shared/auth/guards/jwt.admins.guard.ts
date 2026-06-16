@@ -1,11 +1,10 @@
 import {
-  Injectable,
-  ExecutionContext,
   CanActivate,
+  ExecutionContext,
+  Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { validateAccessTokenAfterRefreshOrRevoke } from '../../utils';
 import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '../../interfaces';
 
@@ -26,7 +25,10 @@ export class JwtAdminsGuard
     }
     try {
       const payload = await global.jwtService.verify(token);
-      if (payload?.role != UserRole.ADMIN) throw new Error();
+      const roles = Array.isArray(payload?.role)
+        ? payload.role
+        : [payload?.role];
+      if (!roles.includes(UserRole.ADMIN)) throw new Error();
       request['user'] = payload;
     } catch (error) {
       throw new UnauthorizedException();

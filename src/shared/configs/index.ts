@@ -20,54 +20,16 @@ export const configs = () => ({
     },
     url: process.env.REDIS_URL,
   },
-  mailgun: {
-    apiKey: process.env.MAIL_GUN_API_KEY,
-    domain: process.env.MAIL_GUN_DOMAIN,
-    defaultEmailReceiver: 'dev@inventors.com',
-    defaultEmailTo: {
-      support: 'support@.com',
+  brevo: {
+    apiKey: process.env.BREVO_API_KEY,
+    senderName: process.env.BREVO_SENDER_NAME || 'Inventors',
+    // map EmailFromType -> verified Brevo sender address
+    defaultEmailFrom: {
+      hello: process.env.BREVO_SENDER_EMAIL || 'hello@inventors.com',
+      support: 'support@inventors.com',
       engineering: 'engineering@inventors.com',
       marketing: 'marketing@inventors.com',
-    },
-    defaultEmailFrom: {
-      hello: 'Joshua from inventors <hello@inventors.com>',
-      support: 'Joshua from inventors <support@inventors.com>',
-      engineering: 'Joshua from inventors <engineering@inventors.com>',
-      marketing: 'Joshua from inventors <marketing@inventors.com>',
-      finance: 'Joshua from inventors <finance@inventors.com>',
-    },
-    templates: {
-      generalSignUp: 'inventors-welcome',
-      generalAccountDeletion: 'inventors-account-deletion',
-      generalPasswordChange: 'inventors-password-change',
-      generalLogin: 'inventors-signin-notification',
-      generalEmailVerification: 'inventors-email-verification',
-      userBirthdayNotification: 'inventors-birthday-notification',
-      generalLeadRegistration: 'inventors-lead-invite',
-      userVerificationAcknowledgement: 'user-verification-acknowledgement',
-    },
-  },
-
-  node_mailer: {
-    host: process.env.SMTP_HOST, //email provider ie gmail
-    port: parseInt(process.env.SMTP_PORT, 10),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    defaultEmailReciver: 'dev@inventors.com',
-    defaultEmailTO: {
-      support: 'support@.com',
-      engineering: 'engineering@inventors.com',
-      marketing: 'marketing@inventors.com',
-    },
-    defaultEmailFrom: {
-      hello: 'hello@inventors.com',
-      support: 'Joshua from inventors <support@inventors.com>',
-      engineering: 'Joshua from inventors <engineering@inventors.com>',
-      marketing: 'Joshua from inventors <marketing@inventors.com>',
-      financeeee: 'Joshua from inventors <finance@inventors.com>',
+      finance: 'finance@inventors.com',
     },
     templates: {
       generalSignUp: 'inventors-welcome',

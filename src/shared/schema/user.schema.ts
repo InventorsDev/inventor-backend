@@ -1,9 +1,15 @@
 import { faker } from '@faker-js/faker';
 import { BadRequestException } from '@nestjs/common';
 import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { ApiReq, EmailFromType } from '../interfaces';
+import { BasicInfo, BasicInfoSchema } from './basic.info.schema';
+import { ContactInfo, ContactInfoSchema } from './contact.info.schema';
+import {
+  ProfessionalInfo,
+  ProfessionalInfoSchema,
+} from './professional.info.schema';
 import {
   ApplicationStatus,
   RegistrationMethod,
@@ -54,15 +60,18 @@ export class User {
     coordinates: number[];
   };
 
-  // put this into a diff collection and grab data from that
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'BasicInfo' })
-  basicInfo: mongoose.Types.ObjectId;
+  // Embedded profile sub-documents (single-collection read/write)
+  @Prop({ type: BasicInfoSchema, default: () => ({}) })
+  basicInfo: BasicInfo;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ProfessionalInfo' })
-  professionalInfo: mongoose.Types.ObjectId;
+  @Prop({ type: ProfessionalInfoSchema, default: () => ({}) })
+  professionalInfo: ProfessionalInfo;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ContactInfo' })
-  contactInfo: mongoose.Types.ObjectId;
+  @Prop({ type: ContactInfoSchema, default: () => ({}) })
+  contactInfo: ContactInfo;
+
+  @Prop({ required: false })
+  photo: string;
 
   @Prop({ index: true })
   deviceId: string;
@@ -108,12 +117,7 @@ export const UserSchema = SchemaFactory.createForClass(User);
 
 UserSchema.statics.sendEmailVerificationToken =
   async function sendEmailVerificationToken(req: ApiReq, userId: string) {
-    const user = await this.findById(userId)
-      .select('email basicInfo')
-      .populate({
-        path: 'basicInfo',
-        select: 'firstName',
-      });
+    const user = await this.findById(userId).select('email basicInfo');
     if (!user) throw new BadRequestException('User not found');
     const firstName = user.basicInfo?.firstName || '[name]';
     const emailVerificationKey = `inventors:users:email:verification:${userId}`;
@@ -168,12 +172,9 @@ UserSchema.statics.forgetPassword = async function forgetPassword(
 ) {
   const sanitizedEmail = decodeURIComponent(email.trim()).toLowerCase();
 
-  const user = await this.findOne({ email: sanitizedEmail })
-    .select('_id email password basicInfo')
-    .populate({
-      path: 'basicInfo',
-      select: 'firstName',
-    });
+  const user = await this.findOne({ email: sanitizedEmail }).select(
+    '_id email password basicInfo',
+  );
 
   if (!user) throw new BadRequestException('Email Not Registered to Any User');
 
@@ -235,17 +236,7 @@ UserSchema.statics.signUp = async function signUp(
   req: ApiReq,
   createUserDto: CreateUserDto,
   sso: boolean = false,
-  injectedModels: {
-    BasicInfoModel: typeof mongoose.Model<any>;
-    ProfessionalInfoModel: typeof mongoose.Model<any>;
-    ContactInfoModel: typeof mongoose.Model<any>;
-  },
 ) {
-  if (!injectedModels) throw new BadRequestException('Models not provided');
-
-  const { BasicInfoModel, ProfessionalInfoModel, ContactInfoModel } =
-    injectedModels;
-
   const email = createUserDto.email.trim().toLowerCase();
   const existingUser = await this.findOne({ email }, { _id: 1 });
   if (existingUser) throw new BadRequestException('User already exists.');
@@ -265,30 +256,25 @@ UserSchema.statics.signUp = async function signUp(
     delete rest.password;
   }
 
-  // createnig subdocs
-  const basic_info = await BasicInfoModel.create({
-    firstName: firstCapitalize(createUserDto.firstName.trim()),
-    lastName: firstCapitalize(createUserDto.lastName.trim()),
-  });
-  const professional_info = await ProfessionalInfoModel.create({});
-  const contact_info = await ContactInfoModel.create({});
+  const firstName = firstCapitalize(createUserDto.firstName.trim());
+  const lastName = firstCapitalize(createUserDto.lastName.trim());
 
-  // create user
+  // create user with embedded profile sub-documents
   const data: any = {
     email,
     password,
     role: [UserRole.USER],
     location: createUserDto.location,
     joinMethod: createUserDto.joinMethod || RegistrationMethod.SIGN_UP,
-    basicInfo: basic_info._id,
-    professionalInfo: professional_info._id,
-    contactInfo: contact_info._id,
+    basicInfo: { firstName, lastName },
+    professionalInfo: {},
+    contactInfo: {},
   };
 
   if (req.query.invitation === RegistrationMethod.INVITATION) {
     data.pendingInvitation = true;
   }
-  data.userHandle = await (this as any).generateUserHandle(email);
+  data.userHandle = await(this as any).generateUserHandle(email);
 
   // create the new data on the db
   const record = await this.create(data);
@@ -298,9 +284,7 @@ UserSchema.statics.signUp = async function signUp(
     sso
       ? []
       : (this as any).sendEmailVerificationToken(req, record._id.toString()),
-    this.findById(record._id.toString())
-      .populate('basicInfo professionalInfo contactInfo')
-      .lean(), // using lean for plain js object
+    this.findById(record._id.toString()).lean(), // using lean for plain js object
   ] as any);
 
   sendMail({
@@ -309,9 +293,9 @@ UserSchema.statics.signUp = async function signUp(
     subject: 'Welcome to Our Developer Community at Inventors!',
     template: getMailTemplate().generalSignUp,
     templateVariables: {
-      firstName: basic_info.firstName,
-      lastName: basic_info.lastName,
-      phoneNumber: basic_info.phone || undefined,
+      firstName,
+      lastName,
+      phoneNumber: undefined,
       email: data.email,
     },
   });

@@ -1,11 +1,8 @@
-// Created to store user basic info
+// Embedded sub-document holding user basic info
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
 
-export type BasicInfoDoc = Document & BasicInfo;
-
-@Schema()
-export class BasicInfo extends Document {
+@Schema({ _id: false })
+export class BasicInfo {
   @Prop() firstName: string;
   @Prop() lastName: string;
   @Prop() profileSummary: string;

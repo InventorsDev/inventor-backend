@@ -1,10 +1,8 @@
+// Embedded sub-document holding user professional info
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
 
-export type ProfessionalInfoDocs = Document & ProfessionalInfo;
-
-@Schema()
-export class ProfessionalInfo extends Document {
+@Schema({ _id: false })
+export class ProfessionalInfo {
   @Prop() jobTitle: string;
   @Prop() company: string;
   @Prop() yearsOfExperience: number;

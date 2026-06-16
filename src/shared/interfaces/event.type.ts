@@ -13,7 +13,6 @@ export enum Status {
   APPROVED = 'APPROVED',
   PENDING = 'PENDING',
   DELETED = 'DELETED',
-  ACTIVE = "ACTIVE"
 }
 
 export type SocialsLinks = {
@@ -25,8 +24,5 @@ export type SocialsLinks = {
 export const SocialsLinksRawSchema = {
   linkedIn: { type: String },
   twitter: { type: String },
-  facebook: { type: String }
+  facebook: { type: String },
 };
-
-
-export const userRoles = Object.values(Location);
