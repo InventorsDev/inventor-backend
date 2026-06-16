@@ -66,7 +66,9 @@ export async function sendMail(options: {
     logger.log(`Email "${options.subject}" sent to ${options.to}`);
     return true;
   } catch (error) {
-    logger.error(`Error sending email to ${options.to}: ${error.message}`);
+    const err = error as any;
+    const message = err?.message ?? String(err);
+    logger.error(`Error sending email to ${options.to}: ${message}`, err?.stack);
     global.dataLogService?.log(
       'BrevoSendMail',
       {
@@ -76,8 +78,8 @@ export async function sendMail(options: {
         subject: options.subject,
         template: options.template,
         templateVariables: options.templateVariables,
-        stack: error.status,
-        message: error.message,
+        stack: err?.status ?? err?.stack,
+        message,
       },
       LogLevel.ERROR,
     );
