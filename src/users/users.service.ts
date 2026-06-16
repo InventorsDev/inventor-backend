@@ -430,7 +430,7 @@ export class UsersService {
       throw new BadRequestException('user already exists');
     }
     // create a user (limited information) with empty embedded profile
-    const dummyPassword = await BcryptUtil.generateHash('inventors1234');
+    const dummyPassword = await BcryptUtil.generateHash(randomBytes(32).toString('hex'));
     const userHandle = await (this.userModel as any).generateUserHandle(
       sanitizedEmail,
     );
