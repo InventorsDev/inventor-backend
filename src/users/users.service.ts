@@ -126,27 +126,40 @@ export class UsersService {
 
   async update(userId: string, payload: UpdateUserDto) {
     this.logger.log(`Updating user ${userId}`);
-    const user = await this.userModel.findById(userId).select('_id');
-    if (!user) throw new NotFoundException('User not Found');
 
-    // All fields live on a single document -> one atomic $set with dot-notation.
+    const user = await this.userModel.findById(userId).select('_id');
+    if (!user) {
+      throw new NotFoundException('User not Found');
+    }
+
     const updates: Record<string, unknown> = {};
-    if (payload.email) updates.email = payload.email;
+
+    if (payload.email !== undefined) updates.email = payload.email;
     this.flatten('basicInfo', payload.basic_info, updates);
     this.flatten('professionalInfo', payload.professional_info, updates);
     this.flatten('contactInfo', payload.contact_info, updates);
 
-    let updatedUser: User;
-    try {
-      updatedUser = await this.userModel
-        .findByIdAndUpdate(userId, { $set: updates }, { new: true, lean: true })
-        .select('-password');
-    } catch (err) {
-      this.logger.error(`Failed to update user ${userId}`, err as Error);
-      throw new InternalServerErrorException('failed to update user');
+    if (Object.keys(updates).length === 0) {
+      throw new BadRequestException('No valid fields provided for update');
     }
 
-    return { message: 'User updated successfully', data: updatedUser };
+    try {
+      const updatedUser = await this.userModel
+        .findByIdAndUpdate(userId, { $set: updates }, { new: true, lean: true })
+        .select('-password');
+
+      return {
+        message: 'User updated successfully',
+        data: updatedUser,
+      };
+    } catch (err) {
+      this.logger.error(
+        `Failed to update user ${userId}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+
+      throw new InternalServerErrorException('failed to update user');
+    }
   }
 
   // flatten a nested sub-object into dot-notation paths for a partial $set,
