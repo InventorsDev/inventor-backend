@@ -4,9 +4,9 @@
  * Idempotent: re-running upserts the same email — promotes it to ADMIN,
  * activates it, verifies the email, and resets the password.
  *
- * IMPORTANT: the admin guard does `payload.role != UserRole.ADMIN`, which
- * coerces the role array to a string. That only matches when role is exactly
- * ['ADMIN'] (a single element) — so we set it as such, not a multi-role array.
+ * NOTE: JwtAdminsGuard normalizes `payload.role` into an array and checks
+ * `roles.includes(UserRole.ADMIN)`, so role may be 'ADMIN' or ['ADMIN', ...].
+ * This script still sets role to ['ADMIN'] for clarity.
  *
  * Run:
  *   npx ts-node scripts/seed-admin.ts
