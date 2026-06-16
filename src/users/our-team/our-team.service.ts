@@ -47,11 +47,16 @@ export class OurTeamService {
     private readonly usersService: UsersService,
   ) {}
 
-  // GET /our-team -> active team leads mapped to the public profile shape
+  // GET /our-team -> team leads mapped to the public profile shape.
+  // Includes invited leads still pending registration so the team is always
+  // displayed; only disabled/deactivated leads are hidden.
   async getTeam(): Promise<TeamMemberDto[]> {
     this.logger.log('Fetching team leads');
     const leads = await this.userModel
-      .find({ role: UserRole.LEAD, status: UserStatus.ACTIVE })
+      .find({
+        role: UserRole.LEAD,
+        status: { $in: [UserStatus.ACTIVE, UserStatus.PENDING] },
+      })
       .select('-password')
       .lean()
       .exec();
