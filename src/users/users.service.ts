@@ -422,7 +422,10 @@ export class UsersService {
     const sanitizedEmail = email.trim().toLowerCase();
     this.logger.log(`Inviting lead ${sanitizedEmail}`);
 
-    const existing = await this.checkUserExists(sanitizedEmail);
+    const existing = await this.userModel
+      .findOne({ email: sanitizedEmail }, { _id: 1 })
+      .lean()
+      .exec();
     if (existing) {
       throw new BadRequestException('user already exists');
     }
