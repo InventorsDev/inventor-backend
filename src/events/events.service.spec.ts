@@ -1,18 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventService } from './events.users.service';
-import { getModelToken } from '@nestjs/mongoose';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { EventDto } from './dto/event.dto';
 import { UpdateEventDto } from './dto/updateEvent.dto';
 import { JoinMethod, Location, Status } from 'src/shared/interfaces/event.type';
+import { ApiReq, UserRole } from 'src/shared/interfaces';
 import { TestModule } from 'src/shared/testkits';
+
+// chainable mongoose query mock: every chain method returns `this`,
+// and the query is both awaitable and `.exec()`-able.
+const makeQuery = (result: any) => {
+  const q: any = {
+    select: jest.fn(() => q),
+    lean: jest.fn(() => q),
+    sort: jest.fn(() => q),
+    skip: jest.fn(() => q),
+    limit: jest.fn(() => q),
+    exec: jest.fn(() => Promise.resolve(result)),
+    then: (resolve: any) => Promise.resolve(result).then(resolve),
+  };
+  return q;
+};
 
 describe('EventService', () => {
   let service: EventService;
 
+  const ownerId = new Types.ObjectId();
   const mockEvent = {
-    _id: new Types.ObjectId(), 
+    _id: new Types.ObjectId(),
     title: 'Sample Event',
     shortDesc: 'A short description',
     description: 'A detailed description of the event',
@@ -27,37 +43,30 @@ describe('EventService', () => {
       twitter: 'https://twitter.com/sample',
       facebook: 'https://facebook.com/sample',
     },
-    eventDate: new Date()
+    eventDate: new Date().toISOString(),
+    createdBy: ownerId,
   };
 
-  let eventModelMock = {
-    create: jest.fn().mockResolvedValue(mockEvent),
-    findById: jest.fn().mockImplementationOnce(() => ({
-      lean: jest.fn().mockReturnThis(),
-      exec: jest.fn().mockResolvedValue(mockEvent),
-    })),
-    findByIdAndUpdate: jest.fn().mockImplementationOnce(() => ({
-      lean: jest.fn().mockReturnThis(),
-      exec: jest.fn().mockResolvedValue(mockEvent),
-    })),
-    countDocuments: jest.fn(),
-    find: jest.fn().mockImplementationOnce(() => ({
-      lean: jest.fn().mockReturnThis(),
-      exec: jest.fn().mockResolvedValue(mockEvent),
-    })),
-  };
+  // admin requester -> passes ownership checks via isAdmin bypass
+  const adminReq = {
+    user: { _id: new Types.ObjectId().toString(), role: [UserRole.ADMIN] },
+  } as unknown as ApiReq;
 
+  let eventModelMock: any;
 
   beforeEach(async () => {
+    eventModelMock = {
+      create: jest.fn().mockResolvedValue(mockEvent),
+      findOne: jest.fn(() => makeQuery(mockEvent)),
+      findById: jest.fn(() => makeQuery(mockEvent)),
+      findByIdAndUpdate: jest.fn(() => makeQuery(mockEvent)),
+      find: jest.fn(() => makeQuery([mockEvent])),
+      countDocuments: jest.fn().mockResolvedValue(1),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [TestModule],
-      providers: [
-        EventService,
-        {
-          provide: 'Event',
-          useValue: eventModelMock,
-        },
-      ],
+      providers: [EventService, { provide: 'Event', useValue: eventModelMock }],
     }).compile();
 
     service = module.get<EventService>(EventService);
@@ -68,86 +77,113 @@ describe('EventService', () => {
   });
 
   describe('createEvent', () => {
-    it('should create and return an event', async () => {
+    it('should create an event with creator and PENDING status', async () => {
       const eventDto: EventDto = {
         title: 'Sample Event',
         shortDesc: 'Short description',
         description: 'Event description',
         host: 'Host',
-        coHost: ['Co-host 1', 'Co-host 2'],
+        coHost: ['Co-host 1'],
         location: Location.ONLINE,
         photo: 'photo_url',
         joinMethod: JoinMethod.MEET,
         link: 'event_link',
-        socialsLinks: { linkedIn: 'linkedin_url', twitter: 'twitter_url', facebook: 'facebook_url' },
-        eventDate: new Date(),
+        socialsLinks: { linkedIn: 'l', twitter: 't', facebook: 'f' },
+        eventDate: new Date().toISOString(),
       };
 
-      const result = await service.createEvent(eventDto);
-      expect(eventModelMock.create).toHaveBeenCalledWith(eventDto);
+      const result = await service.createEvent(eventDto, ownerId.toString());
+      expect(eventModelMock.create).toHaveBeenCalledWith({
+        ...eventDto,
+        createdBy: ownerId.toString(),
+        status: Status.PENDING,
+      });
       expect(result).toEqual(mockEvent);
     });
   });
 
   describe('findById', () => {
-    it('should return an event by ID', async () => {
+    it('should return a non-deleted event by ID', async () => {
       const result = await service.findById(mockEvent._id.toString());
       expect(result).toEqual(mockEvent);
-      expect(eventModelMock.findById).toHaveBeenCalledWith(mockEvent._id.toString());
+      expect(eventModelMock.findOne).toHaveBeenCalledWith({
+        _id: mockEvent._id.toString(),
+        status: { $ne: Status.DELETED },
+      });
     });
 
     it('should throw NotFoundException if event is not found', async () => {
-      eventModelMock.findById.mockImplementationOnce(() => ({
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(null)}));
-      await expect(service.findById('12345')).rejects.toThrow(NotFoundException);
+      eventModelMock.findOne.mockReturnValueOnce(makeQuery(null));
+      await expect(service.findById('12345')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('updateEvent', () => {
     it('should update and return an event', async () => {
-      const updateEventDto: UpdateEventDto = { title: 'Updated Event' };
-      eventModelMock.findByIdAndUpdate.mockResolvedValue(mockEvent);
-      const result = await service.updateEvent(mockEvent._id.toString(), updateEventDto);
+      const dto: UpdateEventDto = { title: 'Updated Event' };
+      const result = await service.updateEvent(
+        mockEvent._id.toString(),
+        dto,
+        adminReq,
+      );
       expect(result).toEqual(mockEvent);
-      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(mockEvent._id.toString(), updateEventDto, { new: true, lean: true });
+      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+        mockEvent._id.toString(),
+        dto,
+        { new: true, lean: true },
+      );
     });
 
-    it('should throw NotFoundException if event to update is not found', async () => {
-      eventModelMock.findByIdAndUpdate.mockImplementationOnce(() => ({
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(null)}));
-      await expect(service.updateEvent('12345', {})).rejects.toThrow(NotFoundException);
+    it('should forbid a non-owner non-admin from updating', async () => {
+      const strangerReq = {
+        user: { _id: new Types.ObjectId().toString(), role: [UserRole.USER] },
+      } as unknown as ApiReq;
+      await expect(
+        service.updateEvent(mockEvent._id.toString(), {}, strangerReq),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('softDeleteEvent', () => {
     it('should soft delete an event', async () => {
-      eventModelMock.findByIdAndUpdate.mockResolvedValue(mockEvent);
-      const result = await service.softDeleteEvent(mockEvent._id.toString());
+      const result = await service.softDeleteEvent(
+        mockEvent._id.toString(),
+        adminReq,
+      );
       expect(result).toEqual(mockEvent);
-      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(mockEvent._id.toString(), { status: Status.DELETED }, { new: true });
+      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+        mockEvent._id.toString(),
+        { status: Status.DELETED },
+        { new: true, lean: true },
+      );
     });
 
     it('should throw NotFoundException if event to delete is not found', async () => {
-      let id = mockEvent._id.toString();
-      eventModelMock.findByIdAndUpdate.mockRejectedValueOnce(new NotFoundException(`Event with ID ${id} not found`));
-      await expect(service.softDeleteEvent(id)).rejects.toThrow(new NotFoundException(`Event with ID ${id} not found`));
+      eventModelMock.findById.mockReturnValueOnce(makeQuery(null));
+      await expect(service.softDeleteEvent('12345', adminReq)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('approveEvent', () => {
     it('should approve an event', async () => {
-      eventModelMock.findByIdAndUpdate.mockResolvedValue(mockEvent);
       const result = await service.approveEvent(mockEvent._id.toString());
       expect(result).toEqual(mockEvent);
-      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(mockEvent._id.toString(), { status: Status.APPROVED }, { new: true });
+      expect(eventModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+        mockEvent._id.toString(),
+        { status: Status.APPROVED },
+        { new: true, lean: true },
+      );
     });
 
     it('should throw NotFoundException if event to approve is not found', async () => {
-      let id = mockEvent._id.toString();
-      eventModelMock.findByIdAndUpdate.mockRejectedValueOnce(new NotFoundException(`Event with ID ${id} not found`));
-      await expect(service.approveEvent(id)).rejects.toThrow(new NotFoundException(`Event with ID ${id} not found`));
+      eventModelMock.findByIdAndUpdate.mockReturnValueOnce(makeQuery(null));
+      await expect(service.approveEvent('12345')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

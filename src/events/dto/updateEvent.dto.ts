@@ -1,5 +1,15 @@
-import { IsString, IsOptional, IsDate, IsEnum, IsArray } from 'class-validator';
-import { JoinMethod, SocialsLinks, Location} from '../../shared/interfaces/event.type';
+import {
+  IsArray,
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import {
+  JoinMethod,
+  Location,
+  SocialsLinks,
+} from '../../shared/interfaces/event.type';
 
 export class UpdateEventDto {
   @IsOptional()
@@ -25,7 +35,7 @@ export class UpdateEventDto {
 
   @IsOptional()
   @IsEnum(Location)
-  location?: string;
+  location?: Location;
 
   @IsOptional()
   @IsString()
@@ -43,6 +53,6 @@ export class UpdateEventDto {
   socialsLinks?: SocialsLinks;
 
   @IsOptional()
-  @IsDate()
-  eventDate?: Date;
+  @IsDateString()
+  eventDate?: string;
 }

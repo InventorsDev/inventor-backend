@@ -1,14 +1,13 @@
+// Embedded sub-document holding user contact info
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
 
-export type ContactInfoDocs = Document & ContactInfo;
-
-@Schema()
-export class ContactInfo extends Document {
+@Schema({ _id: false })
+export class ContactInfo {
   @Prop() phone: string;
   @Prop() linkedInUrl: string;
   @Prop() websiteUrl: string;
   @Prop() facebookUrl: string;
+  @Prop() twitterUrl: string;
   @Prop() github: string;
   @Prop() behnance: string;
   // other field incase frontend feels like adding more

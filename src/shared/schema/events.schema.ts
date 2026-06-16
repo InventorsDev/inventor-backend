@@ -1,40 +1,43 @@
-import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
-import { Location, JoinMethod, SocialsLinks, Status, SocialsLinksRawSchema } from '../interfaces/event.type';
-import { IsArray, IsString } from 'class-validator';
+import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
+import mongoose, { HydratedDocument } from 'mongoose';
+import {
+  JoinMethod,
+  Location,
+  SocialsLinks,
+  SocialsLinksRawSchema,
+  Status,
+} from '../interfaces/event.type';
 
 export type EventDocument = HydratedDocument<Event>;
 
 @Schema({ timestamps: true })
 export class Event {
   @Prop({ required: true, index: true })
-  title: string; 
+  title: string;
 
   @Prop({ required: true })
-  shortDesc: string; 
+  shortDesc: string;
 
   @Prop({ required: true })
   description: string;
 
   @Prop({ required: true })
-  host: string; 
+  host: string;
 
-  @Prop()
-  @IsArray()
-  @IsString({ each: true })
-  coHost: string[]; 
+  @Prop({ type: [String], default: [] })
+  coHost: string[];
 
   @Prop({ enum: Location, default: Location.ONLINE })
-  location: Location; 
+  location: Location;
 
   @Prop()
   photo: string;
 
   @Prop({ enum: JoinMethod })
-  joinMethod: JoinMethod; 
+  joinMethod: JoinMethod;
 
   @Prop()
-  link: string; 
+  link: string;
 
   @Prop(raw(SocialsLinksRawSchema))
   socialsLinks: SocialsLinks;
@@ -44,6 +47,10 @@ export class Event {
 
   @Prop({ enum: Status, default: Status.PENDING, index: true })
   status: Status;
+
+  // creator of the event (used for ownership checks on update/delete)
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true })
+  createdBy: mongoose.Types.ObjectId;
 }
 
 export const EventSchema = SchemaFactory.createForClass(Event);

@@ -4,13 +4,14 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
-import { Document, Model, Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import {
   ApiReq,
@@ -20,13 +21,7 @@ import {
   UserRole,
   UserStatus,
 } from 'src/shared/interfaces';
-import {
-  BasicInfo,
-  ContactInfo,
-  ProfessionalInfo,
-  User,
-  UserDocument,
-} from 'src/shared/schema';
+import { User, UserDocument } from 'src/shared/schema';
 import {
   InviteToken,
   TokenDocument,
@@ -48,19 +43,15 @@ import { UserInviteDto } from './dto/user-invite.dto';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @Inject(User.name)
     private readonly userModel: Model<UserDocument>,
     @Inject(InviteToken.name)
     private readonly inviteTokenModel: Model<TokenDocument>,
-    @Inject(BasicInfo.name)
-    private readonly basicInfoModel: Model<BasicInfo>,
-    @Inject(ProfessionalInfo.name)
-    private readonly professionalInfoModel: Model<ProfessionalInfo>,
-    @Inject(ContactInfo.name)
-    private readonly contactInfoModel: Model<ContactInfo>,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
@@ -101,18 +92,13 @@ export class UsersService {
 
   async findById(id: string, project: any = {}) {
     const user = await this.userModel
-      .findOne(new Types.ObjectId(id), project, { lean: true })
+      .findOne({ _id: new Types.ObjectId(id) }, project, { lean: true })
       .select('-password')
       .exec();
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-
-    return this.userModel
-      .findById(id)
-      .populate('basicInfo')
-      .populate('professionalInfo')
-      .populate('contactInfo');
+    return user;
   }
 
   async findByEmail(email: string, project: any = {}): Promise<User> {
@@ -139,68 +125,87 @@ export class UsersService {
   }
 
   async update(userId: string, payload: UpdateUserDto) {
-    const user = await this.userModel
-      .findById(userId)
-      .select('basicInfo professionalInfo contactInfo');
-    if (!user) throw new NotFoundException('User not Found');
+    this.logger.log(`Updating user ${userId}`);
 
-    const session = await this.userModel.startSession();
-    session.startTransaction();
-    try {
-      const updateTasks: Promise<any>[] = [];
-
-      // top level fields
-      if (payload.email) {
-        updateTasks.push(
-          this.userModel.findByIdAndUpdate(userId, { email: payload.email }),
-        );
-      }
-
-      // submodels
-      if (payload.basic_info) {
-        updateTasks.push(
-          this.basicInfoModel.findByIdAndUpdate(
-            user.basicInfo,
-            payload.basic_info,
-          ),
-        );
-      }
-      if (payload.professional_info) {
-        updateTasks.push(
-          this.professionalInfoModel.findByIdAndUpdate(
-            user.professionalInfo,
-            payload.professional_info,
-          ),
-        );
-      }
-      if (payload.contact_info) {
-        updateTasks.push(
-          this.contactInfoModel.findByIdAndUpdate(
-            user.contactInfo,
-            payload.contact_info,
-          ),
-        );
-      }
-      await Promise.all(updateTasks);
-    } catch (err) {
-      await session.abortTransaction();
-      throw new InternalServerErrorException('failed to update user');
-    } finally {
-      session.endSession();
+    const user = await this.userModel.findById(userId).select('_id');
+    if (!user) {
+      throw new NotFoundException('User not Found');
     }
 
-    // get new user info
-    const updatedUser = await this.userModel
-      .findById(userId)
-      .populate('basicInfo')
-      .populate('professionalInfo')
-      .populate('contactInfo')
-      .lean();
-    if (updatedUser) delete updatedUser.password;
-    return {
-      message: 'User updated successfully',
-      data: updatedUser,
-    };
+    const updates: Record<string, unknown> = {};
+
+    if (payload.email !== undefined) updates.email = payload.email;
+    this.flatten('basicInfo', payload.basic_info, updates);
+    this.flatten('professionalInfo', payload.professional_info, updates);
+    this.flatten('contactInfo', payload.contact_info, updates);
+
+    if (Object.keys(updates).length === 0) {
+      throw new BadRequestException('No valid fields provided for update');
+    }
+
+    try {
+      const updatedUser = await this.userModel
+        .findByIdAndUpdate(userId, { $set: updates }, { new: true, lean: true })
+        .select('-password');
+
+      return {
+        message: 'User updated successfully',
+        data: updatedUser,
+      };
+    } catch (err) {
+      this.logger.error(
+        `Failed to update user ${userId}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+
+      throw new InternalServerErrorException('failed to update user');
+    }
+  }
+
+  // flatten a nested sub-object into dot-notation paths for a partial $set,
+
+  // create lead application for existing user
+  async createTempRegistration(
+    email: string,
+    leadPosition: string,
+  ): Promise<string> {
+    const user = await this.findByEmail(email);
+    // check the next application time
+    const today = new Date();
+    if (user.nextApplicationTime > today) {
+      throw new BadRequestException(
+        `Cannot apply until ${format(user.nextApplicationTime, 'eeee, MMMM do, h:mm a')}`,
+      );
+    }
+    // create next application date
+    const futureDate = new Date();
+    futureDate.setMonth(futureDate.getMonth() + 3);
+    // update the user data that has to do with application
+    try {
+      await this.userModel.findOneAndUpdate(
+        { email: email },
+        {
+          $set: {
+            applicationStatus: ApplicationStatus.PENDING,
+            nextApplicationTime: futureDate,
+            leadPosition: leadPosition,
+          },
+        },
+      );
+    } catch {
+      return 'Error updating user';
+    }
+    await sendMail({
+      to: user.email,
+      from: EmailFromType.HELLO,
+      subject: 'Application Received',
+      template: getMailTemplate().leadApplicationReceived,
+      templateVariables: {
+        firstName: user.basicInfo?.firstName || '',
+        position: leadPosition,
+      },
+    });
+    return 'Application sent';
   }
 
   async addPhoto(userId: string, payload: UserAddPhotoDto): Promise<User> {
@@ -237,9 +242,6 @@ export class UsersService {
     const user = await this.userModel
       .findOne({ _id: new Types.ObjectId(req.user._id.toString()) })
       .select('-password')
-      .populate('basicInfo')
-      .populate('professionalInfo')
-      .populate('contactInfo')
       .lean()
       .exec();
 
@@ -392,56 +394,6 @@ export class UsersService {
     return leadApplications;
   }
 
-  // create lead application for existing user
-  async createTempRegistration(
-    email: string,
-    leadPosition: string,
-  ): Promise<string> {
-    const user = await this.findByEmail(email);
-    // check the next application time
-    const today = new Date();
-    if (user.nextApplicationTime > today) {
-      throw new BadRequestException(
-        `Cannot apply until ${format(user.nextApplicationTime, 'eeee, MMMM do, h:mm a')}`,
-      );
-    }
-    // create next application date
-    const futureDate = new Date();
-    futureDate.setMonth(futureDate.getMonth() + 3);
-    // update the user data that has to do with application
-    try {
-      await this.userModel.findOneAndUpdate(
-        { email: email },
-        {
-          $set: {
-            applicationStatus: ApplicationStatus.PENDING,
-            nextApplicationTime: futureDate,
-            leadPosition: leadPosition,
-          },
-        },
-      );
-    } catch {
-      return 'Error updating user';
-    }
-    let user_details: Document<unknown, {}, BasicInfo> &
-      BasicInfo & { _id: Types.ObjectId };
-    if (user.basicInfo) {
-      user_details = await this.basicInfoModel.findById(user.basicInfo).exec();
-    }
-
-    await sendMail({
-      to: user.email,
-      from: EmailFromType.HELLO,
-      subject: 'Application Received',
-      template: getMailTemplate().leadApplicationReceived,
-      templateVariables: {
-        firstName: user_details.firstName || '',
-        position: leadPosition,
-      },
-    });
-    return 'Application sent';
-  }
-
   // approve a lead application
   async approveTempApplication(email: string): Promise<string> {
     const userApplication = await this.userModel
@@ -453,13 +405,9 @@ export class UsersService {
     if (!userApplication) {
       throw new NotFoundException(`Application for ${email} not found`);
     }
-    let user_details;
-    try {
-      user_details = await this.basicInfoModel.findById(
-        userApplication.basicInfo,
-      );
-    } catch (err) {
-      throw new BadRequestException(err, 'The user is not fully registered');
+    const user_details = userApplication.basicInfo;
+    if (!user_details) {
+      throw new BadRequestException('The user is not fully registered');
     }
 
     userApplication.role = [UserRole.LEAD];
@@ -479,85 +427,58 @@ export class UsersService {
     return `${user_details.firstName} has been verified as a lead for ${userApplication.leadPosition}`;
   }
 
-  // reject a lead application
-  async rejectTempApplication(email: string, message: string): Promise<string> {
-    const userApplication = this.viewOneApplication(email);
-    (await userApplication).leadPosition = '';
-    (await userApplication).applicationStatus = ApplicationStatus.REJECTED;
-    (await userApplication).save();
-
-    sendMail({
-      to: email,
-      from: EmailFromType.HELLO,
-      subject: 'Lead Application Status',
-      template: getMailTemplate().leadApplicationStauts,
-      templateVariables: {
-        email: email,
-        message: `Thank you for your intrest in becoming a lead in inventors community. Unfortunately, your application has been declined \n${message}`,
-      },
-    });
-    return `${email} application has been rejected`;
-  }
-
   // invite a new user (lead)
   async inviteLead(email: string): Promise<string> {
     if (!email || email === '') {
       throw new BadRequestException('lead email not provided');
     }
+    const sanitizedEmail = email.trim().toLowerCase();
+    this.logger.log(`Inviting lead ${sanitizedEmail}`);
 
-    const existing = await this.checkUserExists(email);
+    const existing = await this.userModel
+      .findOne({ email: sanitizedEmail }, { _id: 1 })
+      .lean()
+      .exec();
     if (existing) {
       throw new BadRequestException('user already exists');
     }
-    // create a user (limited information)
-    const dummyPassword = await BcryptUtil.generateHash('inventors1234');
-    const userHandle = await (this.userModel as any).generateUserHandle(email);
-    let token;
+    // create a user (limited information) with empty embedded profile
+    const dummyPassword = await BcryptUtil.generateHash(
+      randomBytes(32).toString('hex'),
+    );
+    const userHandle = await (this.userModel as any).generateUserHandle(
+      sanitizedEmail,
+    );
+    let token: TokenDocument;
 
     try {
-      // create basic Info
-      const basicInfo = await this.basicInfoModel.create({
-        firstName: '',
-        lastName: '',
-      });
-
-      // create professional info
-      const professionalInfo = await this.professionalInfoModel.create({
-        jobTitle: '',
-        company: '',
-        yearsOfExperience: 0,
-      });
-
-      // create contact info
-      const contactInfo = await this.contactInfoModel.create({
-        other: [],
-      });
-
-      const newUser = this.userModel.create({
-        email: email.toLowerCase(),
+      await this.userModel.create({
+        email: sanitizedEmail,
         password: dummyPassword,
-        basicInfo: basicInfo._id,
-        professionalInfo: professionalInfo._id,
-        contactInfo: contactInfo._id,
-        roles: [UserRole.LEAD],
+        basicInfo: { firstName: '', lastName: '' },
+        professionalInfo: { jobTitle: '', company: '', yearsOfExperience: 0 },
+        contactInfo: { other: [] },
+        role: [UserRole.LEAD],
         joinMethod: RegistrationMethod.INVITATION,
         status: UserStatus.PENDING,
         userHandle,
       });
-      console.log('new user: ', newUser);
 
-      // generate token
-      token = await this.generateRandomToken(email);
+      token = await this.generateRandomToken(sanitizedEmail);
     } catch (err) {
+      this.logger.error(
+        `Failed to register lead ${sanitizedEmail}`,
+        err as Error,
+      );
       throw new UnprocessableEntityException('failed to register user');
     }
 
     // add the token as a link
-    const invite_link = `${this.configService.get<string>('BASE_URL')}/users/invite/complete-invite?token=${token}`; //
+    const invite_link = `${this.configService.get<string>('BASE_URL')}/users/invite/complete-invite?token=${token.token}`;
 
     // send mail to user
     await sendMail({
-      to: email,
+      to: sanitizedEmail,
       from: EmailFromType.HELLO,
       subject: 'INVENTORS COMMUNITY: Lead Invitation',
       template: getMailTemplate().generalLeadRegistration,
@@ -566,18 +487,31 @@ export class UsersService {
       },
     });
 
+    this.logger.log(`Invite sent to ${sanitizedEmail}`);
     return 'invite sent to user';
   }
 
-  async generateRandomToken(email: string, length: number = 32) {
-    const token = Buffer.from(randomBytes(length).toString('hex'));
-    const inviteToken = new this.inviteTokenModel({
-      email,
-      token,
-      used: false,
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+  // reject a lead application
+  async rejectTempApplication(email: string, message: string): Promise<string> {
+    const userApplication = await this.viewOneApplication(email);
+
+    userApplication.leadPosition = '';
+    userApplication.applicationStatus = ApplicationStatus.REJECTED;
+
+    await userApplication.save();
+
+    await sendMail({
+      to: email,
+      from: EmailFromType.HELLO,
+      subject: 'Lead Application Status',
+      template: getMailTemplate().leadApplicationStauts,
+      templateVariables: {
+        email,
+        message: `Thank you for your interest in becoming a lead in the Inventors community. Unfortunately, your application has been declined.\n${message}`,
+      },
     });
-    return inviteToken.save();
+
+    return `${email} application has been rejected`;
   }
 
   // complete profile link
@@ -595,44 +529,58 @@ export class UsersService {
     // Round 2: user lookup depends on tokenDoc.email
     const user = await this.userModel
       .findOne({ email: tokenDoc.email.toLowerCase() })
-      .select('basicInfo professionalInfo contactInfo status');
+      .select('status');
 
     if (!user || user.status !== UserStatus.PENDING) {
       throw new BadRequestException('No pending user found');
     }
 
-    // Round 3: all writes are independent
+    // Round 3: single atomic doc write (embedded profile) + token burn
     await Promise.all([
-      this.basicInfoModel.findByIdAndUpdate(user.basicInfo, {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        gender: data.gender,
-        age: data.age,
-      }),
-      this.professionalInfoModel.findByIdAndUpdate(user.professionalInfo, {
-        jobTitle: data.jobTitle,
-        company: data.company,
-        yearsOfExperience: data.yearsOfExperience,
-        technologies: data.technologies,
-      }),
-      this.contactInfoModel.findByIdAndUpdate(user.contactInfo, {
-        linkedInUrl: data.linkedinUrl,
-        github: data.githubUrl,
-        phone: data.phone,
-      }),
       this.userModel.findByIdAndUpdate(user._id, {
-        password: hashedPassword,
-        role: [UserRole.LEAD],
-        status: UserStatus.ACTIVE,
-        emailVerification: true,
-        joinMethod: RegistrationMethod.INVITATION,
-        deviceId: data.deviceId,
-        deviceToken: data.deviceToken,
+        $set: {
+          password: hashedPassword,
+          role: [UserRole.LEAD],
+          status: UserStatus.ACTIVE,
+          emailVerification: true,
+          joinMethod: RegistrationMethod.INVITATION,
+          deviceId: data.deviceId,
+          deviceToken: data.deviceToken,
+          photo: data.photo,
+          'basicInfo.firstName': data.firstName,
+          'basicInfo.lastName': data.lastName,
+          'basicInfo.gender': data.gender,
+          'basicInfo.age': data.age,
+          'professionalInfo.jobTitle': data.jobTitle,
+          'professionalInfo.company': data.company,
+          'professionalInfo.yearsOfExperience': data.yearsOfExperience,
+          'professionalInfo.technologies': data.technologies,
+          'contactInfo.linkedInUrl': data.linkedinUrl,
+          'contactInfo.github': data.githubUrl,
+          'contactInfo.phone': data.phone,
+        },
       }),
       this.inviteTokenModel.findByIdAndUpdate(tokenDoc._id, { used: true }),
     ]);
 
+    this.logger.log(`Profile completed for ${tokenDoc.email}`);
     return 'profile completed successfully';
+  }
+
+  async generateRandomToken(email: string, length: number = 32) {
+    const token = Buffer.from(randomBytes(length).toString('hex'));
+    const inviteToken = new this.inviteTokenModel({
+      email,
+      token,
+      used: false,
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+    });
+    return inviteToken.save();
+  }
+
+  // reference routing a new user
+  async createUser(req: ApiReq, userData: CreateUserDto) {
+    return (this.userModel as any).signUp(req, userData, false);
   }
 
   // decode invite link
@@ -651,15 +599,6 @@ export class UsersService {
   // decided to go the crude way since i couldn't get the function to work without changing it [lean value giving issues]
   async getUsersWithLeadRole(): Promise<User[]> {
     return await this.userModel.find({ role: 'LEAD' }).exec();
-  }
-
-  // reference routing a new user
-  async createUser(req: ApiReq, userData: CreateUserDto) {
-    return (this.userModel as any).signUp(req, userData, false, {
-      BasicInfoModel: this.basicInfoModel,
-      ProfessionalInfoModel: this.professionalInfoModel,
-      ContactInfoModel: this.contactInfoModel,
-    });
   }
 
   async requestVerification(req: ApiReq, userId: string) {
@@ -698,8 +637,7 @@ export class UsersService {
       subject: 'Your Verification Request Has Been Received',
       template: getMailTemplate().userVerificationAcknowledgement,
       templateVariables: {
-        firstName: (await this.basicInfoModel.findById(user.basicInfo))
-          .firstName,
+        firstName: user.basicInfo?.firstName || '',
         nextTryDate: format(user.nextVerificationRequestDate, 'PPPP'),
       },
     });
@@ -708,6 +646,18 @@ export class UsersService {
       message: 'Verification request sent.',
       nextAllowedRequest: user.nextVerificationRequestDate,
     };
+  }
+
+  // so unspecified sub-fields are preserved.
+  private flatten(
+    prefix: string,
+    source: object | undefined,
+    target: Record<string, unknown>,
+  ) {
+    if (!source) return;
+    for (const [key, value] of Object.entries(source)) {
+      if (value !== undefined) target[`${prefix}.${key}`] = value;
+    }
   }
 
   // service for testing mail

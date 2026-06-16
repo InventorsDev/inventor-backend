@@ -1,11 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsArray,
+  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
 } from 'class-validator';
-import { JoinMethod, SocialsLinks, Location, Status} from '../../shared/interfaces/event.type';
+import {
+  JoinMethod,
+  Location,
+  SocialsLinks,
+} from '../../shared/interfaces/event.type';
 
 export class EventDto {
   @ApiProperty()
@@ -28,38 +34,38 @@ export class EventDto {
   @IsString()
   host: string;
 
-  @ApiProperty()
+  @ApiProperty({ type: [String], required: false })
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   coHost?: string[];
 
-  @ApiProperty()
+  @ApiProperty({ enum: Location })
   @IsNotEmpty()
   @IsEnum(Location)
   location: Location;
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
   photo?: string;
 
-  @ApiProperty()
+  @ApiProperty({ enum: JoinMethod })
   @IsNotEmpty()
-  @IsString()
   @IsEnum(JoinMethod)
-  joinMethod: string;
+  joinMethod: JoinMethod;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   link?: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsOptional()
-  @IsString()
   socialsLinks?: SocialsLinks;
 
   @ApiProperty()
   @IsNotEmpty()
-  @IsString()
-  eventDate: Date;
+  @IsDateString()
+  eventDate: string;
 }

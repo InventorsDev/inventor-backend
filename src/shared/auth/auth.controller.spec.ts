@@ -3,16 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Model } from 'mongoose';
 import { RegistrationMethod, UserRole, UserStatus } from '../interfaces';
-import {
-  BasicInfo,
-  BasicInfoDoc,
-  ContactInfo,
-  ContactInfoDocs,
-  ProfessionalInfo,
-  ProfessionalInfoDocs,
-  User,
-  UserDocument,
-} from '../schema';
+import { User, UserDocument } from '../schema';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
@@ -144,10 +135,6 @@ describe('AuthController', () => {
     sign: jest.fn().mockReturnValue('mock_token'),
   };
 
-  const mockBasicInfoModel: Partial<Model<BasicInfoDoc>> = {};
-  const mockProfessionalInfoModel: Partial<Model<ProfessionalInfoDocs>> = {};
-  const mockContactInfoModel: Partial<Model<ContactInfoDocs>> = {};
-
   beforeEach(async () => {
     jest.clearAllMocks(); // clear all mock implementaions
 
@@ -165,18 +152,6 @@ describe('AuthController', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
-        },
-        {
-          provide: BasicInfo.name,
-          useValue: mockBasicInfoModel,
-        },
-        {
-          provide: ProfessionalInfo.name,
-          useValue: mockProfessionalInfoModel,
-        },
-        {
-          provide: ContactInfo.name,
-          useValue: mockContactInfoModel,
         },
       ],
     }).compile();
@@ -219,11 +194,6 @@ describe('AuthController', () => {
         mockReq,
         createUserDto,
         false,
-        {
-          BasicInfoModel: mockBasicInfoModel,
-          ProfessionalInfoModel: mockProfessionalInfoModel,
-          ContactInfoModel: mockContactInfoModel,
-        },
       );
     });
 
