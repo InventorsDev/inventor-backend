@@ -12,22 +12,14 @@
  *   npx ts-node scripts/seed-admin.ts
  *   ADMIN_EMAIL=me@x.com ADMIN_PASSWORD='Secret@123' npx ts-node scripts/seed-admin.ts
  */
-import 'dotenv/config';
 import * as bcrypt from 'bcryptjs';
-import mongoose from 'mongoose';
+import { Connection } from 'mongoose';
 
-const EMAIL = (process.env.ADMIN_EMAIL || 'admin@inventors.test')
-  .trim()
-  .toLowerCase();
-const PASSWORD = process.env.ADMIN_PASSWORD || 'Admin@1234';
+const EMAIL = 'admin@inventors.test'.trim().toLowerCase();
+const PASSWORD = 'Admin@1234';
 
-async function main() {
-  const uri = process.env.APP_DATABASE_URL;
-  if (!uri) throw new Error('APP_DATABASE_URL not set');
-
-  const conn = await mongoose.createConnection(uri).asPromise();
+export async function seedAdmin(conn: Connection): Promise<void> {
   const users = conn.collection('users');
-
   const password = await bcrypt.hash(PASSWORD, await bcrypt.genSalt());
   const now = new Date();
 
@@ -38,7 +30,7 @@ async function main() {
       { _id: existing._id },
       {
         $set: {
-          role: ['ADMIN'], // exact single-element array (guard requirement)
+          role: ['ADMIN'],
           status: 'ACTIVE',
           emailVerification: true,
           password,
@@ -46,7 +38,7 @@ async function main() {
         },
       },
     );
-    console.log(`Updated existing user -> ADMIN: ${EMAIL}`);
+    console.log(`[Seed] Updated existing user -> ADMIN: ${EMAIL}`);
   } else {
     const handle = EMAIL.split('@')[0].replace(/[^a-z0-9]/g, '') || 'admin';
     await users.insertOne({
@@ -67,14 +59,8 @@ async function main() {
     console.log(`Created new ADMIN: ${EMAIL}`);
   }
 
-  await conn.close();
   console.log('\n=== Admin credentials ===');
   console.log(`  email:    ${EMAIL}`);
   console.log(`  password: ${PASSWORD}`);
   console.log('  login:    POST /api/v1/auth/login');
 }
-
-main().catch((err) => {
-  console.error('Seed failed:', err);
-  process.exit(1);
-});
