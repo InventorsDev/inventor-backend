@@ -9,6 +9,7 @@ import { DataLogsModule } from './shared/datalogs';
 import { UsersModule } from './users/users.module';
 import { EventModule } from './events/events.users.module';
 import { PostModule } from './blog/post/post.module';
+import { FaqModule } from './faq/faq.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PostModule } from './blog/post/post.module';
     UsersModule,
     EventModule,
     PostModule,
+    FaqModule,
   ],
   controllers: [AppController],
   providers: [

@@ -6,19 +6,14 @@
  *
  * Run:  npx ts-node scripts/migrate-embed-user-info.ts
  */
-import 'dotenv/config';
-import mongoose, { Types } from 'mongoose';
+import { Connection, Types } from 'mongoose';
 
 const isObjectId = (value: unknown): boolean =>
   value instanceof Types.ObjectId ||
   (typeof value === 'string' && Types.ObjectId.isValid(value));
 
-async function main() {
-  const uri = process.env.APP_DATABASE_URL;
-  if (!uri) throw new Error('APP_DATABASE_URL not set');
-
-  const conn = await mongoose.createConnection(uri).asPromise();
-  console.log('Connected. Starting migration...');
+export async function migrateEmbedUserInfo(conn: Connection) {
+  console.log('[Migration] Starting migration...');
 
   const users = conn.collection('users');
   const basics = conn.collection('basicinfos');
@@ -68,11 +63,5 @@ async function main() {
     if (migrated % 100 === 0) console.log(`...migrated ${migrated}`);
   }
 
-  console.log(`Done. Migrated: ${migrated}, skipped: ${skipped}`);
-  await conn.close();
+  console.log(`[Migration] Done. Migrated: ${migrated}, skipped: ${skipped}`);
 }
-
-main().catch((err) => {
-  console.error('Migration failed:', err);
-  process.exit(1);
-});
