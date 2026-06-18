@@ -5,6 +5,7 @@ import { EventSchema } from './events.schema';
 import { Post, PostSchema } from './post.schema';
 import { DataLog, DataLogSchema } from './data.log.schema';
 import { InviteToken, InviteTokenSchema } from './invite-tokens.schema';
+import { Faq, FaqSchema } from 'src/shared/schema/faq.schema';
 
 
 // All Schema Models
@@ -16,6 +17,7 @@ export * from './events.schema';
 export * from './post.schema';
 export * from './invite-tokens.schema'
 export * from './professional.info.schema'
+export * from './faq.schema';
 
 const SCHEMA_LIST = [
   { name: User.name, schema: UserSchema, dbPrefix: 'APP' },
@@ -23,6 +25,7 @@ const SCHEMA_LIST = [
   { name: Post.name, schema: PostSchema, dbPrefix: 'APP' },
   { name: DataLog.name, schema: DataLogSchema, dbPrefix: 'LOG' },
   { name: InviteToken.name, schema: InviteTokenSchema, dbPrefix: 'APP' },
+  { name: Faq.name, schema: FaqSchema, dbPrefix: 'APP' },
   // BasicInfo / ProfessionalInfo / ContactInfo are now embedded sub-documents
   // of User and are no longer registered as standalone collections.
 ];
