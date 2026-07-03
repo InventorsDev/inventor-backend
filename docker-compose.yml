@@ -48,6 +48,48 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: inventor_backend
+
+    restart: unless-stopped
+
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    ports:
+      - "3888:3888"
+
+    environment:
+      NODE_ENV: development
+      PORT: 3888
+
+      APP_DATABASE_URL: mongodb://mongo:27017/inventor_app?retryWrites=true&w=majority
+      LOG_DATABASE_URL: mongodb://mongo:27017/inventor_log?retryWrites=true&w=majority
+
+      REDIS_URL: redis://redis:6379
+
+      JWT_SECRET: testsecret
+      JWT_EXPIRES: 1h
+
+      RATE_LIMIT_REQUEST_SIZE: 60
+      RATE_LIMIT_TTL: 30
+
+      BASE_URL: http://localhost:3888
+
+      BREVO_API_KEY:
+      BREVO_SENDER_NAME: Inventors
+      BREVO_SENDER_EMAIL: hello@inventors.com
+
+      CLOUDINARY_NAME:
+      CLOUDINARY_KEY:
+      CLOUDINARY_SECRET:
 
 volumes:
   mongo_data:
