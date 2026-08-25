@@ -6,6 +6,12 @@ import { Post, PostSchema } from './post.schema';
 import { DataLog, DataLogSchema } from './data.log.schema';
 import { InviteToken, InviteTokenSchema } from './invite-tokens.schema';
 import { Faq, FaqSchema } from 'src/shared/schema/faq.schema';
+import { LeadAssignment, LeadAssignmentSchema } from './lead-assignment.schema';
+import { LeadAuditLog, LeadAuditLogSchema } from './lead-audit-log.schema';
+import { LeadCandidate, LeadCandidateSchema } from './lead-candidate.schema';
+import { LeadContribution, LeadContributionSchema } from './lead-contribution.schema';
+import { LeadInvitation, LeadInvitationSchema } from './lead-invitation.schema';
+import { SchoolSession, SchoolSessionSchema } from './school-session.schema';
 
 
 // All Schema Models
@@ -18,6 +24,12 @@ export * from './post.schema';
 export * from './invite-tokens.schema'
 export * from './professional.info.schema'
 export * from './faq.schema';
+export * from './lead-assignment.schema'
+export * from './lead-audit-log.schema'
+export * from './lead-candidate.schema'
+export * from './lead-contribution.schema'
+export * from './lead-invitation.schema'
+export * from './school-session.schema'
 
 const SCHEMA_LIST = [
   { name: User.name, schema: UserSchema, dbPrefix: 'APP' },
@@ -26,6 +38,12 @@ const SCHEMA_LIST = [
   { name: DataLog.name, schema: DataLogSchema, dbPrefix: 'LOG' },
   { name: InviteToken.name, schema: InviteTokenSchema, dbPrefix: 'APP' },
   { name: Faq.name, schema: FaqSchema, dbPrefix: 'APP' },
+  { name: LeadAssignment.name, schema: LeadAssignmentSchema, dbPrefix: 'APP' },
+  { name: LeadAuditLog.name, schema: LeadAuditLogSchema, dbPrefix: 'LOG' },
+  { name: LeadCandidate.name, schema: LeadCandidateSchema, dbPrefix: "APP" },
+  { name: LeadContribution.name, schema: LeadContributionSchema, dbPrefix: "APP" },
+  { name: LeadInvitation.name, schema: LeadInvitationSchema, dbPrefix: "APP" },
+  { name: SchoolSession.name, schema: SchoolSessionSchema, dbPrefix: "APP" },
   // BasicInfo / ProfessionalInfo / ContactInfo are now embedded sub-documents
   // of User and are no longer registered as standalone collections.
 ];

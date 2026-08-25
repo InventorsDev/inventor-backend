@@ -1,0 +1,213 @@
+User: [ existing roles, LeaadAssignment: [lead role, school session, status, start/end, contributions metadata, permission/capabiliites]]
+
+User
+    roles: ["User"]
+    LeadAssignment ([...id, id, id] // so users can have multiple assignments
+        userId: user.id
+        sessionId: session.id //using school session
+        position: Backend_Lead //enforce this at the db, so there is only one unique value per ses
+        status: Active (expired, revoked)
+        appointedBy
+        appointedAt
+    LeadCandidate
+        recommendedBy: 
+        status: Recommended (invited, accepted, rejected, withdrawn)
+        
+SchoolSession:
+    id
+    name
+    startsAt
+    endsAt
+    status
+        
+a user can have mulitple leadAssignments
+
+Recommnended -> Invited -> (accepts) -> Pending -> (admin approves) -> ACTIVE ->
+(session ends) -> EXPIRED
+
+Pending -> (admin rejects) -> Rejected
+Invited -> (expires) -> Invite_expired
+
+recommend(), invite(), accept(), approve(), reject(), activate(), expire(), cancel()  -- admin
+
+on the service level, approve (for example) would then go through these checks
+@Post(':id/approve')
+approve(...)
+Is requester an admin?
+Is candidate still pending?
+Does the candidate belong to this session?
+Is there already a backend lead?
+Is the session still open?
+
+leads
+	leads.module
+	Controllers/
+		admin-leads.controller.ts
+		lead-candidates.controller.ts
+		my-lead.controller.ts
+	application/
+		commands/
+			recommend-lead.command.ts
+			invite-lead.command.ts
+			approve-lead
+			reject-lead
+			revoke-lead
+		queries/
+			get-leads.query.ts
+			get-lead.query.ts
+			get-my-lead-status
+		services/
+			lead-management.service.ts
+	domain/
+		entities/
+			lead-candidate
+			lead-assignment
+			lead-contribution
+		enums/
+			lead-status.enum
+			lead-position
+			lead-contribution-type
+		events/
+			lead-recommended
+			lead-invited
+			lead-approved
+			lead-expired
+
+Entities
+* Lead_candidates
+	id
+	user_id (nullable)
+	email (nullable)
+	session_id
+	position
+	status
+	recommended_by
+	recommended_at
+	invited_at
+	accepted_at
+	rejected_at
+	rejection_reason
+	created_at
+	updated_at
+	
+* Lead_assignments
+	id
+	user_id
+	session_id
+	position
+	status
+	appointed_by
+	appointed_at
+	starts_at
+	ends_at
+	ended_at
+	ended_reason
+	created_at
+	updated_at
+	
+* Lead contributions
+	id
+	lead_assignment_id
+	type (project, feature, mentoring, documentation,event,community, incident, other)
+	title
+	description
+	metadata
+	occurred_at
+	created_at
+	
+* lead_recommendation
+	id
+	candidate_id
+	recommended_by
+	reason
+	created_at
+	
+* Lead_Invitation
+	id
+	candidate_id
+	token_hash
+	expires_at
+	accepted_at
+	created_at
+	
+* Lead_audit_log
+	id
+	candidate_id
+	assignment_id
+	actor_id
+	action (recommended, invited, invitation accepted, approved,rejected, assigned, revoked, expired, position_changed)
+	metadata
+	createad_at
+	
+
+FLOW
+POST /admin/lead-candidates
+{
+  "email": "john@example.com",
+  "sessionId": "...",
+  "position": "BACKEND_LEAD"
+}
+1. Validate session
+2. Validate position
+3. Find user by normalized email
+4. Check existing candidate
+5. Check existing assignment
+6. Create candidate
+7. If user exists:
+       associate user
+       create in-app notification
+   else:
+       send invitation email
+8. Record invitation event
+----
+existing user
+admin_invites => Email exists => candidate.userId = existing userid => notify => user accepts
+
+new user
+admin_invites => email X=> candidate.userId = null => invitation token created=> email sent => user registers => registration consumes invitation token => candidate.userId = newUser.id => user accepts
+
+
+POST /admin/lead-candidates/:id/approve
+this should be a transaction that locks the db
+1. Lock candidate
+2. Ensure candidate is ACCEPTED/PENDING
+3. Ensure session is active/open
+4. Ensure position isn't already occupied
+5. Create LeadAssignment
+6. Mark candidate APPROVED
+7. Record audit event
+
+session expiry
+every hour/day
+    ↓
+find ACTIVE assignments
+where endsAt <= now
+    ↓
+mark EXPIRED
+
+
+APIS
+POST   /admin/lead-candidates
+GET    /admin/lead-candidates
+GET    /admin/lead-candidates/:id
+
+POST   /admin/lead-candidates/:id/invite
+POST   /admin/lead-candidates/:id/approve
+POST   /admin/lead-candidates/:id/reject
+
+GET    /admin/lead-assignments
+GET    /admin/lead-assignments/:id
+POST   /admin/lead-assignments/:id/revoke
+
+GET  /lead-invitations/:token
+POST /lead-invitations/:token/accept
+POST /lead-invitations/:token/decline
+
+GET  /me/lead-assignments
+GET  /me/lead-assignments/current
+POST /me/lead-contributions
+GET  /me/lead-contributions
+
+GET /leads/current
+GET /leads/history
+GET /leads/:id
