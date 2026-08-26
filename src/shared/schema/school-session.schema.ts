@@ -26,7 +26,7 @@ export class SchoolSession {
     endsAt: Date
 
     @Prop({ required: true, index: true })
-    staus: SchoolSessionStatus;
+    status: SchoolSessionStatus;
 }
 
 export const SchoolSessionSchema = SchemaFactory.createForClass(SchoolSession)
