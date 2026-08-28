@@ -11,7 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import {
   ApiReq,
@@ -41,6 +41,8 @@ import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserInviteDto } from './dto/user-invite.dto';
 
+export type LeanUser = User & { _id: mongoose.Types.ObjectId }
+
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
@@ -51,7 +53,7 @@ export class UsersService {
     @Inject(InviteToken.name)
     private readonly inviteTokenModel: Model<TokenDocument>,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
@@ -109,6 +111,13 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with email ${email} not found`);
     }
+    return user;
+  }
+
+  async findByEmailWithId(email: string, project: any = {}): Promise<LeanUser | null> {
+    const user: LeanUser = await this.userModel.findOne({ email, status: UserStatus.ACTIVE }, project, { lean: true })
+      .select('-password')
+      .exec();
     return user;
   }
 

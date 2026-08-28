@@ -8,6 +8,7 @@ export enum LeadCandidateStatus {
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import mongoose from "mongoose";
 import type { HydratedDocument } from "mongoose";
+import type { LeadAssignmentPositions } from "./lead-assignment.schema";
 
 export type LeadCandidateDocument = HydratedDocument<LeadCandidate>;
 
@@ -31,17 +32,20 @@ export class LeadCandidate {
     @Prop({ index: true, required: true })
     recommendedAt: Date
 
+    @Prop({ required: true, index: true })
+    recommendedFor: LeadAssignmentPositions;
+
     @Prop({ index: true })
     invitedAt: Date
 
     @Prop({ index: true })
-    acceptedAt: Date
+    acceptedAt?: Date
 
     @Prop({ index: true })
-    rejectedAt: Date
+    rejectedAt?: Date
 
     @Prop()
-    rejectionReason: string
+    rejectionReason?: string
 }
 
 export const LeadCandidateSchema = SchemaFactory.createForClass(LeadCandidate)

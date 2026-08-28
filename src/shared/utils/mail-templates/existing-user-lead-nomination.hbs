@@ -1,0 +1,85 @@
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Lead Nomination Notice</title>
+  </head>
+  <body
+    style='margin:0; padding:0; background-color:#f4f4f7; font-family: Arial, Helvetica, sans-serif;'
+  >
+    <table
+      role='presentation'
+      width='100%'
+      cellpadding='0'
+      cellspacing='0'
+      style='background-color:#f4f4f7; padding:24px 0;'
+    >
+      <tr>
+        <td align='center'>
+          <table
+            role='presentation'
+            width='600'
+            cellpadding='0'
+            cellspacing='0'
+            style='background-color:#ffffff; border-radius:8px; overflow:hidden;'
+          >
+            <tr>
+              <td style='background-color:#1a73e8; padding:24px 32px;'>
+                <h1
+                  style='color:#ffffff; font-size:20px; margin:0;'
+                >Congratulations, {{user}}!</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style='padding:32px;'>
+                <p style='font-size:16px; color:#333333; line-height:1.5;'>
+                  Dear
+                  {{user}},
+                </p>
+                <p style='font-size:16px; color:#333333; line-height:1.5;'>
+                  We are pleased to inform you that you have been nominated to
+                  serve as the
+                  <strong>Lead for the {{position}} position</strong>
+                  at
+                  <strong>{{school}}</strong>
+                  for the
+                  <strong>{{sessionYear}} school year</strong>.
+                </p>
+                <p style='font-size:16px; color:#333333; line-height:1.5;'>
+                  This nomination reflects the confidence placed in your skills
+                  and leadership, and we look forward to your contributions in
+                  this role throughout the upcoming session.
+                </p>
+                <p style='font-size:16px; color:#333333; line-height:1.5;'>
+                  Session start date:
+                  <strong>{{sessionDate}}</strong>
+                </p>
+                <p
+                  style='font-size:16px; color:#333333; line-height:1.5; margin-top:24px;'
+                >
+                  Congratulations once again, and welcome to the team!
+                </p>
+                <p style='font-size:16px; color:#333333; line-height:1.5;'>
+                  Best regards,<br />
+                  Inventors
+                  {{school}}
+                  Administration
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td
+                style='background-color:#f4f4f7; padding:16px 32px; text-align:center;'
+              >
+                <p style='font-size:12px; color:#999999; margin:0;'>
+                  This is an automated notice from Inventors
+                  {{school}}. Please do not reply directly to this email.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

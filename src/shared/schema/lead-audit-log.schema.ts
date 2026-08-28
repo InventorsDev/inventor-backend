@@ -22,7 +22,7 @@ export class LeadAuditLog {
     @Prop({ required: true, index: true, type: mongoose.Schema.Types.ObjectId })
     candidateId: mongoose.Types.ObjectId
 
-    @Prop({ required: true, index: true, type: mongoose.Schema.Types.ObjectId })
+    @Prop({ index: true, type: mongoose.Schema.Types.ObjectId })
     assignmentId: mongoose.Types.ObjectId
 
     @Prop({ required: true, index: true, type: mongoose.Schema.Types.ObjectId })

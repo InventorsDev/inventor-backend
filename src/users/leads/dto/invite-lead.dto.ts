@@ -1,4 +1,5 @@
 import { IsEmail, IsEnum, IsNotEmpty, IsUUID } from "class-validator";
+import type { UUID } from "crypto";
 import { LeadAssignmentPositions } from "src/shared/schema";
 
 /**
@@ -13,7 +14,7 @@ export class InviteLeadDto {
 
     @IsNotEmpty()
     @IsUUID()
-    sessionId: string;
+    sessionId: UUID;
 
     @IsNotEmpty()
     @IsEnum(LeadAssignmentPositions)
