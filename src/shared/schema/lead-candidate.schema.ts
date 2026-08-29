@@ -1,6 +1,7 @@
 export enum LeadCandidateStatus {
     INVITED = 'invited',
-    ACCEPTED = 'accepted',
+    PENDING = 'pending',
+    ASSIGNED = 'assigned',
     REJECTED = 'rejected',
     WITHDRAWN = 'withdrawn'
 }

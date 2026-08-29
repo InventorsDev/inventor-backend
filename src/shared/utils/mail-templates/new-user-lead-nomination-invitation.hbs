@@ -1,0 +1,131 @@
+```html
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Lead Invitation</title>
+  </head>
+  <body
+    style='margin:0; padding:0; background-color:#f4f4f7; font-family: Arial, Helvetica, sans-serif;'
+  >
+    <table
+      role='presentation'
+      width='100%'
+      cellpadding='0'
+      cellspacing='0'
+      style='background-color:#f4f4f7; padding:24px 0;'
+    >
+      <tr>
+        <td align='center'>
+          <table
+            role='presentation'
+            width='600'
+            cellpadding='0'
+            cellspacing='0'
+            style='background-color:#ffffff; border-radius:8px; overflow:hidden;'
+          >
+            <tr>
+              <td style='background-color:#1a73e8; padding:24px 32px;'>
+                <h1 style='color:#ffffff; font-size:20px; margin:0;'>
+                  Become a Lead
+                </h1>
+              </td>
+            </tr>
+
+            <tr>
+              <td style='padding:32px;'>
+                <p style='font-size:16px; color:#333333; line-height:1.5;'>
+                  Hi there!,
+                </p>
+
+                <p style='font-size:16px; color:#333333; line-height:1.5;'>
+                  We are inviting you to register your interest in serving as
+                  the
+                  <strong>Lead for the {{position}} position</strong>
+                  at
+                  <strong>{{school}}</strong>
+                  for the
+                  <strong>{{sessionYear}} school year</strong>.
+                </p>
+
+                <p style='font-size:16px; color:#333333; line-height:1.5;'>
+                  If you are interested in taking on this leadership role,
+                  please register on the Inventors platform using the link
+                  below. Registration will allow you to provide the necessary
+                  information and formally express your interest in becoming a
+                  Lead.
+                </p>
+
+                <p style='font-size:16px; color:#333333; line-height:1.5;'>
+                  Session start date:
+                  <strong>{{sessionDate}}</strong>
+                </p>
+
+                <table
+                  role='presentation'
+                  cellpadding='0'
+                  cellspacing='0'
+                  width='100%'
+                  style='margin:32px 0 16px 0;'
+                >
+                  <tr>
+                    <td align='center'>
+                      <a
+                        href='{{registrationLink}}'
+                        style='display:inline-block; background-color:#1a73e8; color:#ffffff; text-decoration:none; font-size:16px; font-weight:bold; padding:14px 28px; border-radius:6px;'
+                      >
+                        Register to Become a Lead
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p
+                  style='font-size:14px; color:#666666; line-height:1.5; text-align:center; margin:0 0 24px 0;'
+                >
+                  Not interested in becoming a Lead?
+                  <a
+                    href='{{declineLink}}'
+                    style='color:#666666; text-decoration:underline;'
+                  >
+                    Decline this invitation
+                  </a>
+                </p>
+
+                <p style='font-size:14px; color:#666666; line-height:1.5;'>
+                  If you are interested in this opportunity, please complete
+                  your registration using the link above.
+                </p>
+
+                <p
+                  style='font-size:16px; color:#333333; line-height:1.5; margin-top:24px;'
+                >
+                  We look forward to having you join the team!
+                </p>
+
+                <p style='font-size:16px; color:#333333; line-height:1.5;'>
+                  Best regards,<br />
+                  Inventors
+                  {{school}}
+                  Administration
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                style='background-color:#f4f4f7; padding:16px 32px; text-align:center;'
+              >
+                <p style='font-size:12px; color:#999999; margin:0;'>
+                  This is an automated invitation from Inventors
+                  {{school}}. Please do not reply directly to this email.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+```

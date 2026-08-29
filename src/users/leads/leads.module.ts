@@ -7,10 +7,11 @@ import { SessionService } from './services/sessions.service';
 import { CandidateService } from './services/candidate.service';
 import { LeadAuditService } from './services/lead-audit.service';
 import { UsersModule } from '../users.module';
+import { LeadInvitationService } from './services/lead-invitation.service';
 
 @Module({
   imports: [DBModule, forwardRef(() => UsersModule)],
   controllers: [AdminLeadsController, LeadCandidateController],
-  providers: [LeadsService, SessionService, CandidateService, LeadAuditService],
+  providers: [LeadsService, SessionService, CandidateService, LeadAuditService, LeadInvitationService],
 })
 export class LeadsModule { }

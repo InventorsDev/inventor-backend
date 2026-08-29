@@ -437,7 +437,7 @@ export class UsersService {
   }
 
   // invite a new user (lead)
-  async inviteLead(email: string): Promise<string> {
+  async inviteLead(email: string, metadata: Record<string, string> = {}): Promise<{ message: string, id: string }> {
     if (!email || email === '') {
       throw new BadRequestException('lead email not provided');
     }
@@ -459,9 +459,9 @@ export class UsersService {
       sanitizedEmail,
     );
     let token: TokenDocument;
-
+    let newUser: UserDocument;
     try {
-      await this.userModel.create({
+      newUser = await this.userModel.create({
         email: sanitizedEmail,
         password: dummyPassword,
         basicInfo: { firstName: '', lastName: '' },
@@ -486,18 +486,35 @@ export class UsersService {
     const invite_link = `${this.configService.get<string>('BASE_URL')}/users/invite/complete-invite?token=${token.token}`;
 
     // send mail to user
-    await sendMail({
-      to: sanitizedEmail,
-      from: EmailFromType.HELLO,
-      subject: 'INVENTORS COMMUNITY: Lead Invitation',
-      template: getMailTemplate().generalLeadRegistration,
-      templateVariables: {
-        link: invite_link,
-      },
-    });
+    if (Object.keys(metadata).length < 0) {
+      await sendMail({
+        to: sanitizedEmail,
+        from: EmailFromType.HELLO,
+        subject: 'INVENTORS COMMUNITY: Lead Invitation',
+        template: getMailTemplate().generalLeadRegistration,
+        templateVariables: {
+          link: invite_link,
+        },
+      });
+    } else {
+      await sendMail({
+        to: email,
+        from: EmailFromType.HELLO,
+        subject: metadata.subject,
+        template: getMailTemplate().leadNominationNewUser,
+        templateVariables: {
+          position: metadata.position,
+          school: metadata.school,
+          schoolYear: metadata.schoolYear,
+          session: metadata.sessionString,
+          registrationLink: metadata.registrationLink,
+          declineLink: metadata.declineLink
+        },
+      })
+    }
 
     this.logger.log(`Invite sent to ${sanitizedEmail}`);
-    return 'invite sent to user';
+    return { message: 'invite sent to user', id: newUser._id.toString() };
   }
 
   // reject a lead application

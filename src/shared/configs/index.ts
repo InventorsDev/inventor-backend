@@ -42,7 +42,8 @@ export const configs = () => ({
       leadApplicationReceived: 'inventors-lead-application',
       leadApplicationStauts: 'lead-application-status',
       userVerificationAcknowledgement: 'user-verification-acknowledgement',
-      leadNominationExistingUser: 'existing-user-lead-nomination'
+      leadNominationExistingUser: 'existing-user-lead-nomination',
+      leadNominationNewUser: 'new-user-lead-nomination-invitation'
     },
   },
 });
