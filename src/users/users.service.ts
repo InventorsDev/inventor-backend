@@ -41,7 +41,7 @@ import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserInviteDto } from './dto/user-invite.dto';
 
-export type LeanUser = User & { _id: mongoose.Types.ObjectId }
+export type LeanUser = User & { _id: mongoose.Types.ObjectId };
 
 @Injectable()
 export class UsersService {
@@ -53,7 +53,7 @@ export class UsersService {
     @Inject(InviteToken.name)
     private readonly inviteTokenModel: Model<TokenDocument>,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   sendEmailVerificationToken(req: any, userId: string) {
     (this.userModel as any).sendEmailVerificationToken(req, userId);
@@ -114,8 +114,12 @@ export class UsersService {
     return user;
   }
 
-  async findByEmailWithId(email: string, project: any = {}): Promise<LeanUser | null> {
-    const user: LeanUser = await this.userModel.findOne({ email, status: UserStatus.ACTIVE }, project, { lean: true })
+  async findByEmailWithId(
+    email: string,
+    project: any = {},
+  ): Promise<LeanUser | null> {
+    const user: LeanUser = await this.userModel
+      .findOne({ email, status: UserStatus.ACTIVE }, project, { lean: true })
       .select('-password')
       .exec();
     return user;
@@ -437,7 +441,10 @@ export class UsersService {
   }
 
   // invite a new user (lead)
-  async inviteLead(email: string, metadata: Record<string, string> = {}): Promise<{ message: string, id: string }> {
+  async inviteLead(
+    email: string,
+    metadata: Record<string, string> = {},
+  ): Promise<{ message: string; id: string }> {
     if (!email || email === '') {
       throw new BadRequestException('lead email not provided');
     }
@@ -445,12 +452,14 @@ export class UsersService {
     this.logger.log(`Inviting lead ${sanitizedEmail}`);
 
     const existing = await this.userModel
-      .findOne({ email: sanitizedEmail }, { _id: 1 })
+      .findOne({ email: sanitizedEmail }, { _id: 1, status: 1 })
       .lean()
       .exec();
-    if (existing) {
-      throw new BadRequestException('user already exists');
-    }
+
+    this.logger.debug('user: ', JSON.stringify(existing));
+    if (existing && existing.status === UserStatus.PENDING) {
+      throw new BadRequestException('user invite already sent');
+    } else if (existing) throw new BadRequestException('User already exisits');
     // create a user (limited information) with empty embedded profile
     const dummyPassword = await BcryptUtil.generateHash(
       randomBytes(32).toString('hex'),
@@ -505,12 +514,12 @@ export class UsersService {
         templateVariables: {
           position: metadata.position,
           school: metadata.school,
-          schoolYear: metadata.schoolYear,
+          sessionYear: metadata.sessionYear,
           session: metadata.sessionString,
           registrationLink: metadata.registrationLink,
-          declineLink: metadata.declineLink
+          declineLink: metadata.declineLink,
         },
-      })
+      });
     }
 
     this.logger.log(`Invite sent to ${sanitizedEmail}`);

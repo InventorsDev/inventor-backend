@@ -13,6 +13,7 @@ import { DataLogsService } from './shared/datalogs';
 import { AllExceptionsFilter } from './shared/exceptions';
 import { LogInterceptor } from './shared/interceptors';
 import { startRedis } from './shared/utils';
+import type { transform } from 'typescript';
 
 function buildSwaggerDocument(app: any) {
   const config = new DocumentBuilder()
@@ -44,12 +45,11 @@ async function bootstrap() {
   app.useGlobalFilters(allExceptionsFilter);
   app.useGlobalGuards(throttlerGuard);
   app.useGlobalInterceptors(logInterceptor);
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.setGlobalPrefix('api/v1');
   app.useLogger(app.get(Logger));
   app.use(bodyParser.json({ limit: '100mb' }));
   app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   app.use(
     '/docs/structures',

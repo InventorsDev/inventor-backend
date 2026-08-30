@@ -35,24 +35,25 @@ export class LeadInvitationService {
   ) {}
 
   async generateInviteToken(candidateId: string): Promise<string> {
-    const token = await this.genrateRandomToken();
+    const token = await this.generateRandomToken();
     try {
       const tokenHash = createHash('sha256').update(token).digest('hex');
 
-      const invitation = await this.leadInvitationRepo.create({
-        candidateId: new mongoose.Types.ObjectId(candidateId),
+      // Mongoose automatically converts valid hex string IDs into ObjectIds
+      await this.leadInvitationRepo.create({
+        candidate: new mongoose.Types.ObjectId(candidateId),
         tokenHash,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       });
-      await invitation.save();
+
+      return token;
     } catch (e) {
-      this.logger.error('failed to create invite entry, ', e);
+      this.logger.error('failed to create invite entry: ', e);
       throw new InternalServerErrorException('failed to Invite Lead');
     }
-    return token;
   }
 
-  private async genrateRandomToken(): Promise<string> {
+  private async generateRandomToken(): Promise<string> {
     return randomBytes(32).toString('hex');
   }
 
