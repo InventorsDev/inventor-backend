@@ -44,14 +44,21 @@ export class CandidateService {
       !Object.values(LeadAssignmentPositions).includes(
         role as LeadAssignmentPositions,
       )
-    )
+    ) {
       throw new BadRequestException('invalid role');
+    }
+
     const sessionId = new mongoose.Types.ObjectId(sessId);
     const candidates = await this.getAllSessionCandidates(sessionId);
-    const candidatesOfRole = candidates.filter(
-      (candidate) => candidate.recommendedFor === role,
+
+    // Filter by role and collect unique user identifiers (e.g., email or userId)
+    const uniqueUsers = new Set(
+      candidates
+        .filter((candidate) => candidate.recommendedFor === role)
+        .map((candidate) => candidate.email),
     );
-    return candidatesOfRole.length;
+
+    return uniqueUsers.size;
   }
 
   async isExistingCandidates(email: string, sessId: string): Promise<boolean> {
