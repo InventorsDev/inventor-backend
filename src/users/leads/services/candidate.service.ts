@@ -4,6 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import type { Model } from 'mongoose';
 import {
@@ -13,6 +14,7 @@ import {
   type LeadCandidateDocument,
 } from 'src/shared/schema';
 import mongoose from 'mongoose';
+import { NotFoundError } from 'rxjs';
 
 export interface CreateCandidate {
   email: string;
@@ -59,6 +61,16 @@ export class CandidateService {
     );
 
     return uniqueUsers.size;
+  }
+
+  async getCandidate(id: string): Promise<LeadCandidateDocument | null> {
+    const candidateId = new mongoose.Types.ObjectId(id);
+    if (!mongoose.isValidObjectId(candidateId))
+      throw new BadRequestException('invalid id');
+    const candidate = await this.leadCandidateRepo.findOne({
+      _id: candidateId,
+    });
+    return candidate;
   }
 
   async isExistingCandidates(email: string, sessId: string): Promise<boolean> {

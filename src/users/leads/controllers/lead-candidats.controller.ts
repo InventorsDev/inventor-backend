@@ -1,8 +1,12 @@
 import {
   Body,
   Controller,
+  Get,
   Logger,
+  NotFoundException,
+  Param,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -13,11 +17,18 @@ import type { InviteLeadResponse } from '../dto/lead-request-responses';
 import { randomUUID } from 'crypto';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import type { ApiReq } from 'src/shared/interfaces';
+import { CandidateService } from '../services/candidate.service';
+import mongoose from 'mongoose';
+import type { CandidateResponse } from 'src/users/dto/lead-candidate-response';
+import type { LeadCandidate } from 'src/shared/schema';
 
 @Controller('admin/lead-candidates')
 export class LeadCandidateController {
   private readonly logger = new Logger(LeadCandidateController.name);
-  constructor(private readonly leadsService: LeadsService) {}
+  constructor(
+    private readonly leadsService: LeadsService,
+    private readonly candidateService: CandidateService,
+  ) {}
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
@@ -30,5 +41,34 @@ export class LeadCandidateController {
     const admin_id: string = req.user._id.toString();
     this.logger.debug(`id: ${admin_id}`);
     return this.leadsService.inviteLead(inviteLeadDto, admin_id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @Get()
+  async getAllCandidates(
+    @Query('sessionId') sessionId: string,
+  ): Promise<CandidateResponse[]> {
+    const mongooseSessionId = new mongoose.Types.ObjectId(sessionId);
+    const candidates =
+      await this.candidateService.getAllSessionCandidates(mongooseSessionId);
+    return candidates.map(
+      (candidate): CandidateResponse => ({
+        id: candidate._id.toString(),
+        email: candidate.email,
+        userId: candidate.userId?.toString(),
+        status: candidate.status,
+        recommendedFor: candidate.recommendedFor,
+      }),
+    );
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @Get(':id')
+  async getCandidate(@Param('id') id: string): Promise<LeadCandidate> {
+    const candidate = await this.candidateService.getCandidate(id);
+    if (!candidate) throw new NotFoundException('candidate not found');
+    return candidate;
   }
 }
