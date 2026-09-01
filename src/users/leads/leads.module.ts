@@ -10,6 +10,7 @@ import { UsersModule } from '../users.module';
 import { LeadInvitationService } from './services/lead-invitation.service';
 import { SchoolSessionController } from './controllers/school-session.controller';
 import { LeadAssignmentService } from './services/lead-assignment.service';
+import { LeadAssignmentController } from './controllers/lead-assignment.controller';
 
 @Module({
   imports: [DBModule, forwardRef(() => UsersModule)],
@@ -17,6 +18,7 @@ import { LeadAssignmentService } from './services/lead-assignment.service';
     AdminLeadsController,
     LeadCandidateController,
     SchoolSessionController,
+    LeadAssignmentController,
   ],
   providers: [
     LeadsService,
