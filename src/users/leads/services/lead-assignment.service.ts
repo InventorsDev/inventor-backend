@@ -11,12 +11,15 @@ import {
   AuditLogActions,
   LeadAssignment,
   LeadAssignmentStatus,
+  SchoolNames,
+  SchoolSessionStatus,
   type LeadAssignmentDocument,
   type LeadAssignmentPositions,
 } from 'src/shared/schema';
 import type { LeadAssignmentCreateDto } from 'src/users/dto/lead-assignment.dto';
 import type { LeadRevokeReasonDto } from 'src/users/dto/lead-revoke-status.dto';
 import { LeadAuditService } from './lead-audit.service';
+import { SessionService } from './sessions.service';
 
 @Injectable()
 export class LeadAssignmentService {
@@ -26,6 +29,7 @@ export class LeadAssignmentService {
     @Inject(LeadAssignment.name)
     private readonly leadAssignmentRepo: Model<LeadAssignmentDocument>,
     private readonly leadAuditService: LeadAuditService,
+    private readonly sessionService: SessionService,
   ) {}
 
   async createAssignment(
@@ -110,5 +114,56 @@ export class LeadAssignmentService {
       return false;
     }
     return true;
+  }
+
+  async getActiveLeadsForSchool(
+    school: SchoolNames,
+  ): Promise<LeadAssignmentDocument[]> {
+    // validate school name
+    const isValidSchool = Object.values(SchoolNames).includes(school);
+    if (!isValidSchool)
+      throw new BadRequestException('this school is not registered');
+    // find active session for school
+    const activeSchoolSession =
+      await this.sessionService.getActiveSessions(school);
+    // find active leads for that session
+    return await this.leadAssignmentRepo.find({
+      status: LeadAssignmentStatus.ACTIVE,
+      sessionId: activeSchoolSession[0]._id,
+    });
+  }
+
+  async getLeadHistory(school: SchoolNames) {
+    const isValidSchool = Object.values(SchoolNames).includes(school);
+
+    if (!isValidSchool) {
+      throw new BadRequestException('This school is not registered');
+    }
+
+    const sessions = await this.sessionService.getAllSessions();
+
+    const schoolSessions = sessions
+      .filter((session) => session.name === school)
+      .sort(
+        (a, b) =>
+          new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime(),
+      );
+
+    if (!schoolSessions.length) {
+      return [];
+    }
+
+    const sessionIds = schoolSessions.map((session) => session._id);
+
+    const leads = await this.leadAssignmentRepo.find({
+      sessionId: { $in: sessionIds },
+    });
+
+    return schoolSessions.map((session) => ({
+      session,
+      leads: leads.filter(
+        (lead) => lead.sessionId.toString() === session._id.toString(),
+      ),
+    }));
   }
 }

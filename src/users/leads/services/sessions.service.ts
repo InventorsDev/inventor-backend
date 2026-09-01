@@ -9,11 +9,12 @@ import {
 import mongoose from 'mongoose';
 import type { Model } from 'mongoose';
 import {
+  SchoolNames,
   SchoolSession,
   SchoolSessionStatus,
   type SchoolSessionDocumet,
 } from 'src/shared/schema';
-import type { createSchoolSessionDto } from '../dto/create-session.dto';
+import type { CreateSchoolSessionDto } from '../dto/create-session.dto';
 import e from 'express';
 
 @Injectable()
@@ -47,17 +48,33 @@ export class SessionService {
     return false;
   }
 
-  async getActiveSessions(schoolName?: string): Promise<SchoolSession[]> {
+  async getActiveSessions(
+    schoolName?: string,
+  ): Promise<SchoolSessionDocumet[]> {
     if (schoolName) {
+      const normalizedSchool = Object.entries(SchoolNames).find(
+        ([key, value]) =>
+          key.toLowerCase() === schoolName.toLowerCase() ||
+          value.toLowerCase() === schoolName.toLowerCase(),
+      )?.[1];
+
+      if (!normalizedSchool) {
+        throw new BadRequestException('Invalid school name');
+      }
+
       return await this.schoolSessionRepo.find({
         status: SchoolSessionStatus.ACTIVE,
-        name: schoolName,
+        name: normalizedSchool,
       });
     } else {
       return await this.schoolSessionRepo.find({
         status: SchoolSessionStatus.ACTIVE,
       });
     }
+  }
+
+  async getAllSessions(): Promise<SchoolSessionDocumet[]> {
+    return await this.schoolSessionRepo.find();
   }
 
   async getSession(sessId: string): Promise<SchoolSession> {
@@ -85,7 +102,7 @@ export class SessionService {
   }
 
   async createSession(
-    sessionData: createSchoolSessionDto,
+    sessionData: CreateSchoolSessionDto,
   ): Promise<SchoolSessionDocumet> {
     // validate data
     this.logger.debug(`sessioninfo: ${JSON.stringify(sessionData)}`);
