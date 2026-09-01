@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -14,13 +15,13 @@ import { LeadsService } from '../leads.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { InviteLeadDto } from '../dto/invite-lead.dto';
 import type { InviteLeadResponse } from '../dto/lead-request-responses';
-import { randomUUID } from 'crypto';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import type { ApiReq } from 'src/shared/interfaces';
 import { CandidateService } from '../services/candidate.service';
 import mongoose from 'mongoose';
 import type { CandidateResponse } from 'src/users/dto/lead-candidate-response';
 import type { LeadCandidate } from 'src/shared/schema';
+import type { LeadRejectionDTO } from 'src/users/dto/lead-rejection.dto';
 
 @Controller('admin/lead-candidates')
 export class LeadCandidateController {
@@ -61,6 +62,26 @@ export class LeadCandidateController {
         recommendedFor: candidate.recommendedFor,
       }),
     );
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @Post(':id/approve')
+  async acceptCandidateAsLead(@Param('id') id: string, @Req() req: ApiReq) {
+    const adminId = req.user._id.toString();
+    return this.candidateService.approveCandidate(id, adminId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
+  @Post(':id/reject')
+  async rejectCandidateAsLead(
+    @Param('id') id: string,
+    @Body() reason: LeadRejectionDTO,
+    @Req() req: ApiReq,
+  ) {
+    const adminId = req.user._id.toString();
+    return this.candidateService.approveCandidate(id, adminId);
   }
 
   @ApiBearerAuth()

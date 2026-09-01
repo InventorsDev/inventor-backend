@@ -1,20 +1,26 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import type { Model } from 'mongoose';
+import { Connection, type Model } from 'mongoose';
 import {
+  AuditLogActions,
   LeadAssignmentPositions,
   LeadCandidate,
+  LeadCandidateRejectionReason,
   LeadCandidateStatus,
   type LeadCandidateDocument,
 } from 'src/shared/schema';
 import mongoose from 'mongoose';
-import { NotFoundError } from 'rxjs';
+import { SessionService } from './sessions.service';
+import { LeadAssignmentService } from './lead-assignment.service';
+import type { LeadAssignmentCreateDto } from 'src/users/dto/lead-assignment.dto';
+import { LeadAuditService } from './lead-audit.service';
 
 export interface CreateCandidate {
   email: string;
@@ -30,6 +36,11 @@ export class CandidateService {
   constructor(
     @Inject(LeadCandidate.name)
     private readonly leadCandidateRepo: Model<LeadCandidateDocument>,
+    @Inject('APP_CONNECTION')
+    private readonly connection: Connection,
+    private readonly sessionService: SessionService,
+    private readonly leadAssignmentService: LeadAssignmentService,
+    private readonly leadAuditService: LeadAuditService,
   ) {}
 
   async getAllSessionCandidates(
@@ -93,6 +104,183 @@ export class CandidateService {
       status: LeadCandidateStatus.INVITED,
     });
     return candidate.save();
+  }
+
+  async approveCandidate(id: string, admin_id: string) {
+    const candidateId = new mongoose.Types.ObjectId(id);
+    const adminId = new mongoose.Types.ObjectId(admin_id);
+    if (
+      !mongoose.isValidObjectId(candidateId) ||
+      !mongoose.isValidObjectId(adminId)
+    ) {
+      throw new BadRequestException('invalid id sent');
+    }
+    const session = await this.connection.startSession();
+    try {
+      // find candidate
+      const candidate = await this.getCandidate(id);
+      if (!candidate) throw new NotFoundException('candidate not found');
+      if (
+        candidate.status !== LeadCandidateStatus.PENDING &&
+        candidate.status !== LeadCandidateStatus.INVITED
+      ) {
+        throw new ConflictException(
+          'candidate cannot be approved from this status',
+        );
+      }
+      // validate session
+      const isValidSessio = await this.sessionService.isSessionValid(
+        candidate.sessionId,
+      );
+      if (!isValidSessio)
+        throw new BadRequestException('Session is not active');
+      // check if position is occupied
+      const isPositionEmpty = await this.leadAssignmentService.isRoleFree(
+        candidate.recommendedFor,
+        candidate.sessionId,
+      );
+      if (!isPositionEmpty)
+        throw new ConflictException(
+          'A lead has already been assigned to this role',
+        );
+
+      // get session end date
+      const sessionData = await this.sessionService.getSession(
+        candidate.sessionId.toString(),
+      );
+      // create lead assignment
+      const createLeadData: LeadAssignmentCreateDto = {
+        userId: candidate.userId.toString(),
+        sessionId: candidate.sessionId.toString(),
+        position: candidate.recommendedFor,
+        appointedBy: adminId.toString(),
+        endsAt: sessionData.endsAt,
+      };
+
+      const createdlead =
+        await this.leadAssignmentService.createAssignment(createLeadData);
+
+      // mark candidate as approved
+      const updatedCandidate = await this.leadCandidateRepo.findOneAndUpdate(
+        {
+          _id: candidate._id,
+          status: {
+            $in: [LeadCandidateStatus.PENDING, LeadCandidateStatus.INVITED],
+          },
+        },
+        {
+          $set: {
+            status: LeadCandidateStatus.ASSIGNED,
+          },
+        },
+        {
+          new: true,
+          session,
+        },
+      );
+
+      if (!updatedCandidate) {
+        throw new ConflictException('Candidate can no longer be approved');
+      }
+
+      // mark all other candidates as rejected
+      const result = await this.leadCandidateRepo.updateMany(
+        {
+          sessionId: candidate.sessionId,
+          recommendedFor: candidate.recommendedFor,
+          _id: { $ne: candidate._id },
+          status: {
+            $in: [LeadCandidateStatus.PENDING, LeadCandidateStatus.INVITED],
+          },
+        },
+        {
+          $set: {
+            status: LeadCandidateStatus.REJECTED,
+            rejectionReasonCode: LeadCandidateRejectionReason.CANDIDATE_CHOSEN,
+            rejectionReason: 'A candidate was chosen for this position',
+          },
+        },
+        {
+          session,
+        },
+      );
+
+      this.logger.log(
+        `[APPROVE] Rejected competing candidates | ` +
+          `matched=${result.matchedCount} | ` +
+          `modified=${result.modifiedCount}`,
+      );
+      // log audit
+      this.leadAuditService.createLog({
+        candidateId: candidateId.toString(),
+        actorId: adminId.toString(),
+        createdAt: new Date(),
+        action: AuditLogActions.ASSIGNED,
+      });
+    } catch (e) {
+      this.logger.error('failed to perform transaction', e);
+      throw new InternalServerErrorException(
+        `Failed to perform transactio: ${e}`,
+      );
+    } finally {
+      session.endSession();
+    }
+    return true;
+  }
+
+  async rejectCandidate(id: string, admin_id: string, rejectionReason: string) {
+    const candidateId = new mongoose.Types.ObjectId(id);
+    const adminId = new mongoose.Types.ObjectId(admin_id);
+    if (
+      !mongoose.isValidObjectId(candidateId) ||
+      !mongoose.isValidObjectId(adminId)
+    ) {
+      throw new BadRequestException('invalid id sent');
+    }
+    const session = await this.connection.startSession();
+    // find candidate
+    const candidate = await this.getCandidate(id);
+    if (!candidate) throw new NotFoundException('candidate not found');
+    if (
+      candidate.status !== LeadCandidateStatus.PENDING &&
+      candidate.status !== LeadCandidateStatus.INVITED
+    ) {
+      throw new ConflictException(
+        'candidate cannot be approved from this status',
+      );
+    }
+    // validate session
+    const isValidSessio = await this.sessionService.isSessionValid(
+      candidate.sessionId,
+    );
+    if (!isValidSessio) throw new BadRequestException('Session is not active');
+
+    // mark candidate as rejected
+    const updatedCandidate = await this.leadCandidateRepo.findOneAndUpdate(
+      {
+        _id: candidate._id,
+        status: {
+          $in: [LeadCandidateStatus.PENDING, LeadCandidateStatus.INVITED],
+        },
+      },
+      {
+        $set: {
+          status: LeadCandidateStatus.REJECTED,
+          rejectionReason,
+        },
+      },
+      {
+        new: true,
+        session,
+      },
+    );
+    this.leadAuditService.createLog({
+      candidateId: candidateId.toString(),
+      actorId: adminId.toString(),
+      createdAt: new Date(),
+      action: AuditLogActions.REJECTED,
+      metadata: { rejectionReason },
+    });
   }
 
   async updateCandidateInfo(

@@ -12,7 +12,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "concurrently 'nest start' 'npm run docs:struct'",
     "start:dev": "concurrently \"nest start --watch -r tsconfig-paths/register\" \"npm run docs:struct\"",
-    "start:debug": "nest start --debug --watch",
+    "start:debug": "nest start --debug --watch --inspect",
     "start:prod": "node dist/main",
     "docs:struct": "compodoc -p tsconfig.json --disableSourceCode",
     "docs:struct-code": "compodoc -p tsconfig.json",
