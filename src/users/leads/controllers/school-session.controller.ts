@@ -1,9 +1,18 @@
-import { Body, Controller, Get, Logger, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Logger,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { SessionService } from '../services/sessions.service';
 import type { SchoolSession } from 'src/shared/schema';
-import type { CreateSchoolSessionDto } from '../dto/create-session.dto';
+import { CreateSchoolSessionDto } from '../dto/create-session.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import type { Request } from 'express';
+import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
+import type { ApiReq } from 'src/shared/interfaces';
 
 @ApiBearerAuth()
 @Controller('school-sessions')
@@ -18,16 +27,14 @@ export class SchoolSessionController {
     return await this.sessionService.getActiveSessions();
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminsGuard)
   @Post('create')
   async createSession(
     @Body() data: CreateSchoolSessionDto,
-    @Req() req: Request,
+    @Req() req: ApiReq,
   ): Promise<SchoolSession> {
-    console.log('==============================');
-    console.log('CONTENT TYPE:', req.headers['content-type']);
-    console.log('BODY:', data);
-    console.log('==============================');
-
-    return this.sessionService.createSession(data);
+    const adminId = req.user._id;
+    return this.sessionService.createSession(data, adminId);
   }
 }

@@ -22,16 +22,16 @@ export class LeadsController {
     return this.leadAssignmentService.getActiveLeadsForSchool(school);
   }
 
-  @Get('/:sessionId')
-  async getLeadsForSession(@Param('sessionId') sessionId: string) {
-    return this.leadAssignmentService.getAllLeads(sessionId);
-  }
-
   @Get('/history')
   async getLeadHistory(
     @Query('school', new ParseEnumPipe(SchoolNames))
     school: SchoolNames,
   ) {
     return this.leadAssignmentService.getLeadHistory(school);
+  }
+
+  @Get('/:sessionId')
+  async getLeadsForSession(@Param('sessionId') sessionId: string) {
+    return this.leadAssignmentService.getAllLeads(sessionId);
   }
 }

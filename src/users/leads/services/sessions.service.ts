@@ -103,6 +103,7 @@ export class SessionService {
 
   async createSession(
     sessionData: CreateSchoolSessionDto,
+    adminId: string,
   ): Promise<SchoolSessionDocumet> {
     // validate data
     this.logger.debug(`sessioninfo: ${JSON.stringify(sessionData)}`);
