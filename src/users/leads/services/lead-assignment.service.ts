@@ -166,4 +166,15 @@ export class LeadAssignmentService {
       ),
     }));
   }
+
+  async getMyAssignments(
+    id: string,
+    current: boolean = false,
+  ): Promise<LeadAssignment[] | LeadAssignment> {
+    const userId = new mongoose.Types.ObjectId(id);
+    if (current) return await this.leadAssignmentRepo.findOne({ userId });
+    if (!mongoose.isValidObjectId(userId))
+      throw new BadRequestException('Invalid user Id');
+    return await this.leadAssignmentRepo.find({ userId });
+  }
 }
