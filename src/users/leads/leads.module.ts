@@ -12,6 +12,7 @@ import { LeadAssignmentService } from './services/lead-assignment.service';
 import { LeadAssignmentController } from './controllers/lead-assignment.controller';
 import { LeadsController } from './controllers/leads.controller';
 import { LeadContributionService } from './services/lead-contirbution.service';
+import { SessionAndLeadsCron } from './services/session-and-leads-cron-jobs.service';
 
 @Module({
   imports: [DBModule, forwardRef(() => UsersModule)],
@@ -29,6 +30,7 @@ import { LeadContributionService } from './services/lead-contirbution.service';
     LeadInvitationService,
     LeadAssignmentService,
     LeadContributionService,
+    SessionAndLeadsCron,
   ],
 })
 export class LeadsModule {}

@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { EventModule } from './events/events.users.module';
 import { PostModule } from './blog/post/post.module';
 import { FaqModule } from './faq/faq.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { FaqModule } from './faq/faq.module';
         limit: +process.env.RATE_LIMIT_REQUEST_SIZE,
       },
     ]),
+    ScheduleModule.forRoot(),
     DataLogsModule,
     UsersModule,
     EventModule,

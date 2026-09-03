@@ -12,7 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { LeadsService } from '../leads.service';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { InviteLeadDto } from '../dto/invite-lead.dto';
 import type { InviteLeadResponse } from '../dto/lead-request-responses';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';

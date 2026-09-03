@@ -139,4 +139,21 @@ export class SessionService {
       throw new InternalServerErrorException('failed to create session');
     }
   }
+  async updateExpiredSessions() {
+    const now = new Date();
+
+    const result = await this.schoolSessionRepo.updateMany(
+      {
+        endsAt: { $lte: now },
+        status: { $ne: SchoolSessionStatus.ENDED },
+      },
+      {
+        $set: {
+          status: SchoolSessionStatus.ENDED,
+        },
+      },
+    );
+
+    return result.modifiedCount;
+  }
 }

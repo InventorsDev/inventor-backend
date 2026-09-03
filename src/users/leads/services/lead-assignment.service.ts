@@ -12,12 +12,10 @@ import {
   LeadAssignment,
   LeadAssignmentStatus,
   SchoolNames,
-  SchoolSessionStatus,
   type LeadAssignmentDocument,
   type LeadAssignmentPositions,
 } from 'src/shared/schema';
 import type { LeadAssignmentCreateDto } from 'src/users/dto/lead-assignment.dto';
-import type { LeadRevokeReasonDto } from 'src/users/dto/lead-revoke-status.dto';
 import { LeadAuditService } from './lead-audit.service';
 import { SessionService } from './sessions.service';
 
@@ -40,14 +38,11 @@ export class LeadAssignmentService {
         throw new BadRequestException('Bad Request Data');
       }
     }
-    const session = await this.sessionService.getSession(data.sessionId);
-    if (!session) throw new BadRequestException('session not found');
     return await this.leadAssignmentRepo.create({
       ...data,
       appointedAt: new Date(),
       status: LeadAssignmentStatus.ACTIVE,
       startsAt: new Date(),
-      endsAt: session.endsAt,
     });
   }
 
@@ -179,5 +174,25 @@ export class LeadAssignmentService {
     if (!mongoose.isValidObjectId(userId))
       throw new BadRequestException('Invalid user Id');
     return await this.leadAssignmentRepo.find({ userId });
+  }
+
+  async updateExpiredLeads() {
+    const now = new Date();
+
+    const updatedLeads = await this.leadAssignmentRepo.updateMany(
+      {
+        endsAt: { $lte: now },
+        status: {
+          $nin: [LeadAssignmentStatus.REVOKED, LeadAssignmentStatus.EXPIRED],
+        },
+      },
+      {
+        $set: {
+          status: LeadAssignmentStatus.EXPIRED,
+        },
+      },
+    );
+
+    return updatedLeads.modifiedCount;
   }
 }

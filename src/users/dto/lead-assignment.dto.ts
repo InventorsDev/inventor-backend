@@ -1,11 +1,4 @@
-import {
-  IsDate,
-  IsEnum,
-  IsMongoId,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsDate, IsEnum, IsMongoId, IsNotEmpty } from 'class-validator';
 import { LeadAssignmentPositions } from 'src/shared/schema';
 
 export class LeadAssignmentCreateDto {
@@ -24,4 +17,8 @@ export class LeadAssignmentCreateDto {
   @IsNotEmpty()
   @IsMongoId({ message: 'userId must be a valid MongoDB ObjectId' })
   appointedBy: string;
+
+  @IsNotEmpty()
+  @IsDate()
+  endsAt: Date;
 }

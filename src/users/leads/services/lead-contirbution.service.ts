@@ -5,8 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Model } from 'mongoose';
-import mongoose, { mongo } from 'mongoose';
-import { user } from 'node_modules/@getbrevo/brevo/dist/cjs/api';
+import mongoose from 'mongoose';
 import {
   LeadContribution,
   type LeadContributionDocument,

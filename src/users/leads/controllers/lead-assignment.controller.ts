@@ -13,7 +13,6 @@ import { LeadAssignmentService } from '../services/lead-assignment.service';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import type { ApiReq } from 'src/shared/interfaces';
-import type { LeadRevokeReasonDto } from 'src/users/dto/lead-revoke-status.dto';
 
 @Controller()
 export class LeadAssignmentController {
