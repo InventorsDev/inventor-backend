@@ -15,7 +15,7 @@ export class LeadAssignmentCreateDto {
 
   @IsNotEmpty()
   @IsMongoId({ message: 'categoryId must be a valid MongoDB ObjectId' })
-  sessionId?: string;
+  sessionId: string;
 
   @IsNotEmpty()
   @IsEnum(LeadAssignmentPositions)
@@ -24,8 +24,4 @@ export class LeadAssignmentCreateDto {
   @IsNotEmpty()
   @IsMongoId({ message: 'userId must be a valid MongoDB ObjectId' })
   appointedBy: string;
-
-  @IsNotEmpty()
-  @IsDate()
-  endsAt: Date;
 }

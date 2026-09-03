@@ -40,11 +40,14 @@ export class LeadAssignmentService {
         throw new BadRequestException('Bad Request Data');
       }
     }
+    const session = await this.sessionService.getSession(data.sessionId);
+    if (!session) throw new BadRequestException('session not found');
     return await this.leadAssignmentRepo.create({
       ...data,
       appointedAt: new Date(),
       status: LeadAssignmentStatus.ACTIVE,
       startsAt: new Date(),
+      endsAt: session.endsAt,
     });
   }
 
