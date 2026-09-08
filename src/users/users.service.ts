@@ -459,7 +459,7 @@ export class UsersService {
     this.logger.debug('user: ', JSON.stringify(existing));
     if (existing && existing.status === UserStatus.PENDING) {
       throw new BadRequestException('user invite already sent');
-    } else if (existing) throw new BadRequestException('User already exisits');
+    } else if (existing) throw new BadRequestException('User already exists');
     // create a user (limited information) with empty embedded profile
     const dummyPassword = await BcryptUtil.generateHash(
       randomBytes(32).toString('hex'),
