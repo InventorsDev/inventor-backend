@@ -49,6 +49,8 @@ export class LeadsController {
     return this.leadAssignmentService.getAllLeads(sessionId);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtUsersGuard)
   @Get('me/lead-assignments')
   async(
     @Req() req: ApiReq,
