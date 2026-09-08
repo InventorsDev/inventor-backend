@@ -514,9 +514,7 @@ export class UsersService {
         templateVariables: {
           position: metadata.position,
           school: metadata.school,
-          sessionYear: metadata.sessionYear,
-          session: metadata.sessionString,
-          registrationLink: metadata.registrationLink,
+          sessionDate: metadata.sessionString,
           declineLink: metadata.declineLink,
         },
       });
