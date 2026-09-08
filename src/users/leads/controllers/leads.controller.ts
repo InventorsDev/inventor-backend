@@ -71,7 +71,7 @@ export class LeadsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Get('me/lead-contributions')
+  @Post('me/lead-contributions')
   async createContribution(
     @Req() req: ApiReq,
     @Body() data: CreateLeadContributionDto,
