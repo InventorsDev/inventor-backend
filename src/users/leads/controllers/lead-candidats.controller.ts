@@ -81,8 +81,7 @@ export class LeadCandidateController {
     @Req() req: ApiReq,
   ) {
     const adminId = req.user._id.toString();
-    return this.candidateService.approveCandidate(id, adminId);
-  }
+    return this.candidateService.rejectCandidate(id, adminId, reason.reason);
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
