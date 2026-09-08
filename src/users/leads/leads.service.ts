@@ -72,11 +72,7 @@ export class LeadsService {
       );
     this.logger.debug('4. Searched for existing User');
 
-    if (!isSessionActive && !isPositionValid && !isExistingCandidate) {
-      if (!isSessionActive) this.logger.debug('session not active');
-      else if (!isPositionValid) this.logger.debug('invalid role data');
-      else if (!isExistingCandidate)
-        this.logger.debug('candidate is already selected for a role');
+    if (!isSessionActive || !isPositionValid || isExistingCandidate) {
       throw new BadRequestException('invalid data passed');
     }
     this.logger.debug('5. Creating candidate');
