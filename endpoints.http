@@ -3,6 +3,6 @@ content-type: application/json
 
 {
   "email": "john@example.com",
-  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+  "sessionId": "68ac9876543210abcdef5678",
   "position": "backend"
 }
