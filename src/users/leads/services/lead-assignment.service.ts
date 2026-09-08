@@ -105,7 +105,7 @@ export class LeadAssignmentService {
     sessionId: mongoose.Types.ObjectId,
   ): Promise<boolean> {
     const assignment = await this.leadAssignmentRepo.findOne({
-      postion: role,
+      position: role,
       sessionId,
     });
     if (assignment) {

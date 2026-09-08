@@ -21,7 +21,7 @@ export class LeadAssignmentController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
-  @Get('admin/lead-assignment')
+  @Get('admin/lead-assignments')
   getAllLeads(@Query('sessionId') sessionId: string) {
     return this.leadAssignmentService.getAllLeads(sessionId);
   }

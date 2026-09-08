@@ -239,48 +239,56 @@ export class CandidateService {
     }
     const session = await this.connection.startSession();
     // find candidate
-    const candidate = await this.getCandidate(id);
-    if (!candidate) throw new NotFoundException('candidate not found');
-    if (
-      candidate.status !== LeadCandidateStatus.PENDING &&
-      candidate.status !== LeadCandidateStatus.INVITED
-    ) {
-      throw new ConflictException(
-        'candidate cannot be approved from this status',
+    try {
+      const candidate = await this.getCandidate(id);
+      if (!candidate) throw new NotFoundException('candidate not found');
+      if (
+        candidate.status !== LeadCandidateStatus.PENDING &&
+        candidate.status !== LeadCandidateStatus.INVITED
+      ) {
+        throw new ConflictException(
+          'candidate cannot be approved from this status',
+        );
+      }
+      // validate session
+      const isValidSessio = await this.sessionService.isSessionValid(
+        candidate.sessionId,
       );
-    }
-    // validate session
-    const isValidSessio = await this.sessionService.isSessionValid(
-      candidate.sessionId,
-    );
-    if (!isValidSessio) throw new BadRequestException('Session is not active');
+      if (!isValidSessio)
+        throw new BadRequestException('Session is not active');
 
-    // mark candidate as rejected
-    const updatedCandidate = await this.leadCandidateRepo.findOneAndUpdate(
-      {
-        _id: candidate._id,
-        status: {
-          $in: [LeadCandidateStatus.PENDING, LeadCandidateStatus.INVITED],
+      // mark candidate as rejected
+      const updatedCandidate = await this.leadCandidateRepo.findOneAndUpdate(
+        {
+          _id: candidate._id,
+          status: {
+            $in: [LeadCandidateStatus.PENDING, LeadCandidateStatus.INVITED],
+          },
         },
-      },
-      {
-        $set: {
-          status: LeadCandidateStatus.REJECTED,
-          rejectionReason,
+        {
+          $set: {
+            status: LeadCandidateStatus.REJECTED,
+            rejectionReason,
+          },
         },
-      },
-      {
-        new: true,
-        session,
-      },
-    );
-    this.leadAuditService.createLog({
-      candidateId: candidateId.toString(),
-      actorId: adminId.toString(),
-      createdAt: new Date(),
-      action: AuditLogActions.REJECTED,
-      metadata: { rejectionReason },
-    });
+        {
+          new: true,
+          session,
+        },
+      );
+    } catch (e) {
+      this.logger.error(e);
+      throw new InternalServerErrorException('failed to reject candidate');
+    } finally {
+      session.endSession();
+      this.leadAuditService.createLog({
+        candidateId: candidateId.toString(),
+        actorId: adminId.toString(),
+        createdAt: new Date(),
+        action: AuditLogActions.REJECTED,
+        metadata: { rejectionReason },
+      });
+    }
   }
 
   async updateCandidateInfo(

@@ -61,9 +61,7 @@ export class LeadInvitationService {
     const tokenHash = createHash('sha256').update(token).digest('hex');
 
     const invitation = await this.leadInvitationRepo
-      .findOne({
-        where: { tokenHash },
-      })
+      .findOne({ tokenHash })
       .populate<{ candidate: LeadCandidate }>('candidate');
 
     this.logger.debug('fetched data for invitatino: ', invitation);
@@ -121,7 +119,7 @@ export class LeadInvitationService {
       {
         $set: {
           status: LeadInvitationStatus.DECLINED,
-          acceptedAt: new Date(),
+          declinedAt: new Date(),
         },
       },
     );

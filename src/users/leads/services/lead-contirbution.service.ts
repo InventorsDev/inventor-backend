@@ -39,7 +39,9 @@ export class LeadContributionService {
       throw new BadRequestException('invalid userID');
     const contribution = await this.leadContributionRepo.create({
       ...data,
+      occourredAt: new Date(data.occourredAt),
       addedBy: adminId,
+      createdAt: new Date(),
     });
     contribution.save();
     return contribution;

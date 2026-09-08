@@ -82,6 +82,7 @@ export class LeadCandidateController {
   ) {
     const adminId = req.user._id.toString();
     return this.candidateService.rejectCandidate(id, adminId, reason.reason);
+  }
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)

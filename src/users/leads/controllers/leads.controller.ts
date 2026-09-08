@@ -5,6 +5,7 @@ import {
   Logger,
   Param,
   ParseEnumPipe,
+  Post,
   Query,
   Req,
   UseGuards,

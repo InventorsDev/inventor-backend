@@ -113,8 +113,7 @@ export class LeadsService {
             user: user.basicInfo.firstName,
             position: data.position,
             school: getSession.name,
-            schoolYear,
-            sessionString,
+            sessionDate: sessionString,
           },
         });
         mailSent = true;

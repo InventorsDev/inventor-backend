@@ -13,6 +13,7 @@ import { LeadAssignmentController } from './controllers/lead-assignment.controll
 import { LeadsController } from './controllers/leads.controller';
 import { LeadContributionService } from './services/lead-contirbution.service';
 import { SessionAndLeadsCron } from './services/session-and-leads-cron-jobs.service';
+import { LeadInvitationController } from './controllers/lead-invitation.controller';
 
 @Module({
   imports: [DBModule, forwardRef(() => UsersModule)],
@@ -21,6 +22,7 @@ import { SessionAndLeadsCron } from './services/session-and-leads-cron-jobs.serv
     SchoolSessionController,
     LeadAssignmentController,
     LeadsController,
+    LeadInvitationController,
   ],
   providers: [
     LeadsService,

@@ -118,11 +118,11 @@ export class UsersService {
     email: string,
     project: any = {},
   ): Promise<LeanUser | null> {
-    const user: LeanUser = await this.userModel
+    const user = await this.userModel
       .findOne({ email, status: UserStatus.ACTIVE }, project, { lean: true })
       .select('-password')
       .exec();
-    return user;
+    return user as LeanUser | null;
   }
 
   async checkUserExists(email: string) {
@@ -495,7 +495,7 @@ export class UsersService {
     const invite_link = `${this.configService.get<string>('BASE_URL')}/users/invite/complete-invite?token=${token.token}`;
 
     // send mail to user
-    if (Object.keys(metadata).length < 0) {
+    if (Object.keys(metadata).length === 0) {
       await sendMail({
         to: sanitizedEmail,
         from: EmailFromType.HELLO,
@@ -507,9 +507,9 @@ export class UsersService {
       });
     } else {
       await sendMail({
-        to: email,
+        to: sanitizedEmail,
         from: EmailFromType.HELLO,
-        subject: metadata.subject,
+        subject: metadata.subject || 'INVENTORS COMMUNITY: Lead Invitation',
         template: getMailTemplate().leadNominationNewUser,
         templateVariables: {
           position: metadata.position,
