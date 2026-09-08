@@ -52,7 +52,7 @@ export class LeadsController {
   @ApiBearerAuth()
   @UseGuards(JwtUsersGuard)
   @Get('me/lead-assignments')
-  async(
+  async getMyAssignments(
     @Req() req: ApiReq,
     @Query('now') now: string,
   ): Promise<LeadAssignment[] | LeadAssignment> {
