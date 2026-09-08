@@ -5,13 +5,13 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
-import type {
-  InviteVerifyTokenResponse,
+import {
+  type InviteVerifyTokenResponse,
   LeadInvitationService,
 } from '../services/lead-invitation.service';
 
 @Controller('lead-invitations')
-export class leadInvitationController {
+export class LeadInvitationController {
   constructor(private readonly leadInviteService: LeadInvitationService) {}
 
   @Get(':token')
