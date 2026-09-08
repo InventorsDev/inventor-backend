@@ -17,7 +17,7 @@ import {
 import { LeadAssignmentService } from '../services/lead-assignment.service';
 import type { ApiReq } from 'src/shared/interfaces';
 import { JwtUsersGuard } from 'src/shared/auth/guards/jwt.users.guard';
-import type { LeadContributionService } from '../services/lead-contirbution.service';
+import { LeadContributionService } from '../services/lead-contirbution.service';
 import { JwtAdminsGuard } from 'src/shared/auth/guards/jwt.admins.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import type { CreateLeadContributionDto } from 'src/users/dto/create-contribution.dto';
