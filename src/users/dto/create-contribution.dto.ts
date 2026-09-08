@@ -1,4 +1,3 @@
-export class CreateContributionDTO {}
 import {
   IsDateString,
   IsEnum,
