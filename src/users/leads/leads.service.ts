@@ -124,7 +124,7 @@ export class LeadsService {
       }
     } else {
       // invite user
-      const token = this.leadInvitationService.generateInviteToken(
+      const token = await this.leadInvitationService.generateInviteToken(
         createdCandidate._id.toString(),
       );
 
