@@ -13,7 +13,6 @@ import { DataLogsService } from './shared/datalogs';
 import { AllExceptionsFilter } from './shared/exceptions';
 import { LogInterceptor } from './shared/interceptors';
 import { startRedis } from './shared/utils';
-import type { transform } from 'typescript';
 
 function buildSwaggerDocument(app: any) {
   const config = new DocumentBuilder()
