@@ -1,0 +1,8 @@
+POST http://localhost:3000/api/v1/admin/lead-candidates HTTP/1.1
+content-type: application/json
+
+{
+  "email": "john@example.com",
+  "sessionId": "68ac9876543210abcdef5678",
+  "position": "backend"
+}

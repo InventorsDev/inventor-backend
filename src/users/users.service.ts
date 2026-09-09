@@ -11,7 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { format } from 'date-fns';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { CreateUserDto } from 'src/shared/dtos/create-user.dto';
 import {
   ApiReq,
@@ -40,6 +40,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserAddPhotoDto } from './dto/user-add-photo.dto';
 import { UserChangePasswordDto } from './dto/user-change-password.dto';
 import { UserInviteDto } from './dto/user-invite.dto';
+
+export type LeanUser = User & { _id: mongoose.Types.ObjectId };
 
 @Injectable()
 export class UsersService {
@@ -110,6 +112,17 @@ export class UsersService {
       throw new NotFoundException(`User with email ${email} not found`);
     }
     return user;
+  }
+
+  async findByEmailWithId(
+    email: string,
+    project: any = {},
+  ): Promise<LeanUser | null> {
+    const user = await this.userModel
+      .findOne({ email, status: UserStatus.ACTIVE }, project, { lean: true })
+      .select('-password')
+      .exec();
+    return user as LeanUser | null;
   }
 
   async checkUserExists(email: string) {
@@ -428,7 +441,10 @@ export class UsersService {
   }
 
   // invite a new user (lead)
-  async inviteLead(email: string): Promise<string> {
+  async inviteLead(
+    email: string,
+    metadata: Record<string, string> = {},
+  ): Promise<{ message: string; id: string }> {
     if (!email || email === '') {
       throw new BadRequestException('lead email not provided');
     }
@@ -436,12 +452,14 @@ export class UsersService {
     this.logger.log(`Inviting lead ${sanitizedEmail}`);
 
     const existing = await this.userModel
-      .findOne({ email: sanitizedEmail }, { _id: 1 })
+      .findOne({ email: sanitizedEmail }, { _id: 1, status: 1 })
       .lean()
       .exec();
-    if (existing) {
-      throw new BadRequestException('user already exists');
-    }
+
+    this.logger.debug('user: ', JSON.stringify(existing));
+    if (existing && existing.status === UserStatus.PENDING) {
+      throw new BadRequestException('user invite already sent');
+    } else if (existing) throw new BadRequestException('User already exists');
     // create a user (limited information) with empty embedded profile
     const dummyPassword = await BcryptUtil.generateHash(
       randomBytes(32).toString('hex'),
@@ -450,9 +468,9 @@ export class UsersService {
       sanitizedEmail,
     );
     let token: TokenDocument;
-
+    let newUser: UserDocument;
     try {
-      await this.userModel.create({
+      newUser = await this.userModel.create({
         email: sanitizedEmail,
         password: dummyPassword,
         basicInfo: { firstName: '', lastName: '' },
@@ -477,18 +495,33 @@ export class UsersService {
     const invite_link = `${this.configService.get<string>('BASE_URL')}/users/invite/complete-invite?token=${token.token}`;
 
     // send mail to user
-    await sendMail({
-      to: sanitizedEmail,
-      from: EmailFromType.HELLO,
-      subject: 'INVENTORS COMMUNITY: Lead Invitation',
-      template: getMailTemplate().generalLeadRegistration,
-      templateVariables: {
-        link: invite_link,
-      },
-    });
+    if (Object.keys(metadata).length === 0) {
+      await sendMail({
+        to: sanitizedEmail,
+        from: EmailFromType.HELLO,
+        subject: 'INVENTORS COMMUNITY: Lead Invitation',
+        template: getMailTemplate().generalLeadRegistration,
+        templateVariables: {
+          link: invite_link,
+        },
+      });
+    } else {
+      await sendMail({
+        to: sanitizedEmail,
+        from: EmailFromType.HELLO,
+        subject: metadata.subject || 'INVENTORS COMMUNITY: Lead Invitation',
+        template: getMailTemplate().leadNominationNewUser,
+        templateVariables: {
+          position: metadata.position,
+          school: metadata.school,
+          sessionDate: metadata.sessionString,
+          declineLink: metadata.declineLink,
+        },
+      });
+    }
 
     this.logger.log(`Invite sent to ${sanitizedEmail}`);
-    return 'invite sent to user';
+    return { message: 'invite sent to user', id: newUser._id.toString() };
   }
 
   // reject a lead application

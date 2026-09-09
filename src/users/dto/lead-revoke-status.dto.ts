@@ -1,6 +1,7 @@
 import { IsNotEmpty, IsString } from 'class-validator';
-export class DeactivateAccountDto {
-  @IsNotEmpty()
+
+export class LeadRevokeReasonDto {
   @IsString()
+  @IsNotEmpty()
   reason: string;
 }

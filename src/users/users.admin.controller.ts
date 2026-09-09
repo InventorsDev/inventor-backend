@@ -179,9 +179,7 @@ export class UsersAdminsController {
     return this.usersService.requestVerification(req, userId);
   }
 
-  // TODO: since we're using JwT to pass and handle data on each request, why are we passing userId?
-  // also we seem to be reqiring that they pass in the user json data?
-  // @oyedeletemitope;
+
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
   @ApiOperation({
