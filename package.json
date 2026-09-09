@@ -27,6 +27,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@faker-js/faker": "^8.4.1",
     "@getbrevo/brevo": "^5.0.4",
     "@nestjs/common": "^11.0.15",
     "@nestjs/config": "^4.0.2",
@@ -61,7 +62,6 @@
   },
   "devDependencies": {
     "@compodoc/compodoc": "^1.1.26",
-    "@faker-js/faker": "^8.4.1",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^11.0.15",
