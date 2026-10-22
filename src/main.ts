@@ -23,6 +23,7 @@ function buildSwaggerDocument(app: any) {
     .setVersion('1.0')
     .addTag('auth')
     .addTag('users')
+    .addTag('v2')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -44,7 +45,7 @@ async function bootstrap() {
   app.useGlobalFilters(allExceptionsFilter);
   app.useGlobalGuards(throttlerGuard);
   app.useGlobalInterceptors(logInterceptor);
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api');
   app.useLogger(app.get(Logger));
   app.use(bodyParser.json({ limit: '100mb' }));
   app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
