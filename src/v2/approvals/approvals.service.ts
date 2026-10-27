@@ -87,11 +87,15 @@ export class ApprovalsService {
           metadata: {
             read_time: this.calculateReadTime(fullContent),
           },
-          created_at: blog.createdAt ? new Date(blog.createdAt).toISOString() : new Date().toISOString(),
+          created_at: blog.createdAt
+            ? new Date(blog.createdAt).toISOString()
+            : new Date().toISOString(),
         };
       });
     } catch (error) {
-      this.logger.error(`Error retrieving pending blogs: ${(error as Error).message}`);
+      this.logger.error(
+        `Error retrieving pending blogs: ${(error as Error).message}`,
+      );
       return [];
     }
   }
@@ -126,18 +130,24 @@ export class ApprovalsService {
           thumbnail_url: event.photo || undefined,
           organizer: {
             name: event.host || 'Event Organizer',
-            platform: event.joinMethod || (event.location === 'ONLINE' ? 'Online' : 'Physical'),
+            platform:
+              event.joinMethod ||
+              (event.location === 'ONLINE' ? 'Online' : 'Physical'),
             avatar_url: event.photo || undefined,
           },
           metadata: {
             date: formattedDate,
             time: formattedTime,
           },
-          created_at: event.createdAt ? new Date(event.createdAt).toISOString() : new Date().toISOString(),
+          created_at: event.createdAt
+            ? new Date(event.createdAt).toISOString()
+            : new Date().toISOString(),
         };
       });
     } catch (error) {
-      this.logger.error(`Error retrieving pending events: ${(error as Error).message}`);
+      this.logger.error(
+        `Error retrieving pending events: ${(error as Error).message}`,
+      );
       return [];
     }
   }
@@ -153,25 +163,33 @@ export class ApprovalsService {
       return leads.map((lead: any) => {
         const firstName = lead.basicInfo?.firstName || '';
         const lastName = lead.basicInfo?.lastName || '';
-        const fullName = `${firstName} ${lastName}`.trim() || lead.userHandle || lead.email;
+        const fullName =
+          `${firstName} ${lastName}`.trim() || lead.userHandle || lead.email;
 
         return {
           id: lead._id?.toString() || '',
           type: 'lead',
           title: fullName,
-          role: lead.leadPosition || lead.professionalInfo?.position || 'Applicant',
+          role:
+            lead.leadPosition || lead.professionalInfo?.position || 'Applicant',
           email: lead.email || '',
           avatar_url: lead.photo || undefined,
-          created_at: lead.createdAt ? new Date(lead.createdAt).toISOString() : new Date().toISOString(),
+          created_at: lead.createdAt
+            ? new Date(lead.createdAt).toISOString()
+            : new Date().toISOString(),
         };
       });
     } catch (error) {
-      this.logger.error(`Error retrieving pending leads: ${(error as Error).message}`);
+      this.logger.error(
+        `Error retrieving pending leads: ${(error as Error).message}`,
+      );
       return [];
     }
   }
 
-  async getPendingApprovals(query: PendingApprovalsQueryDto): Promise<PendingApprovalsResponseDto> {
+  async getPendingApprovals(
+    query: PendingApprovalsQueryDto,
+  ): Promise<PendingApprovalsResponseDto> {
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.max(1, Number(query.limit) || 10);
     const type = query.type || ApprovalItemType.ALL;
@@ -194,7 +212,10 @@ export class ApprovalsService {
     }
 
     // Sort descending by created_at
-    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    items.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
 
     const total = items.length;
     const startIndex = (page - 1) * limit;
@@ -224,6 +245,11 @@ export class ApprovalsService {
       if (isValidObjectId(id)) {
         const post = await this.postModel.findById(id).lean().exec();
         if (post) {
+          if (post.status !== PostStatus.PENDING) {
+            throw new BadRequestException(
+              `Blog is not pending approval (current status: ${post.status})`,
+            );
+          }
           await this.postService.approvePost(id);
           return {
             success: true,
@@ -243,6 +269,11 @@ export class ApprovalsService {
       if (isValidObjectId(id)) {
         const event = await this.eventModel.findById(id).lean().exec();
         if (event) {
+          if (event.status !== EventStatus.PENDING) {
+            throw new BadRequestException(
+              `Event is not pending approval (current status: ${event.status})`,
+            );
+          }
           await this.eventService.approveEvent(id);
           return {
             success: true,
@@ -261,7 +292,10 @@ export class ApprovalsService {
     if (!explicitType || explicitType === ApprovalItemType.LEAD) {
       if (isValidObjectId(id)) {
         // Check LeadCandidate nomination
-        const candidate = await this.leadCandidateModel.findById(id).lean().exec();
+        const candidate = await this.leadCandidateModel
+          .findById(id)
+          .lean()
+          .exec();
         if (candidate) {
           await this.candidateService.approveCandidate(id, adminId);
           return {
@@ -275,10 +309,13 @@ export class ApprovalsService {
         // Check User direct application
         const user = await this.userModel.findById(id).exec();
         if (user && user.applicationStatus === ApplicationStatus.PENDING) {
-          const msg = await this.usersService.approveTempApplication(user.email);
+          const msg = await this.usersService.approveTempApplication(
+            user.email,
+          );
           return {
             success: true,
-            message: msg || `Lead application for ${user.email} approved successfully`,
+            message:
+              msg || `Lead application for ${user.email} approved successfully`,
             id,
             type: 'lead',
           };
@@ -289,7 +326,9 @@ export class ApprovalsService {
       }
     }
 
-    throw new NotFoundException(`Pending approval item with ID ${id} not found`);
+    throw new NotFoundException(
+      `Pending approval item with ID ${id} not found`,
+    );
   }
 
   async rejectItem(
@@ -303,7 +342,8 @@ export class ApprovalsService {
     }
 
     const explicitType = dto?.type;
-    const reason = dto?.reason || 'Application/submission rejected by administrator';
+    const reason =
+      dto?.reason || 'Application/submission rejected by administrator';
 
     // 1. If type is blog or not specified, check Post
     if (!explicitType || explicitType === ApprovalItemType.BLOG) {
@@ -347,7 +387,10 @@ export class ApprovalsService {
     if (!explicitType || explicitType === ApprovalItemType.LEAD) {
       if (isValidObjectId(id)) {
         // Check LeadCandidate nomination
-        const candidate = await this.leadCandidateModel.findById(id).lean().exec();
+        const candidate = await this.leadCandidateModel
+          .findById(id)
+          .lean()
+          .exec();
         if (candidate) {
           await this.candidateService.rejectCandidate(id, adminId, reason);
           return {
@@ -361,10 +404,14 @@ export class ApprovalsService {
         // Check User direct application
         const user = await this.userModel.findById(id).exec();
         if (user && user.applicationStatus === ApplicationStatus.PENDING) {
-          const msg = await this.usersService.rejectTempApplication(user.email, reason);
+          const msg = await this.usersService.rejectTempApplication(
+            user.email,
+            reason,
+          );
           return {
             success: true,
-            message: msg || `Lead application for ${user.email} rejected successfully`,
+            message:
+              msg || `Lead application for ${user.email} rejected successfully`,
             id,
             type: 'lead',
           };
@@ -375,7 +422,8 @@ export class ApprovalsService {
       }
     }
 
-    throw new NotFoundException(`Pending approval item with ID ${id} not found`);
+    throw new NotFoundException(
+      `Pending approval item with ID ${id} not found`,
+    );
   }
 }
-
