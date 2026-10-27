@@ -14,6 +14,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 import { RouterModule } from '@nestjs/core';
 import { V2Module } from './v2/v2.module';
+import { DashboardModule } from './v2/dashboard/dashboard.module';
+import { ApprovalsModule } from './v2/approvals/approvals.module';
 
 @Module({
   imports: [
@@ -26,17 +28,12 @@ import { V2Module } from './v2/v2.module';
     RouterModule.register([
       {
         path: 'v1',
-        children: [
-          AuthModule,
-          UsersModule,
-          EventModule,
-          PostModule,
-          FaqModule,
-        ],
+        children: [AuthModule, UsersModule, EventModule, PostModule, FaqModule],
       },
       {
         path: 'v2',
         module: V2Module,
+        children: [DashboardModule, ApprovalsModule],
       },
     ]),
     ThrottlerModule.forRoot([
