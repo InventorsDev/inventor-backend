@@ -37,7 +37,7 @@ export class LeadsService {
     adminId: string,
   ): Promise<InviteLeadResponse> {
     /**
-         1. Validate session
+        1. Validate session
         2. Validate position
         3. Find user by normalized email
         4. Check existing candidate
