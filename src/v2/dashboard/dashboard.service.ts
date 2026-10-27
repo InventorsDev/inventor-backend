@@ -2,7 +2,11 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { Status as EventStatus } from 'src/shared/interfaces/event.type';
 import { Status as PostStatus } from 'src/shared/interfaces/post.type';
-import { ApplicationStatus, UserRole, UserStatus } from 'src/shared/interfaces/user.type';
+import {
+  ApplicationStatus,
+  UserRole,
+  UserStatus,
+} from 'src/shared/interfaces/user.type';
 import {
   Event,
   EventDocument,
@@ -67,68 +71,88 @@ export class DashboardService {
     ] = await Promise.all([
       // Total leads: user role includes LEAD and status is not DEACTIVATED or DISABLE
       this.safeCount('leadsTotal', () =>
-        this.userModel.countDocuments({
-          role: UserRole.LEAD,
-          status: { $nin: [UserStatus.DEACTIVATED, UserStatus.DISABLE] },
-        }).exec(),
+        this.userModel
+          .countDocuments({
+            role: UserRole.LEAD,
+            status: { $nin: [UserStatus.DEACTIVATED, UserStatus.DISABLE] },
+          })
+          .exec(),
       ),
 
       // Deactivated leads
       this.safeCount('leadsDeactivated', () =>
-        this.userModel.countDocuments({
-          role: UserRole.LEAD,
-          status: UserStatus.DEACTIVATED,
-        }).exec(),
+        this.userModel
+          .countDocuments({
+            role: UserRole.LEAD,
+            status: UserStatus.DEACTIVATED,
+          })
+          .exec(),
       ),
 
       // Direct pending lead applications on users collection
       this.safeCount('directPendingApplications', () =>
-        this.userModel.countDocuments({
-          applicationStatus: ApplicationStatus.PENDING,
-        }).exec(),
+        this.userModel
+          .countDocuments({
+            applicationStatus: ApplicationStatus.PENDING,
+          })
+          .exec(),
       ),
 
       // Pending candidate recommendations
       this.safeCount('candidatePendingRecommendations', () =>
-        this.leadCandidateModel.countDocuments({
-          status: LeadCandidateStatus.PENDING,
-        }).exec(),
+        this.leadCandidateModel
+          .countDocuments({
+            status: LeadCandidateStatus.PENDING,
+          })
+          .exec(),
       ),
 
       // Pending lead invitations
       this.safeCount('invitationPending', () =>
-        this.leadInvitationModel.countDocuments({
-          status: LeadInvitationStatus.PENDING,
-        }).exec(),
+        this.leadInvitationModel
+          .countDocuments({
+            status: {
+              $in: [LeadCandidateStatus.PENDING, LeadCandidateStatus.INVITED],
+            },
+          })
+          .exec(),
       ),
 
       // Upcoming approved events
       this.safeCount('eventsUpcoming', () =>
-        this.eventModel.countDocuments({
-          status: EventStatus.APPROVED,
-          eventDate: { $gte: now },
-        }).exec(),
+        this.eventModel
+          .countDocuments({
+            status: EventStatus.APPROVED,
+            eventDate: { $gte: now },
+          })
+          .exec(),
       ),
 
       // Pending events
       this.safeCount('eventsPending', () =>
-        this.eventModel.countDocuments({
-          status: EventStatus.PENDING,
-        }).exec(),
+        this.eventModel
+          .countDocuments({
+            status: EventStatus.PENDING,
+          })
+          .exec(),
       ),
 
       // Published/approved posts
       this.safeCount('blogsPublished', () =>
-        this.postModel.countDocuments({
-          status: PostStatus.APPROVED,
-        }).exec(),
+        this.postModel
+          .countDocuments({
+            status: PostStatus.APPROVED,
+          })
+          .exec(),
       ),
 
       // Pending posts
       this.safeCount('blogsPending', () =>
-        this.postModel.countDocuments({
-          status: PostStatus.PENDING,
-        }).exec(),
+        this.postModel
+          .countDocuments({
+            status: PostStatus.PENDING,
+          })
+          .exec(),
       ),
     ]);
 
@@ -156,4 +180,3 @@ export class DashboardService {
     };
   }
 }
-
