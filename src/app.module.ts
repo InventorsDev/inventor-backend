@@ -16,6 +16,7 @@ import { RouterModule } from '@nestjs/core';
 import { V2Module } from './v2/v2.module';
 import { DashboardModule } from './v2/dashboard/dashboard.module';
 import { ApprovalsModule } from './v2/approvals/approvals.module';
+import { LeadsModule } from './users/leads/leads.module';
 
 @Module({
   imports: [
@@ -28,7 +29,14 @@ import { ApprovalsModule } from './v2/approvals/approvals.module';
     RouterModule.register([
       {
         path: 'v1',
-        children: [AuthModule, UsersModule, EventModule, PostModule, FaqModule],
+        children: [
+          AuthModule,
+          UsersModule,
+          EventModule,
+          PostModule,
+          FaqModule,
+          LeadsModule,
+        ],
       },
       {
         path: 'v2',
