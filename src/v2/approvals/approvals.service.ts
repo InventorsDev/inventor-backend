@@ -37,6 +37,7 @@ import {
   ApproveApprovalDto,
   RejectApprovalDto,
 } from './dto/approval-action.dto';
+import { InternalServerError } from '@getbrevo/brevo/dist/cjs/api';
 
 @Injectable()
 export class ApprovalsService {
@@ -96,8 +97,9 @@ export class ApprovalsService {
     } catch (error) {
       this.logger.error(
         `Error retrieving pending blogs: ${(error as Error).message}`,
+        (error as Error).stack,
       );
-      return [];
+      throw new InternalServerError('Failed to retrieve pending blogs');
     }
   }
 
@@ -149,7 +151,7 @@ export class ApprovalsService {
       this.logger.error(
         `Error retrieving pending events: ${(error as Error).message}`,
       );
-      return [];
+      throw new InternalServerError('Failed to retrieve pending events');
     }
   }
 
@@ -207,7 +209,7 @@ export class ApprovalsService {
       this.logger.error(
         `Error retrieving pending leads: ${(error as Error).message}`,
       );
-      return [];
+      throw new InternalServerError('Failed to retrieve pending leads');
     }
   }
 
