@@ -70,6 +70,7 @@ export class ApprovalsService {
     try {
       const blogs = await this.postModel
         .find({ status: PostStatus.PENDING })
+        .select('title photo shortDesc description createdAt')
         .sort({ createdAt: -1 })
         .lean()
         .exec();
@@ -81,12 +82,8 @@ export class ApprovalsService {
           type: 'blog',
           title: blog.title || '',
           thumbnail_url: blog.photo || undefined,
-          author: {
-            name: blog.authorName || 'Author',
-            role: blog.authorRole || 'Contributor',
-            avatar_url: blog.authorAvatar || undefined,
-          },
           metadata: {
+            shortDesc: blog.shortDesc || '',
             read_time: this.calculateReadTime(fullContent),
           },
           created_at: blog.createdAt
@@ -160,11 +157,19 @@ export class ApprovalsService {
       const [users, candidates] = await Promise.all([
         this.userModel
           .find({ applicationStatus: ApplicationStatus.PENDING })
+          .select(
+            'basicInfo userHandle email leadPosition professionalInfo photo createdAt',
+          )
           .sort({ createdAt: -1 })
           .lean()
           .exec(),
         this.leadCandidateModel
-          .find({ status: LeadCandidateStatus.PENDING })
+          .find({
+            status: {
+              $in: [LeadCandidateStatus.PENDING, LeadCandidateStatus.INVITED],
+            },
+          })
+          .select('name fullName email position leadPosition photo createdAt')
           .sort({ createdAt: -1 })
           .lean()
           .exec(),
