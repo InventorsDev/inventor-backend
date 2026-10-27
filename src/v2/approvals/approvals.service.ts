@@ -16,6 +16,7 @@ import {
   EventDocument,
   LeadCandidate,
   LeadCandidateDocument,
+  LeadCandidateStatus,
   Post,
   PostDocument,
   User,
@@ -154,13 +155,20 @@ export class ApprovalsService {
 
   private async getPendingLeads(): Promise<ApprovalItemDto[]> {
     try {
-      const leads = await this.userModel
-        .find({ applicationStatus: ApplicationStatus.PENDING })
-        .sort({ createdAt: -1 })
-        .lean()
-        .exec();
+      const [users, candidates] = await Promise.all([
+        this.userModel
+          .find({ applicationStatus: ApplicationStatus.PENDING })
+          .sort({ createdAt: -1 })
+          .lean()
+          .exec(),
+        this.leadCandidateModel
+          .find({ status: LeadCandidateStatus.PENDING })
+          .sort({ createdAt: -1 })
+          .lean()
+          .exec(),
+      ]);
 
-      return leads.map((lead: any) => {
+      const userItems: ApprovalItemDto[] = users.map((lead: any) => {
         const firstName = lead.basicInfo?.firstName || '';
         const lastName = lead.basicInfo?.lastName || '';
         const fullName =
@@ -179,6 +187,22 @@ export class ApprovalsService {
             : new Date().toISOString(),
         };
       });
+
+      const candidateItems: ApprovalItemDto[] = candidates.map((c: any) => ({
+        id: c._id?.toString() || '',
+        type: 'lead',
+        title: c.firstname || 'Nominee',
+        role: c.leadPosition || 'Nominee',
+        email: c.email || '',
+        created_at: c.createdAt
+          ? new Date(c.createdAt).toISOString()
+          : new Date().toISOString(),
+      }));
+
+      return [...userItems, ...candidateItems].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
     } catch (error) {
       this.logger.error(
         `Error retrieving pending leads: ${(error as Error).message}`,
@@ -350,6 +374,11 @@ export class ApprovalsService {
       if (isValidObjectId(id)) {
         const post = await this.postModel.findById(id).lean().exec();
         if (post) {
+          if (post.status !== PostStatus.PENDING) {
+            throw new BadRequestException(
+              `Blog is not pending approval (current status: ${post.status})`,
+            );
+          }
           await this.postService.softDeletePost(id);
           return {
             success: true,
@@ -369,6 +398,11 @@ export class ApprovalsService {
       if (isValidObjectId(id)) {
         const event = await this.eventModel.findById(id).lean().exec();
         if (event) {
+          if (event.status !== EventStatus.PENDING) {
+            throw new BadRequestException(
+              `Event is not pending approval (current status: ${event.status})`,
+            );
+          }
           await this.eventService.softDeleteEvent(id, req);
           return {
             success: true,
