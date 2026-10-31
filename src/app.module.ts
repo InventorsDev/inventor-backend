@@ -12,9 +12,38 @@ import { PostModule } from './blog/post/post.module';
 import { FaqModule } from './faq/faq.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
+import { RouterModule } from '@nestjs/core';
+import { V2Module } from './v2/v2.module';
+import { DashboardModule } from './v2/dashboard/dashboard.module';
+import { ApprovalsModule } from './v2/approvals/approvals.module';
+import { LeadsModule } from './users/leads/leads.module';
+
 @Module({
   imports: [
     AuthModule,
+    UsersModule,
+    EventModule,
+    PostModule,
+    FaqModule,
+    V2Module,
+    RouterModule.register([
+      {
+        path: 'v1',
+        children: [
+          AuthModule,
+          UsersModule,
+          EventModule,
+          PostModule,
+          FaqModule,
+          LeadsModule,
+        ],
+      },
+      {
+        path: 'v2',
+        module: V2Module,
+        children: [DashboardModule, ApprovalsModule],
+      },
+    ]),
     ThrottlerModule.forRoot([
       {
         ttl: +process.env.RATE_LIMIT_TTL,
@@ -23,10 +52,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     ]),
     ScheduleModule.forRoot(),
     DataLogsModule,
-    UsersModule,
-    EventModule,
-    PostModule,
-    FaqModule,
   ],
   controllers: [AppController],
   providers: [

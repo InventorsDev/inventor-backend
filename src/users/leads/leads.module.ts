@@ -34,5 +34,7 @@ import { LeadInvitationController } from './controllers/lead-invitation.controll
     LeadContributionService,
     SessionAndLeadsCron,
   ],
+  exports: [CandidateService],
 })
 export class LeadsModule {}
+
