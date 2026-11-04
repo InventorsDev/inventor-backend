@@ -7,6 +7,18 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+    # Some suites boot the real DB module, so they need a MongoDB to connect to.
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    env:
+      NODE_ENV: test
+      APP_DATABASE_URL: mongodb://localhost:27017/inventors_test
+      LOG_DATABASE_URL: mongodb://localhost:27017/inventors_test_logs
+      JWT_SECRET: ci-test-secret
+      JWT_EXPIRES: 1h
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

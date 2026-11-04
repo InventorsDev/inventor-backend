@@ -512,6 +512,7 @@ export class UsersService {
         subject: metadata.subject || 'INVENTORS COMMUNITY: Lead Invitation',
         template: getMailTemplate().leadNominationNewUser,
         templateVariables: {
+          registrationLink: metadata.registrationLink || invite_link,
           position: metadata.position,
           school: metadata.school,
           sessionDate: metadata.sessionString,

@@ -11,10 +11,18 @@ import { EventModule } from './events/events.users.module';
 import { PostModule } from './blog/post/post.module';
 import { FaqModule } from './faq/faq.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { V2Module } from './v2/v2.module';
 
+// API versions are applied through URI versioning in main.ts: controllers
+// default to v1, and v2 controllers declare `version: '2'` themselves.
 @Module({
   imports: [
     AuthModule,
+    UsersModule,
+    EventModule,
+    PostModule,
+    FaqModule,
+    V2Module,
     ThrottlerModule.forRoot([
       {
         ttl: +process.env.RATE_LIMIT_TTL,
@@ -23,10 +31,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     ]),
     ScheduleModule.forRoot(),
     DataLogsModule,
-    UsersModule,
-    EventModule,
-    PostModule,
-    FaqModule,
   ],
   controllers: [AppController],
   providers: [
