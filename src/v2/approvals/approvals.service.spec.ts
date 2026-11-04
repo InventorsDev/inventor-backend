@@ -4,6 +4,8 @@ import { Types } from 'mongoose';
 import { PostService } from 'src/blog/post/post.service';
 import { EventService } from 'src/events/events.users.service';
 import { ApiReq } from 'src/shared/interfaces';
+import { Status as EventStatus } from 'src/shared/interfaces/event.type';
+import { Status as PostStatus } from 'src/shared/interfaces/post.type';
 import { ApplicationStatus } from 'src/shared/interfaces/user.type';
 import { Event, LeadCandidate, Post, User } from 'src/shared/schema';
 import { CandidateService } from 'src/users/leads/services/candidate.service';
@@ -99,7 +101,9 @@ describe('ApprovalsService', () => {
 
   describe('approveItem', () => {
     it('should approve a blog when found', async () => {
-      mockPostModel.findById.mockReturnValue(makeFindOneMock({ _id: validObjectId, title: 'Test Post' }));
+      mockPostModel.findById.mockReturnValue(
+        makeFindOneMock({ _id: validObjectId, title: 'Test Post', status: PostStatus.PENDING }),
+      );
 
       const result = await service.approveItem(validObjectId, 'admin_1');
 
@@ -108,15 +112,38 @@ describe('ApprovalsService', () => {
       expect(result.type).toBe('blog');
     });
 
+    it('should throw BadRequestException when blog is not pending', async () => {
+      mockPostModel.findById.mockReturnValue(
+        makeFindOneMock({ _id: validObjectId, title: 'Test Post', status: PostStatus.APPROVED }),
+      );
+
+      await expect(
+        service.approveItem(validObjectId, 'admin_1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('should approve an event when blog is not found', async () => {
       mockPostModel.findById.mockReturnValue(makeFindOneMock(null));
-      mockEventModel.findById.mockReturnValue(makeFindOneMock({ _id: validObjectId, title: 'Test Event' }));
+      mockEventModel.findById.mockReturnValue(
+        makeFindOneMock({ _id: validObjectId, title: 'Test Event', status: EventStatus.PENDING }),
+      );
 
       const result = await service.approveItem(validObjectId, 'admin_1');
 
       expect(mockEventService.approveEvent).toHaveBeenCalledWith(validObjectId);
       expect(result.success).toBe(true);
       expect(result.type).toBe('event');
+    });
+
+    it('should throw BadRequestException when event is not pending', async () => {
+      mockPostModel.findById.mockReturnValue(makeFindOneMock(null));
+      mockEventModel.findById.mockReturnValue(
+        makeFindOneMock({ _id: validObjectId, title: 'Test Event', status: EventStatus.APPROVED }),
+      );
+
+      await expect(
+        service.approveItem(validObjectId, 'admin_1'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should approve a candidate lead nomination when found', async () => {
@@ -166,7 +193,9 @@ describe('ApprovalsService', () => {
 
   describe('rejectItem', () => {
     it('should soft delete a blog when found', async () => {
-      mockPostModel.findById.mockReturnValue(makeFindOneMock({ _id: validObjectId, title: 'Test Post' }));
+      mockPostModel.findById.mockReturnValue(
+        makeFindOneMock({ _id: validObjectId, title: 'Test Post', status: PostStatus.PENDING }),
+      );
 
       const result = await service.rejectItem(validObjectId, 'admin_1', mockAdminReq);
 
@@ -175,15 +204,38 @@ describe('ApprovalsService', () => {
       expect(result.type).toBe('blog');
     });
 
+    it('should throw BadRequestException when blog is not pending', async () => {
+      mockPostModel.findById.mockReturnValue(
+        makeFindOneMock({ _id: validObjectId, title: 'Test Post', status: PostStatus.APPROVED }),
+      );
+
+      await expect(
+        service.rejectItem(validObjectId, 'admin_1', mockAdminReq),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('should soft delete an event when found', async () => {
       mockPostModel.findById.mockReturnValue(makeFindOneMock(null));
-      mockEventModel.findById.mockReturnValue(makeFindOneMock({ _id: validObjectId, title: 'Test Event' }));
+      mockEventModel.findById.mockReturnValue(
+        makeFindOneMock({ _id: validObjectId, title: 'Test Event', status: EventStatus.PENDING }),
+      );
 
       const result = await service.rejectItem(validObjectId, 'admin_1', mockAdminReq);
 
       expect(mockEventService.softDeleteEvent).toHaveBeenCalledWith(validObjectId, mockAdminReq);
       expect(result.success).toBe(true);
       expect(result.type).toBe('event');
+    });
+
+    it('should throw BadRequestException when event is not pending', async () => {
+      mockPostModel.findById.mockReturnValue(makeFindOneMock(null));
+      mockEventModel.findById.mockReturnValue(
+        makeFindOneMock({ _id: validObjectId, title: 'Test Event', status: EventStatus.APPROVED }),
+      );
+
+      await expect(
+        service.rejectItem(validObjectId, 'admin_1', mockAdminReq),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should reject a candidate lead nomination when found', async () => {

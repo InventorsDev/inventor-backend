@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -37,8 +38,6 @@ import {
   ApproveApprovalDto,
   RejectApprovalDto,
 } from './dto/approval-action.dto';
-import { InternalServerError } from '@getbrevo/brevo/dist/cjs/api';
-
 @Injectable()
 export class ApprovalsService {
   private readonly logger = new Logger(ApprovalsService.name);
@@ -96,7 +95,9 @@ export class ApprovalsService {
         `Error retrieving pending blogs: ${(error as Error).message}`,
         (error as Error).stack,
       );
-      throw new InternalServerError('Failed to retrieve pending blogs');
+      throw new InternalServerErrorException(
+        'Failed to retrieve pending blogs',
+      );
     }
   }
 
@@ -148,7 +149,9 @@ export class ApprovalsService {
       this.logger.error(
         `Error retrieving pending events: ${(error as Error).message}`,
       );
-      throw new InternalServerError('Failed to retrieve pending events');
+      throw new InternalServerErrorException(
+        'Failed to retrieve pending events',
+      );
     }
   }
 
@@ -214,7 +217,9 @@ export class ApprovalsService {
       this.logger.error(
         `Error retrieving pending leads: ${(error as Error).message}`,
       );
-      throw new InternalServerError('Failed to retrieve pending leads');
+      throw new InternalServerErrorException(
+        'Failed to retrieve pending leads',
+      );
     }
   }
 
