@@ -1,8 +1,9 @@
+import { InternalServerErrorException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   Event,
   LeadCandidate,
-  LeadInvitation,
+  LeadCandidateStatus,
   Post,
   User,
 } from 'src/shared/schema';
@@ -23,7 +24,6 @@ describe('DashboardService', () => {
   let mockEventModel: any;
   let mockPostModel: any;
   let mockLeadCandidateModel: any;
-  let mockLeadInvitationModel: any;
 
   beforeEach(async () => {
     mockUserModel = {
@@ -38,9 +38,6 @@ describe('DashboardService', () => {
     mockLeadCandidateModel = {
       countDocuments: jest.fn(),
     };
-    mockLeadInvitationModel = {
-      countDocuments: jest.fn(),
-    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -49,7 +46,6 @@ describe('DashboardService', () => {
         { provide: Event.name, useValue: mockEventModel },
         { provide: Post.name, useValue: mockPostModel },
         { provide: LeadCandidate.name, useValue: mockLeadCandidateModel },
-        { provide: LeadInvitation.name, useValue: mockLeadInvitationModel },
       ],
     }).compile();
 
@@ -70,11 +66,8 @@ describe('DashboardService', () => {
       .mockReturnValueOnce(makeCountQuery(5))
       .mockReturnValueOnce(makeCountQuery(2));
 
-    // LeadCandidateModel call: candidatePendingRecommendations -> 2
-    mockLeadCandidateModel.countDocuments.mockReturnValueOnce(makeCountQuery(2));
-
-    // LeadInvitationModel call: invitationPending -> 1
-    mockLeadInvitationModel.countDocuments.mockReturnValueOnce(makeCountQuery(1));
+    // LeadCandidateModel call: candidatePendingRecommendations (invited + pending) -> 3
+    mockLeadCandidateModel.countDocuments.mockReturnValueOnce(makeCountQuery(3));
 
     // EventModel calls:
     // 1st: eventsUpcoming -> 4
@@ -95,7 +88,7 @@ describe('DashboardService', () => {
     expect(result).toEqual({
       leads: {
         total: 50,
-        pending: 5, // 2 (direct) + 2 (candidates) + 1 (invitations)
+        pending: 5, // 2 (direct) + 3 (candidates)
       },
       events: {
         upcoming: 4,
@@ -111,44 +104,33 @@ describe('DashboardService', () => {
     });
   });
 
-  it('should default to 0 for unavailable table/collection and return remaining stats without throwing', async () => {
-    // Simulate failure on Event table/collection
-    mockUserModel.countDocuments
-      .mockReturnValueOnce(makeCountQuery(10))
-      .mockReturnValueOnce(makeCountQuery(2))
-      .mockReturnValueOnce(makeCountQuery(1));
+  it('should count invited and pending nominations without adding lead invitations', async () => {
+    mockUserModel.countDocuments.mockReturnValue(makeCountQuery(0));
+    mockLeadCandidateModel.countDocuments.mockReturnValueOnce(makeCountQuery(0));
+    mockEventModel.countDocuments.mockReturnValue(makeCountQuery(0));
+    mockPostModel.countDocuments.mockReturnValue(makeCountQuery(0));
 
-    mockLeadCandidateModel.countDocuments.mockReturnValueOnce(makeCountQuery(1));
-    mockLeadInvitationModel.countDocuments.mockReturnValueOnce(makeCountQuery(1));
+    await service.getDashboardStats();
 
-    // EventModel throws an error (e.g. database down, collection unavailable)
-    mockEventModel.countDocuments
-      .mockReturnValueOnce(makeFailingCountQuery('Events collection connection lost'))
-      .mockReturnValueOnce(makeFailingCountQuery('Events collection connection lost'));
-
-    // PostModel succeeds
-    mockPostModel.countDocuments
-      .mockReturnValueOnce(makeCountQuery(20))
-      .mockReturnValueOnce(makeCountQuery(2));
-
-    const result = await service.getDashboardStats();
-
-    expect(result).toEqual({
-      leads: {
-        total: 10,
-        pending: 3,
-      },
-      events: {
-        upcoming: 0, // defaulted to 0
-        pending: 0,  // defaulted to 0
-      },
-      blogs: {
-        published: 20,
-        pending: 2,
-      },
-      deactivated: {
-        total: 2,
+    expect(mockLeadCandidateModel.countDocuments).toHaveBeenCalledWith({
+      status: {
+        $in: [LeadCandidateStatus.PENDING, LeadCandidateStatus.INVITED],
       },
     });
+  });
+
+  it('should throw instead of reporting 0 when a collection count fails', async () => {
+    mockUserModel.countDocuments.mockReturnValue(makeCountQuery(1));
+    mockLeadCandidateModel.countDocuments.mockReturnValueOnce(makeCountQuery(1));
+
+    // EventModel throws an error (e.g. database down, collection unavailable)
+    mockEventModel.countDocuments.mockReturnValue(
+      makeFailingCountQuery('Events collection connection lost'),
+    );
+    mockPostModel.countDocuments.mockReturnValue(makeCountQuery(1));
+
+    await expect(service.getDashboardStats()).rejects.toBeInstanceOf(
+      InternalServerErrorException,
+    );
   });
 });

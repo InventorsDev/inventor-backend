@@ -1,4 +1,9 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { Model } from 'mongoose';
 import { Status as EventStatus } from 'src/shared/interfaces/event.type';
 import { Status as PostStatus } from 'src/shared/interfaces/post.type';
@@ -13,8 +18,6 @@ import {
   LeadCandidate,
   LeadCandidateDocument,
   LeadCandidateStatus,
-  LeadInvitation,
-  LeadInvitationDocument,
   Post,
   PostDocument,
   User,
@@ -35,10 +38,10 @@ export class DashboardService {
     private readonly postModel: Model<PostDocument>,
     @Inject(LeadCandidate.name)
     private readonly leadCandidateModel: Model<LeadCandidateDocument>,
-    @Inject(LeadInvitation.name)
-    private readonly leadInvitationModel: Model<LeadInvitationDocument>,
   ) {}
 
+  // Logs which count failed and surfaces the failure, so a database error is
+  // never reported to the dashboard as a count of 0.
   private async safeCount(
     operationName: string,
     countFn: () => Promise<number>,
@@ -50,7 +53,9 @@ export class DashboardService {
         `Failed to retrieve count for ${operationName}: ${(error as Error).message}`,
         (error as Error).stack,
       );
-      return 0;
+      throw new InternalServerErrorException(
+        'Failed to retrieve dashboard statistics',
+      );
     }
   }
 
@@ -62,7 +67,6 @@ export class DashboardService {
       leadsDeactivated,
       directPendingApplications,
       candidatePendingRecommendations,
-      invitationPending,
       eventsUpcoming,
       eventsPending,
       blogsPublished,
@@ -97,18 +101,13 @@ export class DashboardService {
           .exec(),
       ),
 
-      // Pending candidate recommendations
+      // Pending candidate nominations. A nomination starts as INVITED (with a
+      // pending LeadInvitation) and becomes PENDING once the invite is
+      // accepted, so counting both statuses covers every nomination once.
+      // LeadInvitations are not counted separately, as that would count
+      // INVITED candidates twice.
       this.safeCount('candidatePendingRecommendations', () =>
         this.leadCandidateModel
-          .countDocuments({
-            status: LeadCandidateStatus.PENDING,
-          })
-          .exec(),
-      ),
-
-      // Pending lead invitations
-      this.safeCount('invitationPending', () =>
-        this.leadInvitationModel
           .countDocuments({
             status: {
               $in: [LeadCandidateStatus.PENDING, LeadCandidateStatus.INVITED],
@@ -156,9 +155,7 @@ export class DashboardService {
     ]);
 
     const totalPendingLeads =
-      directPendingApplications +
-      candidatePendingRecommendations +
-      invitationPending;
+      directPendingApplications + candidatePendingRecommendations;
 
     return {
       leads: {

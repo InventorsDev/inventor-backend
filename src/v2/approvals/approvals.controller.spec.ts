@@ -86,6 +86,14 @@ describe('ApprovalsController', () => {
       expect(service.approveItem).toHaveBeenCalledWith('item_101', 'admin_123', dto);
       expect(result).toEqual(mockActionResult);
     });
+
+    it('should throw UnauthorizedException when the token has no admin id', async () => {
+      const reqWithoutId = { user: { role: ['ADMIN'] } } as unknown as ApiReq;
+      await expect(
+        controller.approveItem('item_101', reqWithoutId, {}),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(service.approveItem).not.toHaveBeenCalled();
+    });
   });
 
   describe('DELETE /api/v2/approvals/:id', () => {
@@ -94,6 +102,14 @@ describe('ApprovalsController', () => {
       const result = await controller.rejectItem('item_101', mockAdminReq, dto);
       expect(service.rejectItem).toHaveBeenCalledWith('item_101', 'admin_123', mockAdminReq, dto);
       expect(result).toEqual(mockActionResult);
+    });
+
+    it('should throw UnauthorizedException when the token has no admin id', async () => {
+      const reqWithoutId = { user: { role: ['ADMIN'] } } as unknown as ApiReq;
+      await expect(
+        controller.rejectItem('item_101', reqWithoutId, {}),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(service.rejectItem).not.toHaveBeenCalled();
     });
   });
 

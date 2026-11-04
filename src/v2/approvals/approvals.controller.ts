@@ -7,6 +7,7 @@ import {
   Post,
   Query,
   Req,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -30,9 +31,21 @@ import {
 } from './dto/approval-action.dto';
 
 @ApiTags('v2')
-@Controller('approvals')
+@Controller({ path: 'approvals', version: '2' })
 export class ApprovalsController {
   constructor(private readonly approvalsService: ApprovalsService) {}
+
+  private getAdminId(req: ApiReq): string {
+    const adminId = (
+      req.user?._id ||
+      req.user?.id ||
+      (req.user as any)?.sub
+    )?.toString();
+    if (!adminId) {
+      throw new UnauthorizedException('Unable to identify the admin user');
+    }
+    return adminId;
+  }
 
   @ApiBearerAuth()
   @UseGuards(JwtAdminsGuard)
@@ -72,8 +85,7 @@ export class ApprovalsController {
     @Req() req: ApiReq,
     @Body() dto?: ApproveApprovalDto,
   ): Promise<ApprovalActionResultDto> {
-    const adminId = (req.user?._id || req.user?.id || (req.user as any)?.sub)?.toString() || '';
-    return this.approvalsService.approveItem(id, adminId, dto);
+    return this.approvalsService.approveItem(id, this.getAdminId(req), dto);
   }
 
   @ApiBearerAuth()
@@ -96,8 +108,12 @@ export class ApprovalsController {
     @Req() req: ApiReq,
     @Body() dto?: RejectApprovalDto,
   ): Promise<ApprovalActionResultDto> {
-    const adminId = (req.user?._id || req.user?.id || (req.user as any)?.sub)?.toString() || '';
-    return this.approvalsService.rejectItem(id, adminId, req, dto);
+    return this.approvalsService.rejectItem(
+      id,
+      this.getAdminId(req),
+      req,
+      dto,
+    );
   }
 }
 

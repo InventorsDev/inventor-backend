@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 import { PostService } from 'src/blog/post/post.service';
@@ -11,6 +15,7 @@ import { Event, LeadCandidate, Post, User } from 'src/shared/schema';
 import { CandidateService } from 'src/users/leads/services/candidate.service';
 import { UsersService } from 'src/users/users.service';
 import { ApprovalsService } from './approvals.service';
+import { ApprovalItemType } from './dto/pending-approvals.dto';
 
 const makeFindOneMock = (record: any) => ({
   lean: jest.fn().mockReturnThis(),
@@ -90,6 +95,115 @@ describe('ApprovalsService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('getPendingApprovals', () => {
+    const makeFindMock = (records: any[]) => {
+      const query: any = {
+        select: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn(),
+      };
+      query.limit = jest.fn((n: number) => {
+        query.exec.mockResolvedValue(records.slice(0, n));
+        return query;
+      });
+      query.exec.mockResolvedValue(records);
+      return query;
+    };
+    const makeCountMock = (count: number) => ({
+      exec: jest.fn().mockResolvedValue(count),
+    });
+    const at = (day: number) => new Date(Date.UTC(2026, 0, day));
+
+    beforeEach(() => {
+      mockPostModel.countDocuments = jest.fn();
+      mockEventModel.countDocuments = jest.fn();
+      mockUserModel.countDocuments = jest.fn();
+      mockLeadCandidateModel.countDocuments = jest.fn();
+    });
+
+    it('should merge sources newest first, page them, and total from counts', async () => {
+      mockPostModel.find.mockReturnValue(
+        makeFindMock([
+          { _id: 'b2', title: 'Blog 2', createdAt: at(6) },
+          { _id: 'b1', title: 'Blog 1', createdAt: at(3) },
+        ]),
+      );
+      mockEventModel.find.mockReturnValue(
+        makeFindMock([{ _id: 'e1', title: 'Event 1', createdAt: at(5) }]),
+      );
+      mockUserModel.find.mockReturnValue(
+        makeFindMock([{ _id: 'u1', email: 'u1@x.com', createdAt: at(4) }]),
+      );
+      mockLeadCandidateModel.find.mockReturnValue(makeFindMock([]));
+      mockPostModel.countDocuments.mockReturnValue(makeCountMock(2));
+      mockEventModel.countDocuments.mockReturnValue(makeCountMock(1));
+      mockUserModel.countDocuments.mockReturnValue(makeCountMock(1));
+      mockLeadCandidateModel.countDocuments.mockReturnValue(makeCountMock(0));
+
+      const result = await service.getPendingApprovals({
+        page: 2,
+        limit: 2,
+        type: ApprovalItemType.ALL,
+      });
+
+      expect(result.total).toBe(4);
+      expect(result.items.map((i) => i.id)).toEqual(['u1', 'b1']);
+      // Each source is limited in the database to page * limit documents.
+      expect(mockPostModel.find.mock.results[0].value.limit).toHaveBeenCalledWith(4);
+    });
+
+    it('should list nominations with the nominee name and recommended position', async () => {
+      const nomineeUserId = new Types.ObjectId();
+      mockUserModel.find
+        .mockReturnValueOnce(makeFindMock([]))
+        .mockReturnValueOnce(
+          makeFindMock([
+            {
+              _id: nomineeUserId,
+              basicInfo: { firstName: 'Ada', lastName: 'Lovelace' },
+            },
+          ]),
+        );
+      mockLeadCandidateModel.find.mockReturnValue(
+        makeFindMock([
+          {
+            _id: 'c1',
+            email: 'ada@x.com',
+            userId: nomineeUserId,
+            recommendedFor: 'Lead',
+            createdAt: at(2),
+          },
+          { _id: 'c2', email: 'new@x.com', createdAt: at(1) },
+        ]),
+      );
+      mockUserModel.countDocuments.mockReturnValue(makeCountMock(0));
+      mockLeadCandidateModel.countDocuments.mockReturnValue(makeCountMock(2));
+
+      const result = await service.getPendingApprovals({
+        type: ApprovalItemType.LEAD,
+      });
+
+      expect(result.total).toBe(2);
+      expect(result.items).toMatchObject([
+        { id: 'c1', title: 'Ada Lovelace', role: 'Lead', email: 'ada@x.com' },
+        { id: 'c2', title: 'new@x.com', role: 'Nominee' },
+      ]);
+    });
+
+    it('should throw instead of returning an empty list when a query fails', async () => {
+      const failingQuery = makeFindMock([]);
+      failingQuery.limit = jest.fn().mockReturnThis();
+      failingQuery.exec.mockRejectedValue(new Error('connection lost'));
+      mockPostModel.find.mockReturnValue(failingQuery);
+      mockPostModel.countDocuments.mockReturnValue(makeCountMock(0));
+
+      await expect(
+        service.getPendingApprovals({ type: ApprovalItemType.BLOG }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
   });
 
   describe('approveItem', () => {

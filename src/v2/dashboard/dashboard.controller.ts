@@ -5,7 +5,7 @@ import { DashboardService } from './dashboard.service';
 import { DashboardStatsResponseDto } from './dto/dashboard-stats.dto';
 
 @ApiTags('v2')
-@Controller('dashboard')
+@Controller({ path: 'dashboard', version: '2' })
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 

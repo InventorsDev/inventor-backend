@@ -65,12 +65,33 @@ export class ApprovalsService {
     return `${minutes} min read`;
   }
 
-  private async getPendingBlogs(): Promise<ApprovalItemDto[]> {
+  private readonly pendingBlogsFilter = { status: PostStatus.PENDING };
+  private readonly pendingEventsFilter = { status: EventStatus.PENDING };
+  private readonly pendingUsersFilter = {
+    applicationStatus: ApplicationStatus.PENDING,
+  };
+  private readonly pendingCandidatesFilter = {
+    status: {
+      $in: [LeadCandidateStatus.PENDING, LeadCandidateStatus.INVITED],
+    },
+  };
+
+  private sortByNewest(items: ApprovalItemDto[]): ApprovalItemDto[] {
+    return items.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+  }
+
+  // Each getPending* method returns at most `take` of the newest items, so a
+  // page can be built without loading every pending document into memory.
+  private async getPendingBlogs(take: number): Promise<ApprovalItemDto[]> {
     try {
       const blogs = await this.postModel
-        .find({ status: PostStatus.PENDING })
+        .find(this.pendingBlogsFilter)
         .select('title photo shortDesc description createdAt')
         .sort({ createdAt: -1 })
+        .limit(take)
         .lean()
         .exec();
 
@@ -101,11 +122,13 @@ export class ApprovalsService {
     }
   }
 
-  private async getPendingEvents(): Promise<ApprovalItemDto[]> {
+  private async getPendingEvents(take: number): Promise<ApprovalItemDto[]> {
     try {
       const events = await this.eventModel
-        .find({ status: EventStatus.PENDING })
+        .find(this.pendingEventsFilter)
+        .select('title photo host joinMethod location eventDate createdAt')
         .sort({ createdAt: -1 })
+        .limit(take)
         .lean()
         .exec();
 
@@ -155,25 +178,23 @@ export class ApprovalsService {
     }
   }
 
-  private async getPendingLeads(): Promise<ApprovalItemDto[]> {
+  private async getPendingLeads(take: number): Promise<ApprovalItemDto[]> {
     try {
       const [users, candidates] = await Promise.all([
         this.userModel
-          .find({ applicationStatus: ApplicationStatus.PENDING })
+          .find(this.pendingUsersFilter)
           .select(
             'basicInfo userHandle email leadPosition professionalInfo photo createdAt',
           )
           .sort({ createdAt: -1 })
+          .limit(take)
           .lean()
           .exec(),
         this.leadCandidateModel
-          .find({
-            status: {
-              $in: [LeadCandidateStatus.PENDING, LeadCandidateStatus.INVITED],
-            },
-          })
-          .select('name fullName email position leadPosition photo createdAt')
+          .find(this.pendingCandidatesFilter)
+          .select('email userId recommendedFor createdAt')
           .sort({ createdAt: -1 })
+          .limit(take)
           .lean()
           .exec(),
       ]);
@@ -198,20 +219,48 @@ export class ApprovalsService {
         };
       });
 
-      const candidateItems: ApprovalItemDto[] = candidates.map((c: any) => ({
-        id: c._id?.toString() || '',
-        type: 'lead',
-        title: c.firstname || 'Nominee',
-        role: c.leadPosition || 'Nominee',
-        email: c.email || '',
-        created_at: c.createdAt
-          ? new Date(c.createdAt).toISOString()
-          : new Date().toISOString(),
-      }));
+      // Nominees who already have an account are shown by their name.
+      const nomineeIds = candidates
+        .map((c: any) => c.userId)
+        .filter((id) => !!id);
+      const nominees = nomineeIds.length
+        ? await this.userModel
+            .find({ _id: { $in: nomineeIds } })
+            .select('basicInfo userHandle photo')
+            .lean()
+            .exec()
+        : [];
+      const nomineesById = new Map(
+        nominees.map((u: any) => [u._id.toString(), u]),
+      );
 
-      return [...userItems, ...candidateItems].sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      const candidateItems: ApprovalItemDto[] = candidates.map((c: any) => {
+        const nominee: any = c.userId
+          ? nomineesById.get(c.userId.toString())
+          : undefined;
+        const nomineeName = [
+          nominee?.basicInfo?.firstName,
+          nominee?.basicInfo?.lastName,
+        ]
+          .filter(Boolean)
+          .join(' ');
+
+        return {
+          id: c._id?.toString() || '',
+          type: 'lead',
+          title: nomineeName || nominee?.userHandle || c.email || 'Nominee',
+          role: c.recommendedFor || 'Nominee',
+          email: c.email || '',
+          avatar_url: nominee?.photo || undefined,
+          created_at: c.createdAt
+            ? new Date(c.createdAt).toISOString()
+            : new Date().toISOString(),
+        };
+      });
+
+      return this.sortByNewest([...userItems, ...candidateItems]).slice(
+        0,
+        take,
       );
     } catch (error) {
       this.logger.error(
@@ -223,6 +272,60 @@ export class ApprovalsService {
     }
   }
 
+  private async countPending(type: ApprovalItemType): Promise<number> {
+    const includes = (itemType: ApprovalItemType) =>
+      type === ApprovalItemType.ALL || type === itemType;
+
+    try {
+      const counts = await Promise.all([
+        includes(ApprovalItemType.BLOG)
+          ? this.postModel.countDocuments(this.pendingBlogsFilter).exec()
+          : 0,
+        includes(ApprovalItemType.EVENT)
+          ? this.eventModel.countDocuments(this.pendingEventsFilter).exec()
+          : 0,
+        includes(ApprovalItemType.LEAD)
+          ? this.userModel.countDocuments(this.pendingUsersFilter).exec()
+          : 0,
+        includes(ApprovalItemType.LEAD)
+          ? this.leadCandidateModel
+              .countDocuments(this.pendingCandidatesFilter)
+              .exec()
+          : 0,
+      ]);
+      return counts.reduce((sum, count) => sum + count, 0);
+    } catch (error) {
+      this.logger.error(
+        `Error counting pending approvals: ${(error as Error).message}`,
+      );
+      throw new InternalServerErrorException(
+        'Failed to count pending approvals',
+      );
+    }
+  }
+
+  private async getItemsForType(
+    type: ApprovalItemType,
+    take: number,
+  ): Promise<ApprovalItemDto[]> {
+    if (type === ApprovalItemType.BLOG) {
+      return this.getPendingBlogs(take);
+    }
+    if (type === ApprovalItemType.EVENT) {
+      return this.getPendingEvents(take);
+    }
+    if (type === ApprovalItemType.LEAD) {
+      return this.getPendingLeads(take);
+    }
+
+    const [blogs, events, leads] = await Promise.all([
+      this.getPendingBlogs(take),
+      this.getPendingEvents(take),
+      this.getPendingLeads(take),
+    ]);
+    return this.sortByNewest([...blogs, ...events, ...leads]);
+  }
+
   async getPendingApprovals(
     query: PendingApprovalsQueryDto,
   ): Promise<PendingApprovalsResponseDto> {
@@ -230,38 +333,21 @@ export class ApprovalsService {
     const limit = Math.max(1, Number(query.limit) || 10);
     const type = query.type || ApprovalItemType.ALL;
 
-    let items: ApprovalItemDto[] = [];
-
-    if (type === ApprovalItemType.BLOG) {
-      items = await this.getPendingBlogs();
-    } else if (type === ApprovalItemType.EVENT) {
-      items = await this.getPendingEvents();
-    } else if (type === ApprovalItemType.LEAD) {
-      items = await this.getPendingLeads();
-    } else {
-      const [blogs, events, leads] = await Promise.all([
-        this.getPendingBlogs(),
-        this.getPendingEvents(),
-        this.getPendingLeads(),
-      ]);
-      items = [...blogs, ...events, ...leads];
-    }
-
-    // Sort descending by created_at
-    items.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
-
-    const total = items.length;
+    // The newest `page * limit` items of the merged list can only come from
+    // the newest `page * limit` items of each source.
     const startIndex = (page - 1) * limit;
-    const paginatedItems = items.slice(startIndex, startIndex + limit);
+    const take = startIndex + limit;
+
+    const [items, total] = await Promise.all([
+      this.getItemsForType(type, take),
+      this.countPending(type),
+    ]);
 
     return {
       page,
       limit,
       total,
-      items: paginatedItems,
+      items: items.slice(startIndex, take),
     };
   }
 

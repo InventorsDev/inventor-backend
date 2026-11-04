@@ -3,11 +3,13 @@
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
+  "testTimeout": 60000,
+  "setupFiles": ["<rootDir>/e2e-env.ts"],
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
-    "^src/(.*)$": "<rootDir>/$1",
-    "testTimeout": 10000
+    "^src/(.*)$": "<rootDir>/../src/$1",
+    "^@nestjs/schedule$": "<rootDir>/stubs/nestjs-schedule.ts"
   }
 }
