@@ -11,13 +11,6 @@ import { Event, LeadCandidate, Post, User } from 'src/shared/schema';
 import { CandidateService } from 'src/users/leads/services/candidate.service';
 import { UsersService } from 'src/users/users.service';
 import { ApprovalsService } from './approvals.service';
-import { ApprovalItemType } from './dto/pending-approvals.dto';
-
-const makeQueryMock = (records: any[]) => ({
-  sort: jest.fn().mockReturnThis(),
-  lean: jest.fn().mockReturnThis(),
-  exec: jest.fn().mockResolvedValue(records),
-});
 
 const makeFindOneMock = (record: any) => ({
   lean: jest.fn().mockReturnThis(),
@@ -102,7 +95,11 @@ describe('ApprovalsService', () => {
   describe('approveItem', () => {
     it('should approve a blog when found', async () => {
       mockPostModel.findById.mockReturnValue(
-        makeFindOneMock({ _id: validObjectId, title: 'Test Post', status: PostStatus.PENDING }),
+        makeFindOneMock({
+          _id: validObjectId,
+          title: 'Test Post',
+          status: PostStatus.PENDING,
+        }),
       );
 
       const result = await service.approveItem(validObjectId, 'admin_1');
@@ -114,7 +111,11 @@ describe('ApprovalsService', () => {
 
     it('should throw BadRequestException when blog is not pending', async () => {
       mockPostModel.findById.mockReturnValue(
-        makeFindOneMock({ _id: validObjectId, title: 'Test Post', status: PostStatus.APPROVED }),
+        makeFindOneMock({
+          _id: validObjectId,
+          title: 'Test Post',
+          status: PostStatus.APPROVED,
+        }),
       );
 
       await expect(
@@ -125,7 +126,11 @@ describe('ApprovalsService', () => {
     it('should approve an event when blog is not found', async () => {
       mockPostModel.findById.mockReturnValue(makeFindOneMock(null));
       mockEventModel.findById.mockReturnValue(
-        makeFindOneMock({ _id: validObjectId, title: 'Test Event', status: EventStatus.PENDING }),
+        makeFindOneMock({
+          _id: validObjectId,
+          title: 'Test Event',
+          status: EventStatus.PENDING,
+        }),
       );
 
       const result = await service.approveItem(validObjectId, 'admin_1');
@@ -138,7 +143,11 @@ describe('ApprovalsService', () => {
     it('should throw BadRequestException when event is not pending', async () => {
       mockPostModel.findById.mockReturnValue(makeFindOneMock(null));
       mockEventModel.findById.mockReturnValue(
-        makeFindOneMock({ _id: validObjectId, title: 'Test Event', status: EventStatus.APPROVED }),
+        makeFindOneMock({
+          _id: validObjectId,
+          title: 'Test Event',
+          status: EventStatus.APPROVED,
+        }),
       );
 
       await expect(
@@ -149,11 +158,16 @@ describe('ApprovalsService', () => {
     it('should approve a candidate lead nomination when found', async () => {
       mockPostModel.findById.mockReturnValue(makeFindOneMock(null));
       mockEventModel.findById.mockReturnValue(makeFindOneMock(null));
-      mockLeadCandidateModel.findById.mockReturnValue(makeFindOneMock({ _id: validObjectId }));
+      mockLeadCandidateModel.findById.mockReturnValue(
+        makeFindOneMock({ _id: validObjectId }),
+      );
 
       const result = await service.approveItem(validObjectId, 'admin_1');
 
-      expect(mockCandidateService.approveCandidate).toHaveBeenCalledWith(validObjectId, 'admin_1');
+      expect(mockCandidateService.approveCandidate).toHaveBeenCalledWith(
+        validObjectId,
+        'admin_1',
+      );
       expect(result.success).toBe(true);
       expect(result.type).toBe('lead');
     });
@@ -172,7 +186,9 @@ describe('ApprovalsService', () => {
 
       const result = await service.approveItem(validObjectId, 'admin_1');
 
-      expect(mockUsersService.approveTempApplication).toHaveBeenCalledWith('lead@test.com');
+      expect(mockUsersService.approveTempApplication).toHaveBeenCalledWith(
+        'lead@test.com',
+      );
       expect(result.success).toBe(true);
       expect(result.type).toBe('lead');
     });
@@ -185,28 +201,42 @@ describe('ApprovalsService', () => {
         exec: jest.fn().mockResolvedValue(null),
       });
 
-      await expect(service.approveItem(validObjectId, 'admin_1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.approveItem(validObjectId, 'admin_1'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('rejectItem', () => {
     it('should soft delete a blog when found', async () => {
       mockPostModel.findById.mockReturnValue(
-        makeFindOneMock({ _id: validObjectId, title: 'Test Post', status: PostStatus.PENDING }),
+        makeFindOneMock({
+          _id: validObjectId,
+          title: 'Test Post',
+          status: PostStatus.PENDING,
+        }),
       );
 
-      const result = await service.rejectItem(validObjectId, 'admin_1', mockAdminReq);
+      const result = await service.rejectItem(
+        validObjectId,
+        'admin_1',
+        mockAdminReq,
+      );
 
-      expect(mockPostService.softDeletePost).toHaveBeenCalledWith(validObjectId);
+      expect(mockPostService.softDeletePost).toHaveBeenCalledWith(
+        validObjectId,
+      );
       expect(result.success).toBe(true);
       expect(result.type).toBe('blog');
     });
 
     it('should throw BadRequestException when blog is not pending', async () => {
       mockPostModel.findById.mockReturnValue(
-        makeFindOneMock({ _id: validObjectId, title: 'Test Post', status: PostStatus.APPROVED }),
+        makeFindOneMock({
+          _id: validObjectId,
+          title: 'Test Post',
+          status: PostStatus.APPROVED,
+        }),
       );
 
       await expect(
@@ -217,12 +247,23 @@ describe('ApprovalsService', () => {
     it('should soft delete an event when found', async () => {
       mockPostModel.findById.mockReturnValue(makeFindOneMock(null));
       mockEventModel.findById.mockReturnValue(
-        makeFindOneMock({ _id: validObjectId, title: 'Test Event', status: EventStatus.PENDING }),
+        makeFindOneMock({
+          _id: validObjectId,
+          title: 'Test Event',
+          status: EventStatus.PENDING,
+        }),
       );
 
-      const result = await service.rejectItem(validObjectId, 'admin_1', mockAdminReq);
+      const result = await service.rejectItem(
+        validObjectId,
+        'admin_1',
+        mockAdminReq,
+      );
 
-      expect(mockEventService.softDeleteEvent).toHaveBeenCalledWith(validObjectId, mockAdminReq);
+      expect(mockEventService.softDeleteEvent).toHaveBeenCalledWith(
+        validObjectId,
+        mockAdminReq,
+      );
       expect(result.success).toBe(true);
       expect(result.type).toBe('event');
     });
@@ -230,7 +271,11 @@ describe('ApprovalsService', () => {
     it('should throw BadRequestException when event is not pending', async () => {
       mockPostModel.findById.mockReturnValue(makeFindOneMock(null));
       mockEventModel.findById.mockReturnValue(
-        makeFindOneMock({ _id: validObjectId, title: 'Test Event', status: EventStatus.APPROVED }),
+        makeFindOneMock({
+          _id: validObjectId,
+          title: 'Test Event',
+          status: EventStatus.APPROVED,
+        }),
       );
 
       await expect(
@@ -241,11 +286,18 @@ describe('ApprovalsService', () => {
     it('should reject a candidate lead nomination when found', async () => {
       mockPostModel.findById.mockReturnValue(makeFindOneMock(null));
       mockEventModel.findById.mockReturnValue(makeFindOneMock(null));
-      mockLeadCandidateModel.findById.mockReturnValue(makeFindOneMock({ _id: validObjectId }));
+      mockLeadCandidateModel.findById.mockReturnValue(
+        makeFindOneMock({ _id: validObjectId }),
+      );
 
-      const result = await service.rejectItem(validObjectId, 'admin_1', mockAdminReq, {
-        reason: 'Not qualified',
-      });
+      const result = await service.rejectItem(
+        validObjectId,
+        'admin_1',
+        mockAdminReq,
+        {
+          reason: 'Not qualified',
+        },
+      );
 
       expect(mockCandidateService.rejectCandidate).toHaveBeenCalledWith(
         validObjectId,
@@ -268,7 +320,11 @@ describe('ApprovalsService', () => {
         }),
       });
 
-      const result = await service.rejectItem(validObjectId, 'admin_1', mockAdminReq);
+      const result = await service.rejectItem(
+        validObjectId,
+        'admin_1',
+        mockAdminReq,
+      );
 
       expect(mockUsersService.rejectTempApplication).toHaveBeenCalledWith(
         'lead@test.com',

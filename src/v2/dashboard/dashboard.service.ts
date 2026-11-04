@@ -15,7 +15,6 @@ import {
   LeadCandidateStatus,
   LeadInvitation,
   LeadInvitationDocument,
-  LeadInvitationStatus,
   Post,
   PostDocument,
   User,

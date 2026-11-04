@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Model, isValidObjectId, Types } from 'mongoose';
+import { Model, isValidObjectId } from 'mongoose';
 import { format } from 'date-fns';
 import { Status as EventStatus } from 'src/shared/interfaces/event.type';
 import { Status as PostStatus } from 'src/shared/interfaces/post.type';
