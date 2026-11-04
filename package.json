@@ -63,7 +63,7 @@
     "@compodoc/compodoc": "^1.1.26",
     "@faker-js/faker": "^8.4.1",
     "@nestjs/cli": "^10.0.0",
-    "@nestjs/schematics": "^10.0.0",
+    "@nestjs/schematics": "^12.0.11",
     "@nestjs/testing": "^11.0.15",
     "@types/bcryptjs": "^2.4.4",
     "@types/cron": "^2.0.1",
